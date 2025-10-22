@@ -191,6 +191,7 @@ function TilingPattern(boundingBox, xStep, yStep, gState, matrix) {
  * @param {string} [options.encryption.userPassword] Password for the user bound by the given permissions list.
  * @param {string} [options.encryption.ownerPassword] Both userPassword and ownerPassword should be set for proper authentication.
  * @param {string[]} [options.encryption.userPermissions] Array of permissions "print", "modify", "copy", "annot-forms", accessible by the user.
+ * @param {boolean} [options.pdfUA=false] Enable PDF/UA (Universal Accessibility) mode for creating accessible PDFs conforming to ISO 14289-1.
  * @param {number|"smart"} [options.floatPrecision=16]
  * @returns {jsPDF} jsPDF-instance
  * @description
@@ -219,6 +220,15 @@ function jsPDF(options) {
   var encryptionOptions = null;
 
   options = options || {};
+
+  // PDF/UA configuration
+  var pdfUAOptions = null;
+  if (typeof options === "object" && options.pdfUA) {
+    pdfUAOptions = {
+      enabled: true,
+      conformance: "A" // PDF/UA-1 conformance level
+    };
+  }
 
   if (typeof options === "object") {
     orientation = options.orientation;
@@ -6056,7 +6066,8 @@ function jsPDF(options) {
     Point: Point,
     Rectangle: Rectangle,
     Matrix: Matrix,
-    hasHotfix: hasHotfix //Expose the hasHotfix check so plugins can also check them.
+    hasHotfix: hasHotfix, //Expose the hasHotfix check so plugins can also check them.
+    pdfUA: pdfUAOptions
   };
 
   Object.defineProperty(API.internal.pageSize, "width", {
@@ -6117,6 +6128,68 @@ function jsPDF(options) {
  */
 jsPDF.API = {
   events: []
+};
+
+/**
+ * Enable PDF/UA (Universal Accessibility) mode
+ *
+ * @name enablePDFUA
+ * @function
+ * @instance
+ * @returns {jsPDF}
+ * @memberof jsPDF#
+ *
+ * @example
+ * var doc = new jsPDF();
+ * doc.enablePDFUA();
+ * doc.text('Accessible document', 10, 10);
+ * doc.save('accessible.pdf');
+ */
+jsPDF.API.enablePDFUA = function() {
+  if (!this.internal.pdfUA) {
+    this.internal.pdfUA = {
+      enabled: true,
+      conformance: "A"
+    };
+  } else {
+    this.internal.pdfUA.enabled = true;
+  }
+  return this;
+};
+
+/**
+ * Disable PDF/UA (Universal Accessibility) mode
+ *
+ * @name disablePDFUA
+ * @function
+ * @instance
+ * @returns {jsPDF}
+ * @memberof jsPDF#
+ */
+jsPDF.API.disablePDFUA = function() {
+  if (this.internal.pdfUA) {
+    this.internal.pdfUA.enabled = false;
+  }
+  return this;
+};
+
+/**
+ * Check if PDF/UA mode is enabled
+ *
+ * @name isPDFUAEnabled
+ * @function
+ * @instance
+ * @returns {boolean}
+ * @memberof jsPDF#
+ *
+ * @example
+ * var doc = new jsPDF({ pdfUA: true });
+ * if (doc.isPDFUAEnabled()) {
+ *   console.log('PDF/UA is active');
+ * }
+ */
+jsPDF.API.isPDFUAEnabled = function() {
+  return this.internal.pdfUA && this.internal.pdfUA.enabled === true;
 };
 /**
  * The version of jsPDF.

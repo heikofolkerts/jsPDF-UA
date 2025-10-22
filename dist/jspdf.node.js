@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-09-18T08:03:54.261Z
+ * Version 3.0.3 Built on 2025-10-22T18:25:49.069Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -1007,6 +1007,7 @@ function TilingPattern(boundingBox, xStep, yStep, gState, matrix) {
  * @param {string} [options.encryption.userPassword] Password for the user bound by the given permissions list.
  * @param {string} [options.encryption.ownerPassword] Both userPassword and ownerPassword should be set for proper authentication.
  * @param {string[]} [options.encryption.userPermissions] Array of permissions "print", "modify", "copy", "annot-forms", accessible by the user.
+ * @param {boolean} [options.pdfUA=false] Enable PDF/UA (Universal Accessibility) mode for creating accessible PDFs conforming to ISO 14289-1.
  * @param {number|"smart"} [options.floatPrecision=16]
  * @returns {jsPDF} jsPDF-instance
  * @description
@@ -1035,6 +1036,15 @@ function jsPDF(options) {
   var encryptionOptions = null;
 
   options = options || {};
+
+  // PDF/UA configuration
+  var pdfUAOptions = null;
+  if (typeof options === "object" && options.pdfUA) {
+    pdfUAOptions = {
+      enabled: true,
+      conformance: "A" // PDF/UA-1 conformance level
+    };
+  }
 
   if (typeof options === "object") {
     orientation = options.orientation;
@@ -6821,7 +6831,9 @@ function jsPDF(options) {
     getEncryptor: getEncryptor,
     output: output,
     getNumberOfPages: getNumberOfPages,
-    pages: pages,
+    get pages() {
+      return pages;
+    },
     out: out,
     f2: f2,
     f3: f3,
@@ -6832,7 +6844,8 @@ function jsPDF(options) {
     Point: Point,
     Rectangle: Rectangle,
     Matrix: Matrix,
-    hasHotfix: hasHotfix //Expose the hasHotfix check so plugins can also check them.
+    hasHotfix: hasHotfix, //Expose the hasHotfix check so plugins can also check them.
+    pdfUA: pdfUAOptions
   };
 
   Object.defineProperty(API.internal.pageSize, "width", {
@@ -6893,6 +6906,68 @@ function jsPDF(options) {
  */
 jsPDF.API = {
   events: []
+};
+
+/**
+ * Enable PDF/UA (Universal Accessibility) mode
+ *
+ * @name enablePDFUA
+ * @function
+ * @instance
+ * @returns {jsPDF}
+ * @memberof jsPDF#
+ *
+ * @example
+ * var doc = new jsPDF();
+ * doc.enablePDFUA();
+ * doc.text('Accessible document', 10, 10);
+ * doc.save('accessible.pdf');
+ */
+jsPDF.API.enablePDFUA = function() {
+  if (!this.internal.pdfUA) {
+    this.internal.pdfUA = {
+      enabled: true,
+      conformance: "A"
+    };
+  } else {
+    this.internal.pdfUA.enabled = true;
+  }
+  return this;
+};
+
+/**
+ * Disable PDF/UA (Universal Accessibility) mode
+ *
+ * @name disablePDFUA
+ * @function
+ * @instance
+ * @returns {jsPDF}
+ * @memberof jsPDF#
+ */
+jsPDF.API.disablePDFUA = function() {
+  if (this.internal.pdfUA) {
+    this.internal.pdfUA.enabled = false;
+  }
+  return this;
+};
+
+/**
+ * Check if PDF/UA mode is enabled
+ *
+ * @name isPDFUAEnabled
+ * @function
+ * @instance
+ * @returns {boolean}
+ * @memberof jsPDF#
+ *
+ * @example
+ * var doc = new jsPDF({ pdfUA: true });
+ * if (doc.isPDFUAEnabled()) {
+ *   console.log('PDF/UA is active');
+ * }
+ */
+jsPDF.API.isPDFUAEnabled = function() {
+  return this.internal.pdfUA && this.internal.pdfUA.enabled === true;
 };
 /**
  * The version of jsPDF.
@@ -12263,7 +12338,8 @@ var AcroForm = jsPDF.AcroForm;
         arguments[2],
         arguments[3],
         arguments[4],
-        arguments[5]
+        arguments[5],
+        arguments[6]
       );
     }
     _initialize.call(this);
@@ -13482,14 +13558,19 @@ function parseFontFamily(input) {
     });
 
     var _fontFaceMap = null;
+    var _cachedFontList = null;
 
     function getFontFaceMap(pdf, fontFaces) {
-      if (_fontFaceMap === null) {
-        var fontMap = pdf.getFontList();
+      var currentFontMap = pdf.getFontList();
 
-        var convertedFontFaces = convertToFontFaces(fontMap);
+      // Check if the font list has changed by comparing the JSON representation
+      var currentFontMapString = JSON.stringify(currentFontMap);
+
+      if (_fontFaceMap === null || _cachedFontList !== currentFontMapString) {
+        var convertedFontFaces = convertToFontFaces(currentFontMap);
 
         _fontFaceMap = buildFontFaceMap(convertedFontFaces.concat(fontFaces));
+        _cachedFontList = currentFontMapString;
       }
 
       return _fontFaceMap;
@@ -13565,6 +13646,7 @@ function parseFontFamily(input) {
       },
       set: function(value) {
         _fontFaceMap = null;
+        _cachedFontList = null;
         _fontFaces = value;
       }
     });
@@ -23240,9 +23322,6 @@ function WebPDecoder(imageData) {
       Ga(a, b, c, d, e);
       d[e + 3] = 255;
     }
-    function ga(a, b) {
-      return 0 > a ? 0 : a > b ? b : a;
-    }
     function la(a, b, c) {
       self[a] = function(a, e, f, g, h, k, l, m, n) {
         for (var d = m + (n & -2) * c; m != d; )
@@ -27212,6 +27291,17 @@ WebPDecoder.prototype.getData = function() {
     this.internal.viewerpreferences.configuration = configuration;
     return this;
   };
+
+  // Automatically set DisplayDocTitle for PDF/UA documents
+  jsPDFAPI.events.push([
+    "initialized",
+    function() {
+      if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+        // Automatically enable DisplayDocTitle for PDF/UA
+        this.viewerPreferences({ DisplayDocTitle: true });
+      }
+    }
+  ]);
 })(jsPDF.API);
 
 /** ====================================================================
@@ -27247,45 +27337,72 @@ WebPDecoder.prototype.getData = function() {
 (function(jsPDFAPI) {
 
   var postPutResources = function() {
+    var metadata = this.internal.__metadata__;
+
+    // Build XMP packet
     var xmpmeta_beginning = '<x:xmpmeta xmlns:x="adobe:ns:meta/">';
-    var rdf_beginning =
-      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:jspdf="' +
-      this.internal.__metadata__.namespaceuri +
-      '"><jspdf:metadata>';
-    var rdf_ending = "</jspdf:metadata></rdf:Description></rdf:RDF>";
     var xmpmeta_ending = "</x:xmpmeta>";
-    var utf8_xmpmeta_beginning = unescape(
-      encodeURIComponent(xmpmeta_beginning)
-    );
-    var utf8_rdf_beginning = unescape(encodeURIComponent(rdf_beginning));
-    var utf8_metadata = unescape(
-      encodeURIComponent(this.internal.__metadata__.metadata)
-    );
-    var utf8_rdf_ending = unescape(encodeURIComponent(rdf_ending));
-    var utf8_xmpmeta_ending = unescape(encodeURIComponent(xmpmeta_ending));
 
-    var total_len =
-      utf8_rdf_beginning.length +
-      utf8_metadata.length +
-      utf8_rdf_ending.length +
-      utf8_xmpmeta_beginning.length +
-      utf8_xmpmeta_ending.length;
+    // Build RDF structure with all metadata
+    var rdf_content = '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">';
 
-    this.internal.__metadata__.metadata_object_number = this.internal.newObject();
+    // Main Description element with all namespaces
+    var namespaces = 'xmlns:dc="http://purl.org/dc/elements/1.1/"';
+
+    if (metadata.pdfUA) {
+      namespaces += ' xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"';
+    }
+
+    if (metadata.customMetadata) {
+      namespaces += ' xmlns:jspdf="' + (metadata.namespaceuri || "http://jspdf.default.namespaceuri/") + '"';
+    }
+
+    rdf_content += '<rdf:Description rdf:about="" ' + namespaces + '>';
+
+    // Add dc:title if provided
+    if (metadata.title) {
+      rdf_content += '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' +
+                     escapeXML(metadata.title) +
+                     '</rdf:li></rdf:Alt></dc:title>';
+    }
+
+    // Add PDF/UA identification if enabled
+    if (metadata.pdfUA) {
+      rdf_content += '<pdfuaid:part>1</pdfuaid:part>';
+      rdf_content += '<pdfuaid:conformance>A</pdfuaid:conformance>';
+    }
+
+    // Add custom metadata if provided (legacy support)
+    if (metadata.customMetadata) {
+      rdf_content += '<jspdf:metadata>' + escapeXML(metadata.customMetadata) + '</jspdf:metadata>';
+    }
+
+    rdf_content += '</rdf:Description></rdf:RDF>';
+
+    // Complete XMP packet
+    var xmp_packet = xmpmeta_beginning + rdf_content + xmpmeta_ending;
+    var utf8_xmp_packet = unescape(encodeURIComponent(xmp_packet));
+
+    metadata.metadata_object_number = this.internal.newObject();
     this.internal.write(
-      "<< /Type /Metadata /Subtype /XML /Length " + total_len + " >>"
+      "<< /Type /Metadata /Subtype /XML /Length " + utf8_xmp_packet.length + " >>"
     );
     this.internal.write("stream");
-    this.internal.write(
-      utf8_xmpmeta_beginning +
-        utf8_rdf_beginning +
-        utf8_metadata +
-        utf8_rdf_ending +
-        utf8_xmpmeta_ending
-    );
+    this.internal.write(utf8_xmp_packet);
     this.internal.write("endstream");
     this.internal.write("endobj");
   };
+
+  // Helper function to escape XML special characters
+  function escapeXML(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
 
   var putCatalog = function() {
     if (this.internal.__metadata__.metadata_object_number) {
@@ -27298,6 +27415,18 @@ WebPDecoder.prototype.getData = function() {
   };
 
   /**
+   * Initialize metadata structure
+   * @private
+   */
+  function initMetadata(doc) {
+    if (typeof doc.internal.__metadata__ === "undefined") {
+      doc.internal.__metadata__ = {};
+      doc.internal.events.subscribe("putCatalog", putCatalog);
+      doc.internal.events.subscribe("postPutResources", postPutResources);
+    }
+  }
+
+  /**
    * Adds XMP formatted metadata to PDF
    *
    * @name addMetadata
@@ -27307,17 +27436,45 @@ WebPDecoder.prototype.getData = function() {
    * @returns {jsPDF} jsPDF-instance
    */
   jsPDFAPI.addMetadata = function(metadata, namespaceuri) {
-    if (typeof this.internal.__metadata__ === "undefined") {
-      this.internal.__metadata__ = {
-        metadata: metadata,
-        namespaceuri: namespaceuri || "http://jspdf.default.namespaceuri/"
-      };
-      this.internal.events.subscribe("putCatalog", putCatalog);
-
-      this.internal.events.subscribe("postPutResources", postPutResources);
-    }
+    initMetadata(this);
+    this.internal.__metadata__.customMetadata = metadata;
+    this.internal.__metadata__.namespaceuri = namespaceuri || "http://jspdf.default.namespaceuri/";
     return this;
   };
+
+  /**
+   * Set document title (will be used in XMP dc:title and for DisplayDocTitle)
+   *
+   * @name setDocumentTitle
+   * @function
+   * @param {String} title The document title
+   * @returns {jsPDF} jsPDF-instance
+   */
+  jsPDFAPI.setDocumentTitle = function(title) {
+    initMetadata(this);
+    this.internal.__metadata__.title = title;
+
+    // Also set in document properties for consistency
+    this.setProperties({ title: title });
+
+    return this;
+  };
+
+  // Automatically initialize XMP metadata for PDF/UA documents
+  jsPDFAPI.events.push([
+    "initialized",
+    function() {
+      if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+        initMetadata(this);
+        this.internal.__metadata__.pdfUA = true;
+
+        // Get title from properties if set
+        if (this.internal.title) {
+          this.internal.__metadata__.title = this.internal.title;
+        }
+      }
+    }
+  ]);
 })(jsPDF.API);
 
 /**
