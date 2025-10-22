@@ -53,9 +53,62 @@ doc.save('baseline-test.pdf');`,
     }
   },
 
+  sprint1: {
+    name: 'Sprint 1: Basic PDF/UA',
+    description: 'PDF/UA-Modus, XMP-Metadaten und DisplayDocTitle',
+    code: `// Sprint 1: Basic PDF/UA Infrastructure
+const { jsPDF } = window.jspdf;
+
+// Create PDF with PDF/UA mode enabled
+const doc = new jsPDF({ pdfUA: true });
+
+// Set document title (required for PDF/UA)
+doc.setDocumentTitle('Sprint 1 Test Document');
+
+// Add some text
+doc.text('Hello PDF/UA World!', 10, 10);
+doc.text('This document has:', 10, 20);
+doc.text('  - PDF/UA mode enabled', 10, 30);
+doc.text('  - XMP metadata with PDF/UA identification', 10, 40);
+doc.text('  - DisplayDocTitle set to true', 10, 50);
+
+// Save the PDF
+doc.save('sprint1-test.pdf');`,
+
+    expectedErrors: [
+      'Font nicht eingebettet (Sprint 5)',
+      'Content nicht getaggt (Sprint 3)',
+      'Language fehlt (Sprint 5)',
+      'StructTreeRoot fehlt (Sprint 2)',
+      'Marked=true fehlt (Sprint 2)'
+    ],
+
+    generate: function() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ pdfUA: true });
+
+        // Set document title
+        doc.setDocumentTitle('Sprint 1 Test Document');
+
+        // Add content
+        doc.text('Hello PDF/UA World!', 10, 10);
+        doc.text('This document has:', 10, 20);
+        doc.text('  - PDF/UA mode enabled', 10, 30);
+        doc.text('  - XMP metadata with PDF/UA identification', 10, 40);
+        doc.text('  - DisplayDocTitle set to true', 10, 50);
+
+        return doc;
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
+      }
+    }
+  },
+
   // Weitere Test-Cases werden in späteren Sprints hinzugefügt
-  // sprint1: { ... }
   // sprint2: { ... }
+  // sprint3: { ... }
   // etc.
 };
 

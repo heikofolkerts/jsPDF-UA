@@ -40,11 +40,14 @@
       <div class="col-12">
         <h1>jsPDF PDF/UA Test Application</h1>
         <p class="lead">Test-Anwendung für PDF/UA (Universal Accessibility) Implementierung</p>
-        <div class="alert alert-info">
-          <strong>Sprint 0 - Vorbereitung:</strong> Diese Anwendung wird während der Implementierung erweitert.
+        <div class="alert alert-success">
+          <strong>Sprint 1 - Abgeschlossen! ✓</strong>
           <br>
-          <strong>veraPDF Status:</strong>
-          <span class="badge bg-success">Docker: verfügbar</span>
+          Implementiert: PDF/UA-Modus, XMP-Metadaten, DisplayDocTitle
+          <br>
+          <strong>veraPDF Verbesserung:</strong>
+          <span class="badge bg-success">+108 Checks bestanden</span>
+          <span class="badge bg-info">6 Fehler verbleiben (geplant)</span>
         </div>
       </div>
     </div>
@@ -55,12 +58,12 @@
         <h2>Test Cases</h2>
         <div class="list-group" id="test-cases">
           <button class="list-group-item list-group-item-action test-case-btn" onclick="showTest('baseline')">
-            <span>0. Baseline (Aktueller Stand)</span>
-            <span class="badge bg-danger status-badge">7 Fehler</span>
+            <span>0. Baseline (Ohne PDF/UA)</span>
+            <span class="badge bg-warning status-badge">Referenz</span>
           </button>
-          <button class="list-group-item list-group-item-action test-case-btn disabled">
+          <button class="list-group-item list-group-item-action test-case-btn" onclick="showTest('sprint1')">
             <span>1. Simple PDF/UA (Sprint 1)</span>
-            <span class="badge bg-secondary status-badge">Geplant</span>
+            <span class="badge bg-success status-badge">Fertig</span>
           </button>
           <button class="list-group-item list-group-item-action test-case-btn disabled">
             <span>2. With Structure Tree (Sprint 2)</span>
