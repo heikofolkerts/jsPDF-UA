@@ -252,6 +252,228 @@ describe("Module: PDF/UA", () => {
     });
   });
 
+  describe("US-2.1: Structure Tree (StructTreeRoot)", () => {
+    it("should automatically create StructTreeRoot for PDF/UA documents", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      expect(doc.internal.structureTree).toBeDefined();
+      expect(doc.internal.structureTree.root).toBeDefined();
+      expect(doc.internal.structureTree.root.type).toBe("StructTreeRoot");
+    });
+
+    it("should not create StructTreeRoot for non-PDF/UA documents", () => {
+      const doc = jsPDF();
+
+      expect(doc.internal.structureTree).toBeUndefined();
+    });
+
+    it("should include StructTreeRoot in PDF output", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Test");
+      doc.text("Hello", 10, 10);
+
+      const pdfOutput = doc.output();
+
+      expect(pdfOutput).toContain("/StructTreeRoot");
+      expect(pdfOutput).toContain("/Type /StructTreeRoot");
+    });
+
+    it("should create MarkInfo dictionary with Marked flag", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Test");
+      doc.text("Hello", 10, 10);
+
+      const pdfOutput = doc.output();
+
+      expect(pdfOutput).toContain("/MarkInfo");
+      expect(pdfOutput).toContain("/Marked true");
+    });
+
+    it("should reference StructTreeRoot in Catalog", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Test");
+      doc.text("Hello", 10, 10);
+
+      const pdfOutput = doc.output();
+
+      // Should have reference to StructTreeRoot in Catalog
+      expect(pdfOutput).toMatch(/\/StructTreeRoot \d+ 0 R/);
+      // Should have reference to MarkInfo in Catalog
+      expect(pdfOutput).toMatch(/\/MarkInfo \d+ 0 R/);
+    });
+  });
+
+  describe("US-2.2: Standard Structure Elements", () => {
+    it("should allow adding Document structure element", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.beginStructureElement("Document");
+      doc.endStructureElement();
+
+      expect(doc.internal.structureTree.elements.length).toBe(1);
+      expect(doc.internal.structureTree.elements[0].type).toBe("Document");
+    });
+
+    it("should allow adding Paragraph (P) structure element", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.beginStructureElement("P");
+      doc.endStructureElement();
+
+      expect(doc.internal.structureTree.elements.length).toBe(1);
+      expect(doc.internal.structureTree.elements[0].type).toBe("P");
+    });
+
+    it("should allow adding Heading (H1-H6) structure elements", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      doc.beginStructureElement("H1");
+      doc.endStructureElement();
+
+      doc.beginStructureElement("H2");
+      doc.endStructureElement();
+
+      doc.beginStructureElement("H6");
+      doc.endStructureElement();
+
+      expect(doc.internal.structureTree.elements.length).toBe(3);
+      expect(doc.internal.structureTree.elements[0].type).toBe("H1");
+      expect(doc.internal.structureTree.elements[1].type).toBe("H2");
+      expect(doc.internal.structureTree.elements[2].type).toBe("H6");
+    });
+
+    it("should support nested structure elements", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("H1");
+      doc.endStructureElement();
+      doc.beginStructureElement("P");
+      doc.endStructureElement();
+      doc.endStructureElement();
+
+      expect(doc.internal.structureTree.elements.length).toBe(3);
+
+      const documentElem = doc.internal.structureTree.elements[0];
+      expect(documentElem.type).toBe("Document");
+      expect(documentElem.children.length).toBe(2);
+      expect(documentElem.children[0].type).toBe("H1");
+      expect(documentElem.children[1].type).toBe("P");
+    });
+
+    it("should support method chaining for structure elements", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      const result = doc
+        .beginStructureElement("Document")
+        .beginStructureElement("P")
+        .endStructureElement()
+        .endStructureElement();
+
+      expect(result).toBe(doc);
+      expect(doc.internal.structureTree.elements.length).toBe(2);
+    });
+
+    it("should write StructElem objects to PDF", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Test");
+
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("H1");
+      doc.endStructureElement();
+      doc.endStructureElement();
+
+      doc.text("Hello", 10, 10);
+
+      const pdfOutput = doc.output();
+
+      expect(pdfOutput).toContain("/Type /StructElem");
+      expect(pdfOutput).toContain("/S /Document");
+      expect(pdfOutput).toContain("/S /H1");
+    });
+
+    it("should correctly establish parent-child relationships", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("P");
+
+      const currentElem = doc.getCurrentStructureElement();
+      expect(currentElem.type).toBe("P");
+      expect(currentElem.parent.type).toBe("Document");
+
+      doc.endStructureElement();
+      doc.endStructureElement();
+    });
+
+    it("should handle multiple document structures", () => {
+      const doc = jsPDF({ pdfUA: true });
+
+      // First structure
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("H1");
+      doc.endStructureElement();
+      doc.endStructureElement();
+
+      // Second structure
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("P");
+      doc.endStructureElement();
+      doc.endStructureElement();
+
+      expect(doc.internal.structureTree.elements.length).toBe(4);
+      expect(doc.internal.structureTree.root.children.length).toBe(2);
+    });
+  });
+
+  describe("Sprint 2 Integration Tests", () => {
+    it("should create a complete PDF/UA document with structure tree", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Sprint 2 Complete Test");
+
+      doc.beginStructureElement("Document");
+      doc.beginStructureElement("H1");
+      doc.text("Title", 10, 10);
+      doc.endStructureElement();
+
+      doc.beginStructureElement("P");
+      doc.text("Paragraph text", 10, 20);
+      doc.endStructureElement();
+      doc.endStructureElement();
+
+      const pdfOutput = doc.output();
+
+      // Check all Sprint 2 requirements
+      expect(pdfOutput).toContain("/StructTreeRoot");
+      expect(pdfOutput).toContain("/MarkInfo");
+      expect(pdfOutput).toContain("/Marked true");
+      expect(pdfOutput).toContain("/Type /StructElem");
+      expect(pdfOutput).toContain("/S /Document");
+      expect(pdfOutput).toContain("/S /H1");
+      expect(pdfOutput).toContain("/S /P");
+
+      // Sprint 1 requirements should still be met
+      expect(pdfOutput).toContain("pdfuaid");
+      expect(pdfOutput).toContain("/ViewerPreferences");
+      expect(pdfOutput).toContain("/DisplayDocTitle true");
+    });
+
+    it("should maintain backward compatibility with Sprint 1", () => {
+      const doc = jsPDF({ pdfUA: true });
+      doc.setDocumentTitle("Backward Compatibility Test");
+      doc.text("Content", 10, 10);
+
+      const pdfOutput = doc.output();
+
+      // Sprint 1 features
+      expect(pdfOutput).toContain("pdfuaid:part");
+      expect(pdfOutput).toContain("dc:title");
+      expect(pdfOutput).toContain("/DisplayDocTitle true");
+
+      // Sprint 2 features
+      expect(pdfOutput).toContain("/StructTreeRoot");
+      expect(pdfOutput).toContain("/MarkInfo");
+    });
+  });
+
   describe("Edge Cases", () => {
     it("should handle empty title", () => {
       const doc = jsPDF({ pdfUA: true });

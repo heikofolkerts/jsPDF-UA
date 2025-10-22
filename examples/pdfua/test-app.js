@@ -106,8 +106,86 @@ doc.save('sprint1-test.pdf');`,
     }
   },
 
+  sprint2: {
+    name: 'Sprint 2: Structure Tree',
+    description: 'StructTreeRoot, MarkInfo und Strukturelemente (Document, P, H1)',
+    code: `// Sprint 2: Structure Tree
+const { jsPDF } = window.jspdf;
+
+// Create PDF with PDF/UA mode enabled
+const doc = new jsPDF({ pdfUA: true });
+
+// Set document title (required for PDF/UA)
+doc.setDocumentTitle('Sprint 2 Test Document');
+
+// Create document structure
+doc.beginStructureElement('Document');
+
+  // Add a heading
+  doc.beginStructureElement('H1');
+  doc.text('Hello PDF/UA World!', 10, 10);
+  doc.endStructureElement();
+
+  // Add paragraphs
+  doc.beginStructureElement('P');
+  doc.text('This document has:', 10, 20);
+  doc.endStructureElement();
+
+  doc.beginStructureElement('P');
+  doc.text('  - StructTreeRoot with structure elements', 10, 30);
+  doc.text('  - MarkInfo dictionary with Marked=true', 10, 40);
+  doc.text('  - Nested Document/H1/P structure', 10, 50);
+  doc.endStructureElement();
+
+doc.endStructureElement();
+
+// Save the PDF
+doc.save('sprint2-test.pdf');`,
+
+    expectedErrors: [
+      'Content nicht getaggt (Sprint 3)',
+      'Language fehlt (Sprint 5)',
+      'Font nicht eingebettet (Sprint 5)'
+    ],
+
+    generate: function() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ pdfUA: true });
+
+        // Set document title
+        doc.setDocumentTitle('Sprint 2 Test Document');
+
+        // Create document structure
+        doc.beginStructureElement('Document');
+
+          // Add a heading
+          doc.beginStructureElement('H1');
+          doc.text('Hello PDF/UA World!', 10, 10);
+          doc.endStructureElement();
+
+          // Add paragraphs
+          doc.beginStructureElement('P');
+          doc.text('This document has:', 10, 20);
+          doc.endStructureElement();
+
+          doc.beginStructureElement('P');
+          doc.text('  - StructTreeRoot with structure elements', 10, 30);
+          doc.text('  - MarkInfo dictionary with Marked=true', 10, 40);
+          doc.text('  - Nested Document/H1/P structure', 10, 50);
+          doc.endStructureElement();
+
+        doc.endStructureElement();
+
+        return doc;
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
+      }
+    }
+  },
+
   // Weitere Test-Cases werden in späteren Sprints hinzugefügt
-  // sprint2: { ... }
   // sprint3: { ... }
   // etc.
 };
