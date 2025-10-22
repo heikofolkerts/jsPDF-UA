@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>jsPDF PDF/UA Test Application</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { padding-top: 20px; }
+    #code-display {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .test-case-btn {
+      text-align: left;
+      margin-bottom: 5px;
+    }
+    .status-badge {
+      float: right;
+      font-size: 0.8em;
+    }
+    .alert-validation {
+      margin-top: 20px;
+    }
+    h2 {
+      margin-top: 30px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="row">
+      <div class="col-12">
+        <h1>jsPDF PDF/UA Test Application</h1>
+        <p class="lead">Test-Anwendung für PDF/UA (Universal Accessibility) Implementierung</p>
+        <div class="alert alert-info">
+          <strong>Sprint 0 - Vorbereitung:</strong> Diese Anwendung wird während der Implementierung erweitert.
+          <br>
+          <strong>veraPDF Status:</strong>
+          <span class="badge bg-success">Docker: verfügbar</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <!-- Left Sidebar: Test Cases -->
+      <div class="col-md-4">
+        <h2>Test Cases</h2>
+        <div class="list-group" id="test-cases">
+          <button class="list-group-item list-group-item-action test-case-btn" onclick="showTest('baseline')">
+            <span>0. Baseline (Aktueller Stand)</span>
+            <span class="badge bg-danger status-badge">7 Fehler</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>1. Simple PDF/UA (Sprint 1)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>2. With Structure Tree (Sprint 2)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>3. Marked Content (Sprint 3)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>4. Images with Alt Text (Sprint 4)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>5. Headings (Sprint 4)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+          <button class="list-group-item list-group-item-action test-case-btn disabled">
+            <span>6. Complete Document (Sprint 5)</span>
+            <span class="badge bg-secondary status-badge">Geplant</span>
+          </button>
+        </div>
+
+        <h2 class="mt-4">Ressourcen</h2>
+        <div class="list-group">
+          <a href="../../docs/verapdf-setup.md" class="list-group-item list-group-item-action" target="_blank">
+            📄 veraPDF Setup Guide
+          </a>
+          <a href="../../PDFUA_BACKLOG.md" class="list-group-item list-group-item-action" target="_blank">
+            📋 PDF/UA Backlog
+          </a>
+          <a href="../../PDFUA_SPRINT_PLAN.md" class="list-group-item list-group-item-action" target="_blank">
+            📅 Sprint Plan
+          </a>
+          <a href="https://verapdf.org/" class="list-group-item list-group-item-action" target="_blank">
+            🔗 veraPDF Website
+          </a>
+          <a href="https://pdfa.org/resource/iso-14289-pdfua/" class="list-group-item list-group-item-action" target="_blank">
+            🔗 PDF/UA Standard
+          </a>
+        </div>
+      </div>
+
+      <!-- Right Content: Code Display and Actions -->
+      <div class="col-md-8">
+        <h2>Test Code</h2>
+        <pre><code id="code-display" class="language-javascript">// Wähle einen Test-Case aus der linken Liste</code></pre>
+
+        <h2>Actions</h2>
+        <div class="btn-group" role="group">
+          <button class="btn btn-primary" onclick="generatePDF()" id="btn-generate" disabled>
+            📄 PDF Generieren
+          </button>
+          <button class="btn btn-success" onclick="downloadPDF()" id="btn-download" disabled>
+            💾 Download PDF
+          </button>
+        </div>
+
+        <div class="alert alert-validation alert-warning mt-3" id="validation-info">
+          <h5>📋 Validierung mit veraPDF:</h5>
+          <ol>
+            <li>Klicke "PDF Generieren"</li>
+            <li>Klicke "Download PDF"</li>
+            <li>Öffne Terminal und führe aus:
+              <pre class="mt-2">docker run --rm -v $(pwd):/data verapdf/cli:latest --flavour ua1 /data/test.pdf</pre>
+            </li>
+            <li>Oder verwende veraPDF GUI (siehe <a href="../../docs/verapdf-setup.md">Setup Guide</a>)</li>
+          </ol>
+        </div>
+
+        <div id="error-display" class="alert alert-danger mt-3" style="display: none;">
+          <h5>❌ Fehler:</h5>
+          <pre id="error-text"></pre>
+        </div>
+
+        <div id="success-display" class="alert alert-success mt-3" style="display: none;">
+          <h5>✅ PDF erfolgreich erstellt!</h5>
+          <p>Klicke auf "Download PDF" um die Datei herunterzuladen.</p>
+        </div>
+
+        <div id="validation-results" class="mt-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- jsPDF Library -->
+  <script src="../../dist/jspdf.umd.js"></script>
+
+  <!-- Test Application Script -->
+  <script src="test-app.js"></script>
+
+  <!-- Bootstrap JS (optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
