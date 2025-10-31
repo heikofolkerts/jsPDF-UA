@@ -131,6 +131,40 @@ Alternatively, use the fontconverter tool at `/fontconverter/fontconverter.html`
 
 The library implements parts of the PDF 1.3 specification. When adding features, ensure compliance with the PDF spec.
 
+## PDF/UA Implementation
+
+This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
+
+**Current Status: Sprint 1 (ACTIVE BASELINE)**
+- ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
+  - Status: Text displays correctly in both Acrobat Reader and Firefox
+  - File: `examples/temp/sprint1-baseline.pdf`
+
+- ⚠️ **Sprint 2 (ROLLED BACK)**: Structure tree implementation caused issues
+  - Problem: Acrobat Reader shows "empty page" warning with structure tree
+  - Reason: Structure tree WITHOUT marked content makes Acrobat treat content as untagged
+  - Decision: Rolled back to Sprint 1, will re-implement Sprint 2+3 together
+
+- ⏳ **Next Steps**: Implement Sprint 2 (Structure Tree) + Sprint 3 (Marked Content) together
+  - Structure tree alone is insufficient - needs marked content (BDC/EMC operators)
+  - Must implement ParentTree with indirect array objects
+  - Must add MCID system and connect content to structure
+
+**Critical Learning:**
+- PDF/UA structure tree REQUIRES marked content to work properly
+- Acrobat Reader treats content without BDC/EMC as untagged (shows "empty page")
+- Firefox is more lenient and displays text even without proper tagging
+- Always test with Acrobat Reader + screen reader for true PDF/UA compliance
+
+**Testing Protocol:**
+- The project maintainer tests with a screen reader (Acrobat Reader + screen reader)
+- When working on PDF/UA features, always verify:
+  1. Text displays in Acrobat Reader (not just Firefox)
+  2. Structure tree exists (if implemented)
+  3. Content is tagged with BDC/EMC operators (if structure tree exists)
+  4. Screen reader can navigate and read the content
+  5. Test file: Generate PDF → Open in Acrobat Reader → Verify with screen reader
+
 ## Key Conventions
 
 - Use modern ES6+ JavaScript for all new code (it will be transpiled)

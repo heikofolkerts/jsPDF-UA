@@ -185,6 +185,86 @@ doc.save('sprint2-test.pdf');`,
     }
   },
 
+  sprint3: {
+    name: 'Sprint 3: Marked Content (Auto)',
+    description: 'Content wird automatisch getaggt - keine manuellen BDC/EMC Calls nötig!',
+    code: `// Sprint 3: Marked Content - AUTOMATIC!
+const { jsPDF } = window.jspdf;
+
+// Create PDF with PDF/UA mode enabled
+const doc = new jsPDF({ pdfUA: true });
+
+// Set document title (required for PDF/UA)
+doc.setDocumentTitle('Sprint 3 Test Document');
+
+// Create document structure
+doc.beginStructureElement('Document');
+
+  // Add a heading - text() automatically adds MCIDs!
+  doc.beginStructureElement('H1');
+  doc.text('Hello PDF/UA World!', 10, 10);
+  doc.endStructureElement();
+
+  // Add paragraphs - automatically tagged
+  doc.beginStructureElement('P');
+  doc.text('This document has:', 10, 20);
+  doc.endStructureElement();
+
+  doc.beginStructureElement('P');
+  doc.text('  - Automatic content tagging with MCIDs', 10, 30);
+  doc.text('  - BDC/EMC operators around each text()', 10, 40);
+  doc.text('  - ParentTree mapping MCIDs to structure', 10, 50);
+  doc.text('  - StructParents in page objects', 10, 60);
+  doc.endStructureElement();
+
+doc.endStructureElement();
+
+// Save the PDF
+doc.save('sprint3-test.pdf');`,
+
+    expectedErrors: [
+      'Language fehlt (Sprint 5)',
+      'Font nicht eingebettet (Sprint 5)'
+    ],
+
+    generate: function() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ pdfUA: true });
+
+        // Set document title
+        doc.setDocumentTitle('Sprint 3 Test Document');
+
+        // Create document structure
+        doc.beginStructureElement('Document');
+
+          // Add a heading - automatically tagged
+          doc.beginStructureElement('H1');
+          doc.text('Hello PDF/UA World!', 10, 10);
+          doc.endStructureElement();
+
+          // Add paragraphs - automatically tagged
+          doc.beginStructureElement('P');
+          doc.text('This document has:', 10, 20);
+          doc.endStructureElement();
+
+          doc.beginStructureElement('P');
+          doc.text('  - Automatic content tagging with MCIDs', 10, 30);
+          doc.text('  - BDC/EMC operators around each text()', 10, 40);
+          doc.text('  - ParentTree mapping MCIDs to structure', 10, 50);
+          doc.text('  - StructParents in page objects', 10, 60);
+          doc.endStructureElement();
+
+        doc.endStructureElement();
+
+        return doc;
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
+      }
+    }
+  },
+
   // Weitere Test-Cases werden in späteren Sprints hinzugefügt
   // sprint3: { ... }
   // etc.
