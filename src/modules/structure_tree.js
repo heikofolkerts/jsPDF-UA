@@ -152,44 +152,110 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
-   * Write a structure element to the PDF
+   * Get next MCID for current page
+   * @returns {number} - Next MCID for the current page
    */
-  var writeStructElement = function(elem) {
-    elem.objectNumber = this.internal.newObject();
+  jsPDFAPI.getNextMCID = function() {
+    initStructureTree.call(this);
+    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    if (!this.internal.structureTree.mcidCounter[pageNumber]) {
+      this.internal.structureTree.mcidCounter[pageNumber] = 0;
+    }
+    return this.internal.structureTree.mcidCounter[pageNumber]++;
+  };
 
-    this.internal.write('<< /Type /StructElem');
-    this.internal.write('/S /' + elem.type);
+  /**
+   * Add MCID to current structure element
+   * @param {number} mcid - Marked Content ID
+   * @param {number} pageNumber - Page number
+   */
+  jsPDFAPI.addMCIDToCurrentStructure = function(mcid, pageNumber) {
+    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+      return;
+    }
+    var currentElem = this.internal.structureTree.currentParent;
+    if (currentElem.type !== 'StructTreeRoot') {
+      currentElem.addMCID(pageNumber, mcid);
+    }
+  };
 
-    // Parent reference
-    if (elem.parent && elem.parent.objectNumber) {
-      this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
+  /**
+   * Write ParentTree - maps page MCIDs to structure elements
+   */
+  var writeParentTree = function() {
+    if (!this.internal.structureTree || !this.internal.structureTree.root) {
+      return;
     }
 
-    // Children (K entry)
-    if (elem.children.length > 0) {
-      var kids = elem.children.map(function(c) {
-        return c.objectNumber + ' 0 R';
-      }).join(' ');
-      this.internal.write('/K [' + kids + ']');
-    } else if (elem.mcids.length > 0) {
-      // If no children but has MCIDs, write MCID array
-      if (elem.mcids.length === 1) {
-        this.internal.write('/K ' + elem.mcids[0].mcid);
-      } else {
-        var mcidArray = elem.mcids.map(function(m) {
-          return m.mcid;
-        }).join(' ');
-        this.internal.write('/K [' + mcidArray + ']');
+    // Build mapping: page -> mcid -> structElement
+    var parentTree = {};
+    var elements = this.internal.structureTree.elements;
+
+    for (var i = 0; i < elements.length; i++) {
+      var elem = elements[i];
+      if (elem.mcids && elem.mcids.length > 0) {
+        for (var j = 0; j < elem.mcids.length; j++) {
+          var mcidInfo = elem.mcids[j];
+          var pageKey = mcidInfo.page - 1; // Pages are 0-indexed in ParentTree
+
+          if (!parentTree[pageKey]) {
+            parentTree[pageKey] = [];
+          }
+
+          if (!parentTree[pageKey][mcidInfo.mcid]) {
+            parentTree[pageKey][mcidInfo.mcid] = elem.objectNumber;
+          }
+        }
       }
     }
 
-    // Attributes (optional)
-    if (elem.attributes && Object.keys(elem.attributes).length > 0) {
-      // For now, we skip attributes - they will be added in later sprints
+    // First, create indirect array objects for each page
+    var pageKeys = Object.keys(parentTree).sort(function(a, b) { return a - b; });
+    var pageArrayObjects = {};
+
+    for (var k = 0; k < pageKeys.length; k++) {
+      var pageNum = pageKeys[k];
+      var mcidMap = parentTree[pageNum];
+
+      // Build the array for this page
+      var pageArray = [];
+      var maxMcid = 0;
+
+      for (var mcid in mcidMap) {
+        if (parseInt(mcid) > maxMcid) maxMcid = parseInt(mcid);
+      }
+
+      for (var m = 0; m <= maxMcid; m++) {
+        if (mcidMap[m]) {
+          pageArray.push(mcidMap[m] + ' 0 R');
+        } else {
+          pageArray.push('null');
+        }
+      }
+
+      // Create an indirect object for this array
+      var arrayObjNum = this.internal.newObject();
+      this.internal.write('[' + pageArray.join(' ') + ']');
+      this.internal.write('endobj');
+
+      pageArrayObjects[pageNum] = arrayObjNum;
     }
 
+    // Now write ParentTree as NumberTree with references to the array objects
+    var parentTreeObj = this.internal.newObject();
+    this.internal.write('<< /Nums [');
+
+    for (var k = 0; k < pageKeys.length; k++) {
+      var pageNum = pageKeys[k];
+      this.internal.write(pageNum + ' ' + pageArrayObjects[pageNum] + ' 0 R');
+    }
+
+    this.internal.write(']');
     this.internal.write('>>');
     this.internal.write('endobj');
+
+    // Store reference for StructTreeRoot
+    this.internal.structureTree.parentTreeObj = parentTreeObj;
   };
 
   /**
@@ -202,12 +268,60 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var root = this.internal.structureTree.root;
-
-    // Write all structure elements first (depth-first)
     var elements = this.internal.structureTree.elements;
+
+    // PASS 1: Reserve object numbers for all elements first
     for (var i = 0; i < elements.length; i++) {
-      writeStructElement.call(this, elements[i]);
+      elements[i].objectNumber = this.internal.newObjectDeferred();
     }
+
+    // PASS 2: Write all structure elements with correct references
+    for (var i = 0; i < elements.length; i++) {
+      var elem = elements[i];
+      this.internal.out(elem.objectNumber + ' 0 obj');
+      this.internal.write('<< /Type /StructElem');
+      this.internal.write('/S /' + elem.type);
+
+      // Parent reference
+      if (elem.parent && elem.parent.objectNumber) {
+        this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
+      }
+
+      // Page reference (required when element has MCIDs)
+      if (elem.mcids.length > 0) {
+        var pageNum = elem.mcids[0].page;
+        var pageObjId = 2 + pageNum;
+        this.internal.write('/Pg ' + pageObjId + ' 0 R');
+      }
+
+      // Children (K entry)
+      if (elem.children.length > 0) {
+        var kids = elem.children.map(function(c) {
+          return c.objectNumber + ' 0 R';
+        }).join(' ');
+        this.internal.write('/K [' + kids + ']');
+      } else if (elem.mcids.length > 0) {
+        if (elem.mcids.length === 1) {
+          this.internal.write('/K ' + elem.mcids[0].mcid);
+        } else {
+          var mcidArray = elem.mcids.map(function(m) {
+            return m.mcid;
+          }).join(' ');
+          this.internal.write('/K [' + mcidArray + ']');
+        }
+      }
+
+      this.internal.write('>>');
+      this.internal.write('endobj');
+    }
+
+    // Write ParentTree
+    writeParentTree.call(this);
+
+    // Write RoleMap (empty but required for PDF/UA)
+    var roleMapObj = this.internal.newObject();
+    this.internal.write('<< >>');
+    this.internal.write('endobj');
 
     // Write StructTreeRoot
     root.objectNumber = this.internal.newObject();
@@ -219,6 +333,14 @@ import { jsPDF } from "../jspdf.js";
       }).join(' ');
       this.internal.write('/K [' + rootKids + ']');
     }
+
+    // Add ParentTree reference
+    if (this.internal.structureTree.parentTreeObj) {
+      this.internal.write('/ParentTree ' + this.internal.structureTree.parentTreeObj + ' 0 R');
+    }
+
+    // Add RoleMap reference
+    this.internal.write('/RoleMap ' + roleMapObj + ' 0 R');
 
     this.internal.write('>>');
     this.internal.write('endobj');
@@ -314,6 +436,33 @@ import { jsPDF } from "../jspdf.js";
     "putCatalog",
     putCatalog
   ]);
+
+  /**
+   * Add /Lang to Catalog for document language
+   */
+  var putCatalogLang = function() {
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      this.internal.write('/Lang (en-US)');
+    }
+  };
+
+  jsPDFAPI.events.push([
+    "putCatalog",
+    putCatalogLang
+  ]);
+
+  /**
+   * Add StructParents to each page
+   */
+  var putStructParentsInPage = function() {
+    if (!this.isPDFUAEnabled || !this.isPDFUAEnabled()) {
+      return;
+    }
+    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    this.internal.write('/StructParents ' + (pageNumber - 1));
+  };
+
+  jsPDFAPI.events.push(["putPage", putStructParentsInPage]);
 
 })(jsPDF.API);
 

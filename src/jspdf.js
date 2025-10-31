@@ -4072,13 +4072,41 @@ function jsPDF(options) {
     text = variant === STRING ? text.join(" Tj\nT* ") : text.join(" Tj\n");
     text += " Tj\n";
 
-    var result = "BT\n/";
+    // PDF/UA: Check if we need to wrap content in marked content operators
+    var needsMarkedContent = false;
+    var mcid = null;
+    if (scope.isPDFUAEnabled && scope.isPDFUAEnabled()) {
+      if (scope.internal.structureTree && scope.internal.structureTree.currentParent) {
+        var currentElem = scope.internal.structureTree.currentParent;
+        if (currentElem.type !== 'StructTreeRoot') {
+          needsMarkedContent = true;
+          mcid = scope.getNextMCID();
+          var pageInfo = scope.internal.getCurrentPageInfo();
+          var pageNumber = pageInfo.pageNumber;
+          scope.addMCIDToCurrentStructure(mcid, pageNumber);
+        }
+      }
+    }
+
+    var result = "";
+
+    // PDF/UA: Begin marked content before BT
+    if (needsMarkedContent) {
+      result += "/Span <</MCID " + mcid + ">> BDC\n";
+    }
+
+    result += "BT\n/";
     result += activeFontKey + " " + activeFontSize + " Tf\n"; // font face, style, size
     result += hpf(activeFontSize * lineHeight) + " TL\n"; // line spacing
     result += textColor + "\n";
     result += xtra;
     result += text;
     result += "ET";
+
+    // PDF/UA: End marked content after ET
+    if (needsMarkedContent) {
+      result += "\nEMC";
+    }
 
     out(result);
     usedFonts[activeFontKey] = true;
