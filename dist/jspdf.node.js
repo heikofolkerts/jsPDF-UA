@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-10-31T11:53:49.207Z
+ * Version 3.0.3 Built on 2025-11-17T18:59:00.582Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -4899,7 +4899,13 @@ function jsPDF(options) {
 
     // PDF/UA: Begin marked content before BT
     if (needsMarkedContent) {
-      result += "/Span <</MCID " + mcid + ">> BDC\n";
+      // CRITICAL FIX: Use actual structure element type instead of hardcoded /Span
+      // This ensures the marked content tag matches the structure tree element type
+      var currentElem = scope.internal.structureTree.currentParent;
+      var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
+      // EXPERIMENT: Remove /Lang from BDC, keep only MCID
+      // Lang should be in Catalog and structure elements, not in every BDC
+      result += "/" + structType + " <</MCID " + mcid + ">> BDC\n";
     }
 
     result += "BT\n/";
@@ -26744,7 +26750,7 @@ WebPDecoder.prototype.getData = function() {
       type: 'StructTreeRoot',
       id: this.internal.structureTree.nextStructId++,
       children: [],
-      objectNumber: null,
+      objectNumber: null,  // Will be assigned later
       api: this
     };
 
@@ -26771,6 +26777,7 @@ WebPDecoder.prototype.getData = function() {
     var element = new StructElement(type, parent, this);
     element.attributes = attributes || {};
     element.id = this.internal.structureTree.nextStructId++;
+    // Object number will be assigned later in reserveStructObjectNumbers
 
     if (parent && parent.children) {
       parent.children.push(element);
@@ -26923,7 +26930,11 @@ WebPDecoder.prototype.getData = function() {
    * Write the structure tree to the PDF
    * This is called during PDF generation after all content is written
    */
-  var writeStructTree = function() {
+  /**
+   * Reserve object numbers for structure tree
+   * Called at the right time to avoid collisions with page/resource objects
+   */
+  var reserveStructObjectNumbers = function() {
     if (!this.internal.structureTree || !this.internal.structureTree.root) {
       return;
     }
@@ -26931,15 +26942,40 @@ WebPDecoder.prototype.getData = function() {
     var root = this.internal.structureTree.root;
     var elements = this.internal.structureTree.elements;
 
-    // PASS 1: Reserve object numbers for all elements first
-    for (var i = 0; i < elements.length; i++) {
-      elements[i].objectNumber = this.internal.newObjectDeferred();
+    // Reserve root object number if not already done
+    if (!root.objectNumber) {
+      root.objectNumber = this.internal.newObjectDeferred();
     }
 
-    // PASS 2: Write all structure elements with correct references
+    // Reserve object numbers for all elements
+    for (var i = 0; i < elements.length; i++) {
+      if (!elements[i].objectNumber) {
+        elements[i].objectNumber = this.internal.newObjectDeferred();
+      }
+    }
+  };
+
+  var writeStructTree = function() {
+    if (!this.internal.structureTree || !this.internal.structureTree.root) {
+      return;
+    }
+
+    // CRITICAL FIX: Only write structure tree if there are actual structure elements
+    // If we write an empty StructTreeRoot with Marked=true, Acrobat treats all content as artifacts
+    if (this.internal.structureTree.root.children.length === 0) {
+      return;
+    }
+
+    // Make sure object numbers are reserved before writing
+    reserveStructObjectNumbers.call(this);
+
+    var root = this.internal.structureTree.root;
+    var elements = this.internal.structureTree.elements;
+
+    // Now write all structure elements with correct references
     for (var i = 0; i < elements.length; i++) {
       var elem = elements[i];
-      this.internal.out(elem.objectNumber + ' 0 obj');
+      this.internal.newObjectDeferredBegin(elem.objectNumber, true);
       this.internal.write('<< /Type /StructElem');
       this.internal.write('/S /' + elem.type);
 
@@ -26962,14 +26998,11 @@ WebPDecoder.prototype.getData = function() {
         }).join(' ');
         this.internal.write('/K [' + kids + ']');
       } else if (elem.mcids.length > 0) {
-        if (elem.mcids.length === 1) {
-          this.internal.write('/K ' + elem.mcids[0].mcid);
-        } else {
-          var mcidArray = elem.mcids.map(function(m) {
-            return m.mcid;
-          }).join(' ');
-          this.internal.write('/K [' + mcidArray + ']');
-        }
+        // Always use array format for MCIDs to match reference PDF
+        var mcidArray = elem.mcids.map(function(m) {
+          return m.mcid;
+        }).join(' ');
+        this.internal.write('/K [' + mcidArray + ']');
       }
 
       this.internal.write('>>');
@@ -26984,8 +27017,9 @@ WebPDecoder.prototype.getData = function() {
     this.internal.write('<< >>');
     this.internal.write('endobj');
 
-    // Write StructTreeRoot
-    root.objectNumber = this.internal.newObject();
+    // Write StructTreeRoot (objectNumber was reserved earlier)
+    // CRITICAL FIX: Use newObjectDeferredBegin instead of out() for deferred objects
+    this.internal.newObjectDeferredBegin(root.objectNumber, true);
     this.internal.write('<< /Type /StructTreeRoot');
 
     if (root.children.length > 0) {
@@ -27025,6 +27059,13 @@ WebPDecoder.prototype.getData = function() {
    */
   var writeMarkInfo = function() {
     if (!this.isPDFUAEnabled || !this.isPDFUAEnabled()) {
+      return;
+    }
+
+    // CRITICAL FIX: Only write MarkInfo if there are actual structure elements
+    // Marked=true without tagged content causes Acrobat to treat everything as artifacts
+    if (!this.internal.structureTree || !this.internal.structureTree.root ||
+        this.internal.structureTree.root.children.length === 0) {
       return;
     }
 
@@ -27099,11 +27140,36 @@ WebPDecoder.prototype.getData = function() {
   ]);
 
   /**
+   * Set document language for PDF/UA
+   * @param {string} lang - Language code (e.g., 'en-US', 'de-DE')
+   * @returns {jsPDF}
+   */
+  jsPDFAPI.setLanguage = function(lang) {
+    if (!this.internal.pdfUA) {
+      this.internal.pdfUA = {};
+    }
+    this.internal.pdfUA.language = lang;
+    return this;
+  };
+
+  /**
+   * Get document language for PDF/UA
+   * @returns {string} - Language code (default: 'en-US')
+   */
+  jsPDFAPI.getLanguage = function() {
+    if (this.internal.pdfUA && this.internal.pdfUA.language) {
+      return this.internal.pdfUA.language;
+    }
+    return 'en-US'; // Default language
+  };
+
+  /**
    * Add /Lang to Catalog for document language
    */
   var putCatalogLang = function() {
     if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
-      this.internal.write('/Lang (en-US)');
+      var lang = this.getLanguage();
+      this.internal.write('/Lang (' + lang + ')');
     }
   };
 
@@ -27119,8 +27185,22 @@ WebPDecoder.prototype.getData = function() {
     if (!this.isPDFUAEnabled || !this.isPDFUAEnabled()) {
       return;
     }
+
+    // CRITICAL FIX: Only add page structure properties if there are actual structure elements
+    // These properties signal to Acrobat that content should be tagged
+    if (!this.internal.structureTree || !this.internal.structureTree.root ||
+        this.internal.structureTree.root.children.length === 0) {
+      return;
+    }
+
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
     this.internal.write('/StructParents ' + (pageNumber - 1));
+
+    // Add Tabs entry for proper reading order
+    this.internal.write('/Tabs /S');
+
+    // Add transparency group for proper color space handling
+    this.internal.write('/Group << /Type /Group /S /Transparency /CS /DeviceRGB >>');
   };
 
   jsPDFAPI.events.push(["putPage", putStructParentsInPage]);

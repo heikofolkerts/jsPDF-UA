@@ -4092,7 +4092,13 @@ function jsPDF(options) {
 
     // PDF/UA: Begin marked content before BT
     if (needsMarkedContent) {
-      result += "/Span <</MCID " + mcid + ">> BDC\n";
+      // CRITICAL FIX: Use actual structure element type instead of hardcoded /Span
+      // This ensures the marked content tag matches the structure tree element type
+      var currentElem = scope.internal.structureTree.currentParent;
+      var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
+      // EXPERIMENT: Remove /Lang from BDC, keep only MCID
+      // Lang should be in Catalog and structure elements, not in every BDC
+      result += "/" + structType + " <</MCID " + mcid + ">> BDC\n";
     }
 
     result += "BT\n/";
