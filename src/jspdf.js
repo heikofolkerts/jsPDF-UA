@@ -9,6 +9,7 @@ import { btoa } from "./libs/AtobBtoa.js";
 import { console } from "./libs/console.js";
 import { PDFSecurity } from "./libs/pdfsecurity.js";
 import { toPDFName } from "./libs/pdfname.js";
+import { PDFUA_DEFAULT_FONT } from "./modules/pdfua_fonts.js";
 /**
  * jsPDF's Internal PubSub Implementation.
  * Backward compatible rewritten on 2014 by
@@ -6132,6 +6133,30 @@ function jsPDF(options) {
   // Add the first page automatically
   addFonts.call(API, standardFonts);
   activeFontKey = "F1";
+
+  // PDF/UA: Load default accessible font (Atkinson Hyperlegible)
+  if (pdfUAOptions && pdfUAOptions.enabled) {
+    // Add Atkinson Hyperlegible font to VFS
+    API.addFileToVFS(PDFUA_DEFAULT_FONT.filename, PDFUA_DEFAULT_FONT.data);
+
+    // Register font with jsPDF
+    API.addFont(
+      PDFUA_DEFAULT_FONT.filename,
+      PDFUA_DEFAULT_FONT.name,
+      PDFUA_DEFAULT_FONT.style,
+      PDFUA_DEFAULT_FONT.weight
+    );
+
+    // Set as active font for PDF/UA documents
+    API.setFont(PDFUA_DEFAULT_FONT.name, PDFUA_DEFAULT_FONT.style);
+
+    // Store reference for later use
+    if (!API.internal.pdfUA) {
+      API.internal.pdfUA = {};
+    }
+    API.internal.pdfUA.defaultFont = PDFUA_DEFAULT_FONT.name;
+  }
+
   _addPage(format, orientation);
 
   events.publish("initialized");

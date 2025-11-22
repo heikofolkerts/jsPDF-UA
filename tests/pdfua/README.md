@@ -4,11 +4,20 @@ This directory contains tests and utilities for PDF/UA (Universal Accessibility)
 
 ## Active Test Files
 
-### Test Suite
+### Test Suites
+
+#### Structure Tree & Language Testing
 - **`test-suite-lang-fix.js`** - Main test suite verifying /Lang fix
   - Generates 5 test PDFs with varying complexity
   - Tests: minimal, paragraphs, headings, complex structure, multi-page
   - Run: `node tests/pdfua/test-suite-lang-fix.js`
+
+#### Font Embedding Testing
+- **`test-suite-font-embedding.js`** - Font embedding verification suite
+  - Generates 5 test PDFs to verify Atkinson Hyperlegible embedding
+  - Tests: simple text, no standard fonts, complex document, regular PDF, German text
+  - Run: `node tests/pdfua/test-suite-font-embedding.js`
+  - Verifies: FontFile2 present, font names, character distinction
 
 ### Utilities
 - **`decompress-pdf.py`** - Decompresses PDF for inspection
@@ -18,16 +27,29 @@ This directory contains tests and utilities for PDF/UA (Universal Accessibility)
 - **`analyze-reference-structure.py`** - Analyzes reference PDFs
   - Usage: `python3 tests/pdfua/analyze-reference-structure.py reference.pdf`
 
+- **`verify-font-embedding.sh`** - Verifies font embedding in test PDFs
+  - Usage: `bash tests/pdfua/verify-font-embedding.sh`
+  - Checks: Font names, FontFile2, standard font references, file sizes
+
 ## Test Outputs
 
 Test PDFs are generated in `examples/temp/`:
+
+### Structure Tree Tests:
 - `test1-minimal.pdf` - Single word test
 - `test2-paragraphs.pdf` - Multiple paragraphs
 - `test3-headings.pdf` - Document with H1, H2
 - `test4-complex.pdf` - Complex German document
 - `test5-multipage.pdf` - Multi-page document
 
-Each has a corresponding `*_decompressed.pdf` for inspection.
+### Font Embedding Tests:
+- `test-font-embedding-1.pdf` - Simple text with embedded font
+- `test-font-embedding-2.pdf` - Verify no standard fonts
+- `test-font-embedding-3.pdf` - Complex document with headings
+- `test-font-embedding-4-regular.pdf` - Regular PDF (no font embedding)
+- `test-font-embedding-5-german.pdf` - German text with umlauts
+
+Each structure tree test has a corresponding `*_decompressed.pdf` for inspection.
 
 ## Old Iterations
 
@@ -79,7 +101,7 @@ Old test outputs and debugging files are in `examples/temp/archive/`:
 - ✅ /StructParents in page dictionaries
 - ✅ /Tabs /S for reading order
 - ✅ MarkInfo with /Marked true
-- ⏳ Font embedding (Sprint 5) for full compliance
+- ✅ Font embedding with Atkinson Hyperlegible (Sprint 4/5 completed)
 
 ### Common Issues:
 - Missing `/Lang` in BDC → "AVPageView Textrahmen" in Acrobat

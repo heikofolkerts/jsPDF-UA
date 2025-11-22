@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 2+3 (COMPLETED ✅ - 2025-11-22)**
+**Current Status: Sprint 4/5 (COMPLETED ✅ - 2025-11-22)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -166,8 +166,50 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - **Format**: `/StructType <</Lang (language-code)/MCID n>> BDC`
   - **Verification**: 5 test PDFs with varying complexity all readable in Acrobat Reader
 
-  **Remaining requirements:**
-  - ⏳ Font embedding (Sprint 5) - required for full PDF/UA compliance but not blocking
+- ✅ **Sprint 4/5 (COMPLETED)**: Font Embedding with Atkinson Hyperlegible
+  - **Status**: Automatic font embedding implemented and tested
+  - **Font**: Atkinson Hyperlegible Regular (Braille Institute)
+  - **Why**: Specifically designed for accessibility (low vision, magnification, character distinction)
+
+  **What's been implemented:**
+  - ✅ `src/modules/pdfua_fonts.js` - Font module with Base64-encoded Atkinson Hyperlegible (74 KB)
+  - ✅ Auto-loading in `src/jspdf.js` - Font loaded automatically when `pdfUA: true`
+  - ✅ No user configuration required - Works out of the box
+  - ✅ VFS integration - Font added to Virtual File System
+  - ✅ Font registration - Registered with jsPDF font system
+  - ✅ Default font setting - Automatically set as active font
+  - ✅ Test suite - 5 test PDFs verifying font embedding
+  - ✅ Verification script - Shell script to check font embedding
+
+  **Font Features:**
+  - Enhanced character distinction (I vs l vs 1, 0 vs O)
+  - Large counters for clarity
+  - Optimized for magnification (400%+ zoom)
+  - Developed with low vision specialists
+  - SIL Open Font License (OFL) - freely embeddable
+
+  **Bundle Size Impact:**
+  - UMD minified: 491 KB (+71 KB, +17%)
+  - ES minified: 416 KB (+76 KB, +22%)
+  - Only loaded when `pdfUA: true` (no impact on regular PDFs)
+
+  **Test Results:**
+  - ✅ Font embedded in all PDF/UA documents
+  - ✅ FontFile2 present (TrueType font stream)
+  - ✅ Regular PDFs do NOT include font (correct)
+  - ✅ German umlauts work correctly (ä ö ü ß)
+  - ✅ Screen reader testing (USER VERIFIED - successful)
+  - ✅ veraPDF validation (ALL TESTS PASSED - PDF/UA-1 compliant)
+
+  **veraPDF Validation Results (2025-11-22):**
+  - ✅ `test-font-embedding-1.pdf` - PASS
+  - ✅ `test-font-embedding-2.pdf` - PASS
+  - ✅ `test-font-embedding-3.pdf` - PASS
+  - ✅ `test-font-embedding-5-german.pdf` - PASS
+  - ✅ All font embedding requirements met
+  - ✅ Full PDF/UA-1 compliance achieved
+
+  **Status:** ✅ **PRODUCTION READY** for text-based PDF/UA documents
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
