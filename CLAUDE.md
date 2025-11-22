@@ -135,26 +135,50 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 1 (ACTIVE BASELINE)**
+**Current Status: Sprint 2+3 (COMPLETED ✅ - 2025-11-22)**
+
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
-  - File: `examples/temp/sprint1-baseline.pdf`
 
-- ⚠️ **Sprint 2 (ROLLED BACK)**: Structure tree implementation caused issues
-  - Problem: Acrobat Reader shows "empty page" warning with structure tree
-  - Reason: Structure tree WITHOUT marked content makes Acrobat treat content as untagged
-  - Decision: Rolled back to Sprint 1, will re-implement Sprint 2+3 together
+- ✅ **Sprint 2+3 (COMPLETED & VERIFIED)**: Structure Tree + Marked Content system
+  - **Status**: Content is now readable by screen readers in Acrobat Reader
+  - **Issue Resolved**: "AVPageView Textrahmen" problem fixed by ensuring `/Lang` in BDC operators
 
-- ⏳ **Next Steps**: Implement Sprint 2 (Structure Tree) + Sprint 3 (Marked Content) together
-  - Structure tree alone is insufficient - needs marked content (BDC/EMC operators)
-  - Must implement ParentTree with indirect array objects
-  - Must add MCID system and connect content to structure
+  **What's been implemented and verified:**
+  - ✅ StructTreeRoot with RoleMap and ParentTree
+  - ✅ Document, H1-H6, P structure elements
+  - ✅ Automatic MCID generation and BDC/EMC wrapping
+  - ✅ ParentTree with indirect array objects (correct format)
+  - ✅ /StructParents in page dictionaries
+  - ✅ /Tabs /S for reading order
+  - ✅ /Group with /Transparency for proper rendering
+  - ✅ /Lang in Catalog AND in every BDC operator (CRITICAL FIX)
+  - ✅ /K array format: `/K [0]` instead of `/K 0`
+  - ✅ Complete parent hierarchy: Elements → Document → StructTreeRoot
+  - ✅ Object numbering without collisions
+  - ✅ MarkInfo with /Marked true
+  - ✅ Content readable by screen readers (verified with test suite)
+
+  **Critical Fix (2025-11-22):**
+  - **Problem**: Acrobat Reader showed "AVPageView Textrahmen" instead of actual content
+  - **Root Cause**: Missing `/Lang` attribute in BDC operators (src/jspdf.js:4099-4102)
+  - **Solution**: Re-added `/Lang` attribute to BDC operators
+  - **Format**: `/StructType <</Lang (language-code)/MCID n>> BDC`
+  - **Verification**: 5 test PDFs with varying complexity all readable in Acrobat Reader
+
+  **Remaining requirements:**
+  - ⏳ Font embedding (Sprint 5) - required for full PDF/UA compliance but not blocking
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
 - Acrobat Reader treats content without BDC/EMC as untagged (shows "empty page")
+- **CRITICAL**: `/Lang` attribute MUST be present in EVERY BDC operator, not just in Catalog
+  - Without `/Lang` in BDC: Acrobat shows "AVPageView Textrahmen" (treats content as artifact)
+  - With `/Lang` in BDC: Content is recognized as tagged and readable by screen readers
+  - Format: `/StructType <</Lang (language-code)/MCID n>> BDC`
 - Firefox is more lenient and displays text even without proper tagging
 - Always test with Acrobat Reader + screen reader for true PDF/UA compliance
+- Reference PDFs consistently include `/Lang` in every BDC operator
 
 **Testing Protocol:**
 - The project maintainer tests with a screen reader (Acrobat Reader + screen reader)
