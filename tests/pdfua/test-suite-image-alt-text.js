@@ -183,8 +183,8 @@ try {
   console.log('✗ Failed:', error.message);
 }
 
-// Test 4: Image without alt text (should warn and mark as artifact)
-console.log('\n[Test 4] Image without alt text (should warn)');
+// Test 4: Image without alt text (should throw error in strict mode)
+console.log('\n[Test 4] Image without alt text (should throw error)');
 try {
   const doc = new jsPDF({ pdfUA: true });
 
@@ -200,14 +200,7 @@ try {
   doc.text('This document tests image without alt text.', 10, 20);
   doc.endStructureElement();
 
-  // Capture console.warn
-  var warnings = [];
-  var originalWarn = console.warn;
-  console.warn = function(msg) {
-    warnings.push(msg);
-  };
-
-  // Add image WITHOUT alt text
+  // Add image WITHOUT alt text - this should throw error
   doc.addImage({
     imageData: redPixelPNG,
     format: 'PNG',
@@ -215,34 +208,20 @@ try {
     y: 30,
     width: 40,
     height: 40
-    // NO alt text provided
+    // NO alt text provided, NO decorative flag
   });
 
-  // Restore console.warn
-  console.warn = originalWarn;
-
-  doc.beginStructureElement('P');
-  doc.text('Image should be marked as artifact with warning.', 10, 80);
-  doc.endStructureElement();
   doc.endStructureElement();
 
-  const filename = 'examples/temp/test-image-4-no-alt-warning.pdf';
-  fs.writeFileSync(filename, Buffer.from(doc.output('arraybuffer')));
-  console.log('✓ Generated:', filename);
-
-  if (warnings.length > 0) {
-    console.log('✓ Warning issued:', warnings[0].substring(0, 60) + '...');
-  } else {
-    console.log('⚠️  No warning issued (expected warning)');
-  }
-
-  const pdfContent = fs.readFileSync(filename, 'utf8');
-  if (pdfContent.includes('/Artifact')) {
-    console.log('✓ Image marked as artifact (no alt text)');
-  }
+  console.log('✗ Should have thrown error but did not');
 
 } catch (error) {
-  console.log('✗ Failed:', error.message);
+  if (error.message.includes('PDF/UA Error')) {
+    console.log('✓ Error thrown as expected (strict mode)');
+    console.log('✓ Error message:', error.message.split('\n')[0]);
+  } else {
+    console.log('✗ Unexpected error:', error.message);
+  }
 }
 
 // Test 5: Images within structure elements

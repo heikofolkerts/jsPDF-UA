@@ -478,10 +478,20 @@ import { atob } from "../libs/AtobBtoa.js";
     var mcid = null;
 
     if (isPDFUA) {
-      // Check if we have alt text or if it's marked as decorative
+      // PDF/UA STRICT MODE: Images MUST have alt text OR be explicitly decorative
       if (!altText && !isDecorative) {
-        console.warn('PDF/UA Warning: Image without alternative text will be marked as decorative artifact.');
-        isDecorative = true;
+        throw new Error(
+          'PDF/UA Error: Images must have alternative text or be marked as decorative.\n' +
+          'Use: addImage({..., alt: "Description"}) or addImage({..., decorative: true})'
+        );
+      }
+
+      // Validate alt text is not empty
+      if (altText && typeof altText === 'string' && altText.trim() === '') {
+        throw new Error(
+          'PDF/UA Error: Alternative text cannot be empty.\n' +
+          'Provide meaningful description or mark image as decorative: true'
+        );
       }
 
       if (isDecorative) {
