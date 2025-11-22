@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-11-17T18:59:00.575Z
+ * Version 3.0.3 Built on 2025-11-22T11:30:10.373Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -4015,7 +4015,7 @@
 
       //lang
 
-      options.lang;
+      var lang = options.lang;
 
       //renderingMode
       var renderingMode = -1;
@@ -4301,9 +4301,10 @@
         // This ensures the marked content tag matches the structure tree element type
         var currentElem = scope.internal.structureTree.currentParent;
         var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
-        // EXPERIMENT: Remove /Lang from BDC, keep only MCID
-        // Lang should be in Catalog and structure elements, not in every BDC
-        result += "/" + structType + " <</MCID " + mcid + ">> BDC\n";
+        // PDF/UA REQUIRES /Lang in BDC operator (not just in Catalog)
+        // Reference PDFs show that Acrobat Reader needs this to recognize tagged content
+        var lang = scope.getLanguage();
+        result += "/" + structType + " <</Lang (" + lang + ")/MCID " + mcid + ">> BDC\n";
       }
       result += "BT\n/";
       result += activeFontKey + " " + activeFontSize + " Tf\n"; // font face, style, size
