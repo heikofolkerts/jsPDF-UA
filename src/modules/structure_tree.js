@@ -317,6 +317,13 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
       }
 
+      // Alternative text (for images, required for PDF/UA)
+      if (elem.alt) {
+        // Escape special characters in alt text
+        var escapedAlt = elem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        this.internal.write('/Alt (' + escapedAlt + ')');
+      }
+
       // Page reference (required when element has MCIDs)
       if (elem.mcids.length > 0) {
         var pageNum = elem.mcids[0].page;

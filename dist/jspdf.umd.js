@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-11-22T12:15:54.743Z
+ * Version 3.0.3 Built on 2025-11-22T12:47:14.865Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -139,7 +139,7 @@
       }
     }
   }
-  var console = {
+  var console$1 = {
     log: consoleLog,
     warn: consoleWarn,
     error: consoleError
@@ -149,7 +149,7 @@
     if (typeof opts === "undefined") opts = {
       autoBom: false
     };else if (_typeof(opts) !== "object") {
-      console.warn("Deprecated: Expected third argument to be a object");
+      console$1.warn("Deprecated: Expected third argument to be a object");
       opts = {
         autoBom: !opts
       };
@@ -172,7 +172,7 @@
       saveAs(xhr.response, name, opts);
     };
     xhr.onerror = function () {
-      console.error("could not download file");
+      console$1.error("could not download file");
     };
     xhr.send();
   }
@@ -1051,7 +1051,7 @@
             sub[0].apply(context, args);
           } catch (ex) {
             if (globalObject.console) {
-              console.error("jsPDF PubSub Error", ex.message, ex);
+              console$1.error("jsPDF PubSub Error", ex.message, ex);
             }
           }
           if (sub[1]) tokens.push(token);
@@ -3270,7 +3270,7 @@
         height = format[1];
       }
       if (width > 14400 || height > 14400) {
-        console.warn("A page in a PDF can not be wider or taller than 14400 userUnit. jsPDF limits the width/height to 14400");
+        console$1.warn("A page in a PDF can not be wider or taller than 14400 userUnit. jsPDF limits the width/height to 14400");
         width = Math.min(14400, width);
         height = Math.min(14400, height);
       }
@@ -3351,7 +3351,7 @@
         key = fontmap[fontName][fontStyle];
       } else {
         if (options.disableWarning === false) {
-          console.warn("Unable to look up font label for font '" + fontName + "', '" + fontStyle + "'. Refer to getFontList() for available fonts.");
+          console$1.warn("Unable to look up font label for font '" + fontName + "', '" + fontStyle + "'. Refer to getFontList() for available fonts.");
         }
       }
       if (!key && !options.noFallback) {
@@ -3550,7 +3550,7 @@
           if (typeof globalObject.URL !== "undefined" && typeof globalObject.URL.createObjectURL === "function") {
             return globalObject.URL && globalObject.URL.createObjectURL(getBlob(buildDocument())) || void 0;
           } else {
-            console.warn("bloburl is not supported by your system, because URL.createObjectURL is not supported by your browser.");
+            console$1.warn("bloburl is not supported by your system, because URL.createObjectURL is not supported by your browser.");
           }
           break;
         case "datauristring":
@@ -9263,6 +9263,62 @@
       width = dims[0];
       height = dims[1];
       images[image.index] = image;
+
+      // PDF/UA: Handle image accessibility
+      var isPDFUA = this.isPDFUAEnabled && this.isPDFUAEnabled();
+      var altText = image.alt;
+      var isDecorative = image.decorative;
+      var mcid = null;
+      if (isPDFUA) {
+        // Check if we have alt text or if it's marked as decorative
+        if (!altText && !isDecorative) {
+          console.warn('PDF/UA Warning: Image without alternative text will be marked as decorative artifact.');
+          isDecorative = true;
+        }
+        if (isDecorative) {
+          // Mark as artifact (decorative, not part of content)
+          this.internal.write("/Artifact BMC");
+        } else {
+          // Create marked content with MCID for accessible image
+          mcid = this.getNextMCID ? this.getNextMCID() : 0;
+          var lang = this.getLanguage();
+          this.internal.write("/Figure <</Lang (" + lang + ")/MCID " + mcid + ">> BDC");
+
+          // Add to structure tree
+          var currentParent = this.internal.structureTree && this.internal.structureTree.currentParent;
+          if (currentParent) {
+            var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+
+            // Create Figure structure element
+            var figureElement = {
+              type: 'Figure',
+              alt: altText,
+              mcids: [{
+                mcid: mcid,
+                page: pageNumber
+              }],
+              // Store as array for structure tree
+              parent: currentParent,
+              page: pageNumber,
+              children: [] // Figure elements don't have children
+            };
+
+            // Add to structure tree's elements array
+            if (!this.internal.structureTree.elements) {
+              this.internal.structureTree.elements = [];
+            }
+            this.internal.structureTree.elements.push(figureElement);
+
+            // Add as child to current parent
+            if (!currentParent.children) {
+              currentParent.children = [];
+            }
+            currentParent.children.push(figureElement);
+          } else {
+            console.warn('PDF/UA Warning: Image added outside structure element context.');
+          }
+        }
+      }
       if (rotation) {
         rotation *= Math.PI / 180;
         var c = Math.cos(rotation);
@@ -9287,6 +9343,11 @@
       }
       this.internal.write("/I" + image.index + " Do"); //Paint Image
       this.internal.write("Q"); //Restore graphics state
+
+      // PDF/UA: Close marked content
+      if (isPDFUA) {
+        this.internal.write("EMC");
+      }
     };
 
     /**
@@ -9511,7 +9572,7 @@
      * @returns jsPDF
      */
     jsPDFAPI.addImage = function () {
-      var imageData, format, x, y, w, h, alias, compression, rotation;
+      var imageData, format, x, y, w, h, alias, compression, rotation, alt, decorative;
       imageData = arguments[0];
       if (typeof arguments[1] === "number") {
         format = UNKNOWN;
@@ -9522,6 +9583,8 @@
         alias = arguments[5];
         compression = arguments[6];
         rotation = arguments[7];
+        alt = arguments[8];
+        decorative = arguments[9];
       } else {
         format = arguments[1];
         x = arguments[2];
@@ -9531,6 +9594,8 @@
         alias = arguments[6];
         compression = arguments[7];
         rotation = arguments[8];
+        alt = arguments[9];
+        decorative = arguments[10];
       }
       if (_typeof(imageData) === "object" && !isDOMElement(imageData) && "imageData" in imageData) {
         var options = imageData;
@@ -9543,6 +9608,8 @@
         alias = options.alias || alias;
         compression = options.compression || compression;
         rotation = options.rotation || options.angle || rotation;
+        alt = options.alt || options.altText || alt;
+        decorative = options.decorative || options.isDecorative || decorative;
       }
 
       //If compression is not explicitly set, determine if we should use compression
@@ -9554,11 +9621,11 @@
         throw new Error("Invalid coordinates passed to jsPDF.addImage");
       }
       initialize.call(this);
-      var image = processImageData.call(this, imageData, format, alias, compression);
+      var image = processImageData.call(this, imageData, format, alias, compression, alt, decorative);
       writeImageToPDF.call(this, x, y, w, h, image, rotation);
       return this;
     };
-    var processImageData = function processImageData(imageData, format, alias, compression) {
+    var processImageData = function processImageData(imageData, format, alias, compression, alt, decorative) {
       var result, dataAsBinaryString;
       if (typeof imageData === "string" && getImageFileTypeByImageData(imageData) === UNKNOWN) {
         imageData = unescape(imageData);
@@ -9597,6 +9664,10 @@
       if (!result) {
         throw new Error("An unknown error occurred whilst processing the image.");
       }
+
+      // PDF/UA: Add alternative text and decorative flag
+      result.alt = alt || null;
+      result.decorative = decorative || false;
       return result;
     };
 
@@ -11996,7 +12067,7 @@
      */
     Context2D.prototype.moveTo = function (x, y) {
       if (isNaN(x) || isNaN(y)) {
-        console.error("jsPDF.context2d.moveTo: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.moveTo: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.moveTo");
       }
       var pt = this.ctx.transform.applyToPoint(new Point(x, y));
@@ -12043,7 +12114,7 @@
      */
     Context2D.prototype.lineTo = function (x, y) {
       if (isNaN(x) || isNaN(y)) {
-        console.error("jsPDF.context2d.lineTo: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.lineTo: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.lineTo");
       }
       var pt = this.ctx.transform.applyToPoint(new Point(x, y));
@@ -12080,7 +12151,7 @@
      */
     Context2D.prototype.quadraticCurveTo = function (cpx, cpy, x, y) {
       if (isNaN(x) || isNaN(y) || isNaN(cpx) || isNaN(cpy)) {
-        console.error("jsPDF.context2d.quadraticCurveTo: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.quadraticCurveTo: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.quadraticCurveTo");
       }
       var pt0 = this.ctx.transform.applyToPoint(new Point(x, y));
@@ -12110,7 +12181,7 @@
      */
     Context2D.prototype.bezierCurveTo = function (cp1x, cp1y, cp2x, cp2y, x, y) {
       if (isNaN(x) || isNaN(y) || isNaN(cp1x) || isNaN(cp1y) || isNaN(cp2x) || isNaN(cp2y)) {
-        console.error("jsPDF.context2d.bezierCurveTo: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.bezierCurveTo: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.bezierCurveTo");
       }
       var pt0 = this.ctx.transform.applyToPoint(new Point(x, y));
@@ -12143,7 +12214,7 @@
      */
     Context2D.prototype.arc = function (x, y, radius, startAngle, endAngle, counterclockwise) {
       if (isNaN(x) || isNaN(y) || isNaN(radius) || isNaN(startAngle) || isNaN(endAngle)) {
-        console.error("jsPDF.context2d.arc: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.arc: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.arc");
       }
       counterclockwise = Boolean(counterclockwise);
@@ -12201,7 +12272,7 @@
      */
     Context2D.prototype.rect = function (x, y, w, h) {
       if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
-        console.error("jsPDF.context2d.rect: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.rect: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.rect");
       }
       this.moveTo(x, y);
@@ -12226,7 +12297,7 @@
      */
     Context2D.prototype.fillRect = function (x, y, w, h) {
       if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
-        console.error("jsPDF.context2d.fillRect: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.fillRect: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.fillRect");
       }
       if (isFillTransparent.call(this)) {
@@ -12265,7 +12336,7 @@
      */
     Context2D.prototype.strokeRect = function strokeRect(x, y, w, h) {
       if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
-        console.error("jsPDF.context2d.strokeRect: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.strokeRect: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.strokeRect");
       }
       if (isStrokeTransparent.call(this)) {
@@ -12293,7 +12364,7 @@
      */
     Context2D.prototype.clearRect = function (x, y, w, h) {
       if (isNaN(x) || isNaN(y) || isNaN(w) || isNaN(h)) {
-        console.error("jsPDF.context2d.clearRect: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.clearRect: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.clearRect");
       }
       if (this.ignoreClearRect) {
@@ -12478,7 +12549,7 @@
      */
     Context2D.prototype.fillText = function (text, x, y, maxWidth) {
       if (isNaN(x) || isNaN(y) || typeof text !== "string") {
-        console.error("jsPDF.context2d.fillText: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.fillText: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.fillText");
       }
       maxWidth = isNaN(maxWidth) ? undefined : maxWidth;
@@ -12513,7 +12584,7 @@
      */
     Context2D.prototype.strokeText = function (text, x, y, maxWidth) {
       if (isNaN(x) || isNaN(y) || typeof text !== "string") {
-        console.error("jsPDF.context2d.strokeText: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.strokeText: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.strokeText");
       }
       if (isStrokeTransparent.call(this)) {
@@ -12545,7 +12616,7 @@
      */
     Context2D.prototype.measureText = function (text) {
       if (typeof text !== "string") {
-        console.error("jsPDF.context2d.measureText: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.measureText: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.measureText");
       }
       var pdf = this.pdf;
@@ -12581,7 +12652,7 @@
      */
     Context2D.prototype.scale = function (scalewidth, scaleheight) {
       if (isNaN(scalewidth) || isNaN(scaleheight)) {
-        console.error("jsPDF.context2d.scale: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.scale: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.scale");
       }
       var matrix = new Matrix(scalewidth, 0.0, 0.0, scaleheight, 0.0, 0.0);
@@ -12599,7 +12670,7 @@
      */
     Context2D.prototype.rotate = function (angle) {
       if (isNaN(angle)) {
-        console.error("jsPDF.context2d.rotate: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.rotate: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.rotate");
       }
       var matrix = new Matrix(Math.cos(angle), Math.sin(angle), -Math.sin(angle), Math.cos(angle), 0.0, 0.0);
@@ -12617,7 +12688,7 @@
      */
     Context2D.prototype.translate = function (x, y) {
       if (isNaN(x) || isNaN(y)) {
-        console.error("jsPDF.context2d.translate: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.translate: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.translate");
       }
       var matrix = new Matrix(1.0, 0.0, 0.0, 1.0, x, y);
@@ -12639,7 +12710,7 @@
      */
     Context2D.prototype.transform = function (a, b, c, d, e, f) {
       if (isNaN(a) || isNaN(b) || isNaN(c) || isNaN(d) || isNaN(e) || isNaN(f)) {
-        console.error("jsPDF.context2d.transform: Invalid arguments", arguments);
+        console$1.error("jsPDF.context2d.transform: Invalid arguments", arguments);
         throw new Error("Invalid arguments passed to jsPDF.context2d.transform");
       }
       var matrix = new Matrix(a, b, c, d, e, f);
@@ -24375,7 +24446,7 @@
       var k = chase;
       var op_end = op + chase_length + (chase_code !== code ? 1 : 0);
       if (op_end > output_length) {
-        console.log("Warning, gif stream longer than expected.");
+        console$1.log("Warning, gif stream longer than expected.");
         return;
       }
 
@@ -24408,7 +24479,7 @@
       prev_code = code;
     }
     if (op !== output_length) {
-      console.log("Warning, gif stream shorter than expected.");
+      console$1.log("Warning, gif stream shorter than expected.");
     }
     return output;
   }
@@ -25089,7 +25160,7 @@
       this.data = new Uint8Array(len);
       this[bitn]();
     } catch (e) {
-      console.log("bit decode error:" + e);
+      console$1.log("bit decode error:" + e);
     }
   };
   BmpDecoder.prototype.bit1 = function () {
@@ -30303,6 +30374,13 @@
           this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
         }
 
+        // Alternative text (for images, required for PDF/UA)
+        if (elem.alt) {
+          // Escape special characters in alt text
+          var escapedAlt = elem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+          this.internal.write('/Alt (' + escapedAlt + ')');
+        }
+
         // Page reference (required when element has MCIDs)
         if (elem.mcids.length > 0) {
           var pageNum = elem.mcids[0].page;
@@ -30616,11 +30694,11 @@
      */
     jsPDFAPI.addSvgAsImage = function (svg, x, y, w, h, alias, compression, rotation) {
       if (isNaN(x) || isNaN(y)) {
-        console.error("jsPDF.addSvgAsImage: Invalid coordinates", arguments);
+        console$1.error("jsPDF.addSvgAsImage: Invalid coordinates", arguments);
         throw new Error("Invalid coordinates passed to jsPDF.addSvgAsImage");
       }
       if (isNaN(w) || isNaN(h)) {
-        console.error("jsPDF.addSvgAsImage: Invalid measurements", arguments);
+        console$1.error("jsPDF.addSvgAsImage: Invalid measurements", arguments);
         throw new Error("Invalid measurements (width and/or height) passed to jsPDF.addSvgAsImage");
       }
       var canvas = document.createElement("canvas");
