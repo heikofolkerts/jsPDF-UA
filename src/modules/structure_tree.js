@@ -581,6 +581,33 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * End table head section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableHead = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * End table body section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableBody = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * End table footer section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableFoot = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Begin a table row structure element
    * Convenience method for doc.beginStructureElement('TR')
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
@@ -680,6 +707,24 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endList = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a link structure element
+   * Links must be wrapped in Link elements for PDF/UA accessibility
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginLink = function() {
+    return this.beginStructureElement('Link');
+  };
+
+  /**
+   * End a link structure element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endLink = function() {
     return this.endStructureElement();
   };
 

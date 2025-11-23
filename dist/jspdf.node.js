@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-11-23T13:03:12.414Z
+ * Version 3.0.3 Built on 2025-11-23T13:19:28.627Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -27434,6 +27434,33 @@ WebPDecoder.prototype.getData = function() {
   };
 
   /**
+   * End table head section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableHead = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * End table body section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableBody = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * End table footer section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTableFoot = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Begin a table row structure element
    * Convenience method for doc.beginStructureElement('TR')
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
@@ -27533,6 +27560,24 @@ WebPDecoder.prototype.getData = function() {
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endList = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a link structure element
+   * Links must be wrapped in Link elements for PDF/UA accessibility
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginLink = function() {
+    return this.beginStructureElement('Link');
+  };
+
+  /**
+   * End a link structure element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endLink = function() {
     return this.endStructureElement();
   };
 
