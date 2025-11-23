@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 4/5 (COMPLETED ✅ - 2025-11-22)**
+**Current Status: Sprint 8 (COMPLETED ✅ - 2025-11-22)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -210,6 +210,211 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Full PDF/UA-1 compliance achieved
 
   **Status:** ✅ **PRODUCTION READY** for text-based PDF/UA documents
+
+- ✅ **Sprint 6 (COMPLETED)**: Images with Alternative Text
+  - **Status**: Strict validation implemented and tested
+  - **Key Feature**: Images MUST have alt text OR be marked as decorative
+
+  **What's been implemented:**
+  - ✅ `src/modules/addimage.js` - Extended addImage() with `alt` and `decorative` options
+  - ✅ Strict validation - Throws errors for missing/empty alt text
+  - ✅ Figure structure elements - Images wrapped in `/Figure` with `/Alt` attribute
+  - ✅ Decorative images - Marked as `/Artifact` (skipped by screen readers)
+  - ✅ BDC/EMC wrapping - Images properly tagged with marked content
+  - ✅ Test suite - 6 comprehensive test cases
+  - ✅ Validation tests - 7 tests for strict validation
+
+  **API Usage:**
+  ```javascript
+  // Image with alt text (required for informative images)
+  doc.addImage({
+    imageData: chart,
+    x: 10, y: 10,
+    width: 100, height: 80,
+    alt: 'Sales chart showing 25% growth in Q4'
+  });
+
+  // Decorative image (for logos, borders, etc.)
+  doc.addImage({
+    imageData: logo,
+    x: 10, y: 10,
+    width: 50, height: 20,
+    decorative: true
+  });
+  ```
+
+  **Test Results:**
+  - ✅ All image tests pass
+  - ✅ veraPDF validation passes
+  - ✅ Screen reader testing successful (USER VERIFIED)
+  - ✅ Errors thrown for missing/empty alt text
+
+  **User Feedback (2025-11-22):**
+  > "Ein sehr großes Ärgernis mit Bildern und Alternativtexten besteht darin,
+  > dass sie sehr gerne vergessen werden."
+
+  This led to implementing STRICT validation (errors, not warnings) to prevent forgetting alt text.
+
+- ✅ **Sprint 7 (COMPLETED)**: Table Structures with Header Scope
+  - **Status**: Full table accessibility implemented with veraPDF validation
+  - **Key Feature**: Proper header-cell association for screen reader navigation
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Table structure methods added
+  - ✅ `beginTableHead()`, `beginTableBody()`, `beginTableFoot()` - Table sections
+  - ✅ `beginTableRow()` - Convenience method for TR elements
+  - ✅ `beginTableHeaderCell(scope)` - TH with Row/Column/Both scope
+  - ✅ `beginTableDataCell()` - Convenience method for TD elements
+  - ✅ Scope attribute in attribute dictionary - `/A << /O /Table /Scope /Column >>`
+  - ✅ Test suite - 5 test cases covering simple to complex tables
+
+  **API Usage:**
+  ```javascript
+  doc.beginStructureElement('Table');
+    doc.beginTableHead();
+      doc.beginTableRow();
+        doc.beginTableHeaderCell('Column');  // Column header
+        doc.text('Product', 20, 25);
+        doc.endStructureElement();
+        // ... more column headers ...
+      doc.endStructureElement();
+    doc.endStructureElement();
+
+    doc.beginTableBody();
+      doc.beginTableRow();
+        doc.beginTableHeaderCell('Row');  // Row header
+        doc.text('Widget A', 20, 35);
+        doc.endStructureElement();
+
+        doc.beginTableDataCell();  // Data cell
+        doc.text('$19.99', 80, 35);
+        doc.endStructureElement();
+      doc.endStructureElement();
+    doc.endStructureElement();
+  doc.endStructureElement();
+  ```
+
+  **Critical Discovery:**
+  The `/Scope` attribute MUST be placed inside an `/A` (attribute) dictionary:
+  ```
+  /A << /O /Table /Scope /Column >>  # CORRECT
+  /Scope /Column  # WRONG - doesn't work!
+  ```
+
+  **Test Results:**
+  - ✅ All 4 table tests pass
+  - ✅ veraPDF PDF/UA-1 validation passes
+  - ✅ Simple tables (column headers only)
+  - ✅ Tables with row headers
+  - ✅ Complex tables with mixed headers
+  - ✅ German language tables
+
+  **Screen Reader Behavior:**
+  When navigating to cell (2,2), screen reader announces:
+  "Widget A, Q2, $12,000"
+     ↑        ↑      ↑
+   Row     Column  Cell
+  header   header  value
+
+  **User Requirement (2025-11-22):**
+  > "Bei der Implementierung von Tabellen ist es wichtig, dass die Zeile und Spalte
+  > für die Beschriftungen korrekt ausgezeichnet wird, damit der Screenreader bei
+  > einer Navigation in den Tabellen die Überschriften von Zeilen und Spalten
+  > korrekt ansagen kann."
+
+- ✅ **Sprint 8 (COMPLETED)**: List Structures (ol/ul)
+  - **Status**: Full list accessibility implemented with veraPDF validation
+  - **Key Feature**: Lists with proper structure for screen reader navigation
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - List structure methods added
+  - ✅ `beginList(numbered)` - Create unordered or ordered lists
+  - ✅ `beginListNumbered()` - Convenience for ordered lists
+  - ✅ `beginListItem()` - List item element
+  - ✅ `addListLabel(label, x, y)` - Add bullet point or number
+  - ✅ `beginListBody()` / `endListBody()` - List item content
+  - ✅ `endList()` - Close list element
+  - ✅ Nested lists support - Lists can contain other lists
+  - ✅ Test suite - 5 test cases covering simple to nested lists
+
+  **API Usage:**
+  ```javascript
+  // Unordered list (bullet points)
+  doc.beginList();
+    doc.beginListItem();
+      doc.addListLabel('•', 15, 25);
+      doc.beginListBody();
+        doc.text('First item', 20, 25);
+      doc.endListBody();
+    doc.endStructureElement();
+
+    doc.beginListItem();
+      doc.addListLabel('•', 15, 35);
+      doc.beginListBody();
+        doc.text('Second item', 20, 35);
+      doc.endListBody();
+    doc.endStructureElement();
+  doc.endList();
+
+  // Ordered list (numbered)
+  doc.beginListNumbered();
+    doc.beginListItem();
+      doc.addListLabel('1.', 15, 25);
+      doc.beginListBody();
+        doc.text('Step one', 22, 25);
+      doc.endListBody();
+    doc.endStructureElement();
+  doc.endList();
+
+  // Nested lists
+  doc.beginListNumbered();
+    doc.beginListItem();
+      doc.addListLabel('1.', 15, 25);
+      doc.beginListBody();
+        doc.text('Main item', 22, 25);
+
+        // Nested unordered list
+        doc.beginList();
+          doc.beginListItem();
+            doc.addListLabel('•', 25, 35);
+            doc.beginListBody();
+              doc.text('Sub-item', 30, 35);
+            doc.endListBody();
+          doc.endStructureElement();
+        doc.endList();
+      doc.endListBody();
+    doc.endStructureElement();
+  doc.endList();
+  ```
+
+  **Test Results:**
+  - ✅ All 5 list tests pass
+  - ✅ veraPDF PDF/UA-1 validation passes (all 5 PDFs)
+  - ✅ Simple unordered lists (bullet points)
+  - ✅ Simple ordered lists (numbered)
+  - ✅ Nested lists (multi-level)
+  - ✅ Mixed nested lists (ordered + unordered)
+  - ✅ German language lists
+
+  **Structure Hierarchy:**
+  ```
+  L (List)
+  ├─ LI (ListItem)
+  │  ├─ Lbl (Label) - "•"
+  │  └─ LBody (ListBody) - "Content"
+  └─ LI (ListItem)
+     └─ LBody (ListBody)
+        └─ L (Nested List)
+           └─ LI (ListItem)
+              ├─ Lbl
+              └─ LBody
+  ```
+
+  **Screen Reader Behavior:**
+  When entering a list, screen reader announces:
+  - "List with 3 items"
+  - "Item 1 of 3, Bullet, First item"
+  - For nested lists: announces sub-list separately
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly

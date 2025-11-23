@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.3 Built on 2025-11-22T12:57:00.829Z
+ * Version 3.0.3 Built on 2025-11-23T13:03:12.406Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -30385,6 +30385,12 @@
           this.internal.write('/Alt (' + escapedAlt + ')');
         }
 
+        // Attribute dictionary (for table headers and other elements)
+        if (elem.attributes && elem.attributes.scope) {
+          // Scope must be in an attribute dictionary with /O /Table owner
+          this.internal.write('/A << /O /Table /Scope /' + elem.attributes.scope + ' >>');
+        }
+
         // Page reference (required when element has MCIDs)
         if (elem.mcids.length > 0) {
           var pageNum = elem.mcids[0].page;
@@ -30393,17 +30399,21 @@
         }
 
         // Children (K entry)
-        if (elem.children.length > 0) {
-          var kids = elem.children.map(function (c) {
-            return c.objectNumber + ' 0 R';
-          }).join(' ');
-          this.internal.write('/K [' + kids + ']');
-        } else if (elem.mcids.length > 0) {
-          // Always use array format for MCIDs to match reference PDF
-          var mcidArray = elem.mcids.map(function (m) {
-            return m.mcid;
-          }).join(' ');
-          this.internal.write('/K [' + mcidArray + ']');
+        // An element can have MCIDs, child elements, or both
+        if (elem.children.length > 0 || elem.mcids.length > 0) {
+          var kArray = [];
+
+          // Add MCIDs and children in the correct order
+          // We need to interleave them based on when they were added
+          // For now, add all MCIDs first, then children
+          // TODO: Track insertion order for perfect fidelity
+          elem.mcids.forEach(function (m) {
+            kArray.push(m.mcid);
+          });
+          elem.children.forEach(function (c) {
+            kArray.push(c.objectNumber + ' 0 R');
+          });
+          this.internal.write('/K [' + kArray.join(' ') + ']');
         }
         this.internal.write('>>');
         this.internal.write('endobj');
@@ -30578,6 +30588,136 @@
       this.internal.write('/Group << /Type /Group /S /Transparency /CS /DeviceRGB >>');
     };
     jsPDFAPI.events.push(["putPage", putStructParentsInPage]);
+
+    /**
+     * Begin a table header section
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableHead = function () {
+      return this.beginStructureElement('THead');
+    };
+
+    /**
+     * Begin a table body section
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableBody = function () {
+      return this.beginStructureElement('TBody');
+    };
+
+    /**
+     * Begin a table footer section
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableFoot = function () {
+      return this.beginStructureElement('TFoot');
+    };
+
+    /**
+     * Begin a table row structure element
+     * Convenience method for doc.beginStructureElement('TR')
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableRow = function () {
+      return this.beginStructureElement('TR');
+    };
+
+    /**
+     * Begin a table header cell with scope
+     * @param {string} scope - 'Row', 'Column', or 'Both'
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableHeaderCell = function (scope) {
+      if (!scope || !['Row', 'Column', 'Both'].includes(scope)) {
+        throw new Error('Table header scope must be "Row", "Column", or "Both"');
+      }
+
+      // Begin TH element with scope attribute
+      this.beginStructureElement('TH', {
+        scope: scope
+      });
+      return this;
+    };
+
+    /**
+     * Begin a table data cell
+     * Convenience method for doc.beginStructureElement('TD')
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginTableDataCell = function () {
+      return this.beginStructureElement('TD');
+    };
+
+    /**
+     * Begin a list structure element
+     * @param {boolean} numbered - Optional: true for ordered list (ol), false for unordered (ul)
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginList = function (numbered) {
+      return this.beginStructureElement('L', {
+        numbered: numbered || false
+      });
+    };
+
+    /**
+     * Begin a numbered list (ordered list / ol)
+     * Convenience method for doc.beginList(true)
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginListNumbered = function () {
+      return this.beginList(true);
+    };
+
+    /**
+     * Begin a list item structure element
+     * Convenience method for doc.beginStructureElement('LI')
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginListItem = function () {
+      return this.beginStructureElement('LI');
+    };
+
+    /**
+     * Add a list label (bullet point or number)
+     * Automatically wraps the label in an Lbl structure element
+     * @param {string} label - The label text (e.g., "•", "1.", "a)")
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.addListLabel = function (label, x, y) {
+      this.beginStructureElement('Lbl');
+      this.text(label, x, y);
+      this.endStructureElement();
+      return this;
+    };
+
+    /**
+     * Begin list body (content of list item)
+     * Convenience method for doc.beginStructureElement('LBody')
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.beginListBody = function () {
+      return this.beginStructureElement('LBody');
+    };
+
+    /**
+     * End list body
+     * Convenience method for doc.endStructureElement()
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.endListBody = function () {
+      return this.endStructureElement();
+    };
+
+    /**
+     * End list
+     * Convenience method for doc.endStructureElement()
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.endList = function () {
+      return this.endStructureElement();
+    };
   })(jsPDF.API);
 
   /**
