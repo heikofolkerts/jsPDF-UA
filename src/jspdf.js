@@ -9,7 +9,12 @@ import { btoa } from "./libs/AtobBtoa.js";
 import { console } from "./libs/console.js";
 import { PDFSecurity } from "./libs/pdfsecurity.js";
 import { toPDFName } from "./libs/pdfname.js";
-import { PDFUA_DEFAULT_FONT } from "./modules/pdfua_fonts.js";
+import {
+  PDFUA_DEFAULT_FONT,
+  AtkinsonHyperlegibleBold,
+  AtkinsonHyperlegibleItalic,
+  AtkinsonHyperlegibleBoldItalic
+} from "./modules/pdfua_fonts.js";
 /**
  * jsPDF's Internal PubSub Implementation.
  * Backward compatible rewritten on 2014 by
@@ -6136,10 +6141,10 @@ function jsPDF(options) {
 
   // PDF/UA: Load default accessible font (Atkinson Hyperlegible)
   if (pdfUAOptions && pdfUAOptions.enabled) {
-    // Add Atkinson Hyperlegible font to VFS
+    // Add Atkinson Hyperlegible Regular font to VFS
     API.addFileToVFS(PDFUA_DEFAULT_FONT.filename, PDFUA_DEFAULT_FONT.data);
 
-    // Register font with jsPDF
+    // Register Regular font with jsPDF
     API.addFont(
       PDFUA_DEFAULT_FONT.filename,
       PDFUA_DEFAULT_FONT.name,
@@ -6147,7 +6152,17 @@ function jsPDF(options) {
       PDFUA_DEFAULT_FONT.weight
     );
 
-    // Set as active font for PDF/UA documents
+    // Add Bold, Italic, and BoldItalic variants
+    API.addFileToVFS("AtkinsonHyperlegible-Bold.ttf", AtkinsonHyperlegibleBold);
+    API.addFont("AtkinsonHyperlegible-Bold.ttf", "AtkinsonHyperlegible", "bold");
+
+    API.addFileToVFS("AtkinsonHyperlegible-Italic.ttf", AtkinsonHyperlegibleItalic);
+    API.addFont("AtkinsonHyperlegible-Italic.ttf", "AtkinsonHyperlegible", "italic");
+
+    API.addFileToVFS("AtkinsonHyperlegible-BoldItalic.ttf", AtkinsonHyperlegibleBoldItalic);
+    API.addFont("AtkinsonHyperlegible-BoldItalic.ttf", "AtkinsonHyperlegible", "bolditalic");
+
+    // Set Regular as active font for PDF/UA documents
     API.setFont(PDFUA_DEFAULT_FONT.name, PDFUA_DEFAULT_FONT.style);
 
     // Store reference for later use
