@@ -280,12 +280,61 @@ import { jsPDF } from "../jspdf.js";
 
             if (line != "") {
               line += " >>";
-              this.internal.write(line);
+              // For PDF/UA: Create link annotation as indirect object
+              // so it can be referenced by the Link structure element via OBJR
+              if (anno.needsObjId) {
+                // Reserve object ID now (during putPage, after pages are created)
+                var linkObjId = this.internal.newObjectDeferred();
+
+                // Store the mapping from internal ID to object ID
+                if (!this.internal.pdfuaLinkIdMap) {
+                  this.internal.pdfuaLinkIdMap = {};
+                }
+                this.internal.pdfuaLinkIdMap[anno.internalId] = linkObjId;
+
+                // Store annotation content to be written later as indirect object
+                if (!this.internal.pdfuaLinkAnnotations) {
+                  this.internal.pdfuaLinkAnnotations = [];
+                }
+                this.internal.pdfuaLinkAnnotations.push({
+                  objId: linkObjId,
+                  content: line
+                });
+                // Reference the indirect object in the Annots array
+                this.internal.write(linkObjId + " 0 R");
+              } else {
+                // Inline annotation (backwards compatible)
+                this.internal.write(line);
+              }
             }
             break;
         }
       }
       this.internal.write("]");
+    }
+  ]);
+
+  /**
+   * Write PDF/UA link annotations as indirect objects
+   * This is needed so they can be referenced by Link structure elements via OBJR
+   */
+  jsPDFAPI.events.push([
+    "postPutResources",
+    function() {
+      if (!this.internal.pdfuaLinkAnnotations) {
+        return;
+      }
+
+      var annotations = this.internal.pdfuaLinkAnnotations;
+      for (var i = 0; i < annotations.length; i++) {
+        var anno = annotations[i];
+        this.internal.newObjectDeferredBegin(anno.objId, true);
+        this.internal.write(anno.content);
+        this.internal.write("endobj");
+      }
+
+      // Clear the list after writing
+      this.internal.pdfuaLinkAnnotations = [];
     }
   ]);
 
@@ -326,13 +375,14 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} w
    * @param {number} h
    * @param {Object} options
+   * @returns {number|undefined} - Object ID of the link annotation (for PDF/UA), or undefined
    */
   jsPDFAPI.link = function(x, y, w, h, options) {
     var pageInfo = this.internal.getCurrentPageInfo();
     var getHorizontalCoordinateString = this.internal.getCoordinateString;
     var getVerticalCoordinateString = this.internal.getVerticalCoordinateString;
 
-    pageInfo.pageContext.annotations.push({
+    var annotation = {
       finalBounds: {
         x: getHorizontalCoordinateString(x),
         y: getVerticalCoordinateString(y),
@@ -341,7 +391,24 @@ import { jsPDF } from "../jspdf.js";
       },
       options: options,
       type: "link"
-    });
+    };
+
+    // For PDF/UA: Mark that this annotation needs an object ID
+    // The actual ID will be assigned later during postPutResources
+    // to avoid object number conflicts
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      annotation.needsObjId = true;
+      // Generate a unique internal ID for tracking
+      if (!this.internal.pdfuaLinkCounter) {
+        this.internal.pdfuaLinkCounter = 0;
+      }
+      annotation.internalId = ++this.internal.pdfuaLinkCounter;
+    }
+
+    pageInfo.pageContext.annotations.push(annotation);
+
+    // Return the internal ID so it can be passed to addLinkAnnotationRef()
+    return annotation.internalId;
   };
 
   /**

@@ -341,17 +341,32 @@ import { jsPDF } from "../jspdf.js";
       }
 
       // Children (K entry)
-      // An element can have MCIDs, child elements, or both
-      if (elem.children.length > 0 || elem.mcids.length > 0) {
-        var kArray = [];
+      // An element can have MCIDs, child elements, OBJR references, or combinations
+      var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
+      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs;
 
-        // Add MCIDs and children in the correct order
-        // We need to interleave them based on when they were added
-        // For now, add all MCIDs first, then children
-        // TODO: Track insertion order for perfect fidelity
+      if (hasContent) {
+        var kArray = [];
+        var self = this;
+
+        // Add MCIDs first
         elem.mcids.forEach(function(m) {
           kArray.push(m.mcid);
         });
+
+        // Add OBJR references for link annotations (PDF/UA requirement)
+        // Format: << /Type /OBJR /Obj <annotation-objId> 0 R >>
+        if (hasAnnotationRefs) {
+          elem.annotationInternalIds.forEach(function(internalId) {
+            // Resolve internal ID to actual object ID using the mapping
+            var objId = self.internal.pdfuaLinkIdMap && self.internal.pdfuaLinkIdMap[internalId];
+            if (objId) {
+              kArray.push('<< /Type /OBJR /Obj ' + objId + ' 0 R >>');
+            }
+          });
+        }
+
+        // Add child structure elements
         elem.children.forEach(function(c) {
           kArray.push(c.objectNumber + ' 0 R');
         });
@@ -733,6 +748,36 @@ import { jsPDF } from "../jspdf.js";
    */
   jsPDFAPI.endLink = function() {
     return this.endStructureElement();
+  };
+
+  /**
+   * Add a link annotation reference (OBJR) to the current Link structure element
+   * This connects the Link structure element to the actual Link annotation
+   * Required for PDF/UA accessibility
+   * @param {number} annotationInternalId - Internal ID of the link annotation (from link())
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addLinkAnnotationRef = function(annotationInternalId) {
+    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+      return this;
+    }
+
+    var currentElem = this.internal.structureTree.currentParent;
+
+    // Only add to Link elements
+    if (currentElem.type !== 'Link') {
+      console.warn('addLinkAnnotationRef called outside of Link element');
+      return this;
+    }
+
+    // Store the internal ID - the actual object ID will be resolved later
+    // during writeStructTree when pdfuaLinkIdMap is available
+    if (!currentElem.annotationInternalIds) {
+      currentElem.annotationInternalIds = [];
+    }
+    currentElem.annotationInternalIds.push(annotationInternalId);
+
+    return this;
   };
 
 })(jsPDF.API);
