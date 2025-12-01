@@ -333,8 +333,11 @@ import { jsPDF } from "../jspdf.js";
       // Page reference (required when element has MCIDs)
       if (elem.mcids.length > 0) {
         var pageNum = elem.mcids[0].page;
-        var pageObjId = 2 + pageNum;
-        this.internal.write('/Pg ' + pageObjId + ' 0 R');
+        // CRITICAL FIX: Use getPageInfo to get the correct page object ID
+        // The old calculation (2 + pageNum) assumed page objects start at obj 3,
+        // but this is incorrect when fonts and other objects are added before pages.
+        var pageInfo = this.getPageInfo(pageNum);
+        this.internal.write('/Pg ' + pageInfo.objId + ' 0 R');
       }
 
       // Children (K entry)
@@ -531,8 +534,9 @@ import { jsPDF } from "../jspdf.js";
 
   /**
    * Add StructParents to each page
+   * @param {object} putPageData - Event data containing pageNumber and pageContext
    */
-  var putStructParentsInPage = function() {
+  var putStructParentsInPage = function(putPageData) {
     if (!this.isPDFUAEnabled || !this.isPDFUAEnabled()) {
       return;
     }
@@ -544,7 +548,10 @@ import { jsPDF } from "../jspdf.js";
       return;
     }
 
-    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    // CRITICAL FIX: Use pageNumber from event data, not getCurrentPageInfo()
+    // When putPage is called during PDF generation, currentPage may not match
+    // the page actually being written. The event data contains the correct page number.
+    var pageNumber = putPageData.pageNumber;
     this.internal.write('/StructParents ' + (pageNumber - 1));
 
     // Add Tabs entry for proper reading order
