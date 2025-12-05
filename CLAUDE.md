@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 13 (COMPLETED ✅ - 2025-12-05)**
+**Current Status: Sprint 14 (COMPLETED ✅ - 2025-12-05)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -603,6 +603,66 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Font changes detected by NVDA (verified by user)
   - ✅ Behavior matches official PDF/UA reference documents
   - ✅ German umlauts work correctly
+
+- ⏭️ **Sprint 11 (SKIPPED)**: Font-Subsetting
+  - **Status**: Not necessary - already implemented
+  - **Reason**: jsPDF already performs font subsetting during PDF export
+    - Only used glyphs are embedded (`glyIdsUsed` in utf8.js)
+    - WOFF2 compression not viable (PDF only supports TTF/OTF)
+    - Bundle size (~700KB) acceptable for PDF/UA functionality
+  - **Decision**: Focus on feature completeness instead of optimization
+
+- ✅ **Sprint 14 (COMPLETED)**: Span Element for Inline Containers
+  - **Status**: Span element with optional language attribute implemented
+  - **Key Feature**: Generic inline container + language change support
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Span methods added
+  - ✅ `beginSpan(options)` / `endSpan()` - Generic inline container
+  - ✅ `options.lang` - Optional language code for language changes
+  - ✅ `src/jspdf.js` - BDC operator uses element's lang attribute if present
+  - ✅ Works within P, LBody, TD, Strong, Em, etc.
+
+  **API Usage:**
+  ```javascript
+  // Simple span (no semantic meaning)
+  doc.beginSpan();
+  doc.setTextColor(255, 0, 0);
+  doc.text('red text', x, y);
+  doc.setTextColor(0, 0, 0);
+  doc.endSpan();
+
+  // Span with language change
+  doc.setLanguage('de-DE');  // Document is German
+
+  doc.beginStructureElement('P');
+  doc.text('Das Wort ', 10, 40);
+
+  doc.beginSpan({ lang: 'en-US' });  // English word
+  doc.text('Computer', 40, 40);
+  doc.endSpan();
+
+  doc.text(' ist ein Anglizismus.', 80, 40);
+  doc.endStructureElement();
+  ```
+
+  **Difference from Strong/Em:**
+  | Element | Purpose | Semantics |
+  |---------|---------|-----------|
+  | Strong | Important text | Has meaning |
+  | Em | Emphasized text | Has meaning |
+  | **Span** | **Formatted text** | **No semantic meaning** |
+
+  **Screen Reader Behavior:**
+  - Span with `lang`: Screen reader changes pronunciation/voice
+  - Span without `lang`: No audible effect (structural only)
+
+  **Test Results:**
+  - ✅ All 5 test PDFs generated successfully
+  - ✅ Span elements in structure tree
+  - ✅ Language attribute in BDC operator (`/Span <</Lang (en-US)/MCID n>> BDC`)
+  - ✅ Combines with Strong/Em
+  - ✅ Works in lists
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly

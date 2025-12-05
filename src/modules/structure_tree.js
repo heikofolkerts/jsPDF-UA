@@ -789,6 +789,42 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Begin a Span (generic inline container) element
+   * Used for formatting changes without semantic meaning,
+   * or for language changes within a paragraph.
+   *
+   * Unlike Strong/Em, Span has no inherent semantic significance.
+   * Use it for:
+   * - Visual formatting (color, size changes)
+   * - Language changes within text
+   * - Grouping inline content
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'en-US', 'de-DE') for text within span
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginSpan = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    // If language is specified, store it for BDC operator
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Span', attributes);
+  };
+
+  /**
+   * End a Span element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endSpan = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Add a link annotation reference (OBJR) to the current Link structure element
    * This connects the Link structure element to the actual Link annotation
    * Required for PDF/UA accessibility

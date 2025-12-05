@@ -4104,7 +4104,10 @@ function jsPDF(options) {
       var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
       // PDF/UA REQUIRES /Lang in BDC operator (not just in Catalog)
       // Reference PDFs show that Acrobat Reader needs this to recognize tagged content
-      var lang = scope.getLanguage();
+      // Check if current element has a specific lang attribute (e.g., for Span with language change)
+      var lang = (currentElem && currentElem.attributes && currentElem.attributes.lang)
+        ? currentElem.attributes.lang
+        : scope.getLanguage();
       result += "/" + structType + " <</Lang (" + lang + ")/MCID " + mcid + ">> BDC\n";
     }
 
