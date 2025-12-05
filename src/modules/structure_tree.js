@@ -825,6 +825,77 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Begin a Quote (inline quotation) element
+   * For short quotes within a paragraph, attributed to another author.
+   * Corresponds to HTML <q> element.
+   *
+   * Use Quote for:
+   * - Short quotations within flowing text
+   * - Inline citations
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'en-US', 'de-DE') for quoted text
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginQuote = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    // If language is specified, store it for BDC operator
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Quote', attributes);
+  };
+
+  /**
+   * End a Quote element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endQuote = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a BlockQuote (block-level quotation) element
+   * For longer quotes that stand as separate paragraphs.
+   * Corresponds to HTML <blockquote> element.
+   *
+   * Use BlockQuote for:
+   * - Longer quotations that are visually set apart
+   * - Multi-paragraph quotes
+   * - Block-level citations
+   *
+   * BlockQuote can contain P, L (lists), and other block-level elements.
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'en-US', 'de-DE') for quoted text
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginBlockQuote = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    // If language is specified, store it for BDC operator
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('BlockQuote', attributes);
+  };
+
+  /**
+   * End a BlockQuote element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endBlockQuote = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Add a link annotation reference (OBJR) to the current Link structure element
    * This connects the Link structure element to the actual Link annotation
    * Required for PDF/UA accessibility

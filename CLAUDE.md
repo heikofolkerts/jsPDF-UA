@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 14 (COMPLETED ✅ - 2025-12-05)**
+**Current Status: Sprint 15 (COMPLETED ✅ - 2025-12-05)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -663,6 +663,75 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Language attribute in BDC operator (`/Span <</Lang (en-US)/MCID n>> BDC`)
   - ✅ Combines with Strong/Em
   - ✅ Works in lists
+
+- ✅ **Sprint 15 (COMPLETED)**: Quote and BlockQuote Elements
+  - **Status**: Inline and block-level quotation elements implemented
+  - **Key Feature**: Semantic markup for quoted content
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Quote/BlockQuote methods added
+  - ✅ `beginQuote(options)` / `endQuote()` - Inline quotation (like HTML `<q>`)
+  - ✅ `beginBlockQuote(options)` / `endBlockQuote()` - Block quotation (like HTML `<blockquote>`)
+  - ✅ `options.lang` - Optional language code for foreign-language quotes
+  - ✅ Works within P, LBody, TD, etc. (Quote) and as block-level (BlockQuote)
+
+  **API Usage:**
+  ```javascript
+  // Inline quote within a paragraph
+  doc.beginStructureElement('P');
+  doc.text('Er sagte: ', 10, 40);
+
+  doc.beginQuote();
+  doc.setFont("AtkinsonHyperlegible", "italic");
+  doc.text('"Hallo Welt"', x, 40);
+  doc.setFont("AtkinsonHyperlegible", "normal");
+  doc.endQuote();
+
+  doc.text(' und ging.', x, 40);
+  doc.endStructureElement();
+
+  // Block-level quote (separate from paragraph)
+  doc.beginStructureElement('P');
+  doc.text('Descartes schrieb:', 10, 40);
+  doc.endStructureElement();
+
+  doc.beginBlockQuote();
+  doc.setFont("AtkinsonHyperlegible", "italic");
+  doc.text('"Ich denke, also bin ich."', 20, 55);
+  doc.setFont("AtkinsonHyperlegible", "normal");
+  doc.endBlockQuote();
+
+  // Quote with language change (English in German document)
+  doc.setLanguage('de-DE');
+  doc.beginStructureElement('P');
+  doc.text('Shakespeare schrieb: ', 10, 40);
+
+  doc.beginQuote({ lang: 'en-GB' });
+  doc.text('"To be or not to be"', x, 40);
+  doc.endQuote();
+
+  doc.text('.', x, 40);
+  doc.endStructureElement();
+  ```
+
+  **Difference Quote vs BlockQuote:**
+  | Element | Level | Use Case |
+  |---------|-------|----------|
+  | Quote | Inline | Short quotes within flowing text |
+  | BlockQuote | Block | Longer quotes as separate paragraphs |
+
+  **Screen Reader Behavior:**
+  - Quote: May announce "quote" or change intonation
+  - BlockQuote: Announces "block quote" on entry/exit
+  - With `lang`: Changes pronunciation for foreign-language quotes
+
+  **Test Results:**
+  - ✅ All 6 test PDFs generated successfully
+  - ✅ Quote/BlockQuote elements in structure tree
+  - ✅ Language attribute works for foreign quotes
+  - ✅ Combines with Strong/Em/Span
+  - ✅ Works in lists
+  - ✅ German umlauts correct (ü, ö, ä)
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
