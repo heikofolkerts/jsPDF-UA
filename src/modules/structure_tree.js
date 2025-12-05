@@ -751,6 +751,44 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Begin a Strong (important) text section
+   * For text that has semantic importance (not just visual bold)
+   * Screen readers may announce this text with emphasis or different intonation
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginStrong = function() {
+    return this.beginStructureElement('Strong');
+  };
+
+  /**
+   * End a Strong text section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endStrong = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin an Em (emphasis) text section
+   * For text that has semantic emphasis (not just visual italic)
+   * Screen readers may announce this text with changed intonation
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginEmphasis = function() {
+    return this.beginStructureElement('Em');
+  };
+
+  /**
+   * End an Em text section
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endEmphasis = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Add a link annotation reference (OBJR) to the current Link structure element
    * This connects the Link structure element to the actual Link annotation
    * Required for PDF/UA accessibility

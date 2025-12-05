@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 8 (COMPLETED ✅ - 2025-11-22)**
+**Current Status: Sprint 13 (COMPLETED ✅ - 2025-12-05)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -416,6 +416,194 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - "Item 1 of 3, Bullet, First item"
   - For nested lists: announces sub-list separately
 
+- ✅ **Sprint 9 (COMPLETED)**: Link Structures
+  - **Status**: Link structure elements implemented with OBJR annotation connection
+  - **Key Feature**: Accessible links with proper structure-annotation linkage
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Link structure methods added
+  - ✅ `beginLink()` / `endLink()` - Link structure element wrapper
+  - ✅ OBJR (Object Reference) connection - Links annotation to structure tree
+  - ✅ `/StructParent` attribute in annotations
+  - ✅ External links (URLs) and internal links (page references)
+  - ✅ Links work in paragraphs, lists, and tables
+
+  **API Usage:**
+  ```javascript
+  // External link
+  doc.beginStructureElement('P');
+  doc.text('Visit our website: ', 10, 30);
+  doc.beginLink();
+  doc.text('example.com', 52, 30);
+  doc.endLink();
+  doc.link(52, 25, 30, 10, { url: 'https://example.com' });
+  doc.endStructureElement();
+
+  // Internal link (to page)
+  doc.beginLink();
+  doc.text('Go to Chapter 1', 10, 50);
+  doc.endLink();
+  doc.link(10, 45, 50, 10, { pageNumber: 2 });
+  ```
+
+  **Test Results:**
+  - ✅ External links functional
+  - ✅ Internal page links functional
+  - ✅ Links in lists and tables
+  - ✅ Screen reader announces links correctly
+
+- ✅ **Sprint 10 (COMPLETED)**: Additional Font Styles (Bold, Italic, BoldItalic)
+  - **Status**: All four Atkinson Hyperlegible font styles implemented
+  - **Key Feature**: Complete typography support for accessible documents
+
+  **What's been implemented:**
+  - ✅ `src/modules/pdfua_fonts.js` - Extended with Bold, Italic, BoldItalic (~220KB additional)
+  - ✅ `src/jspdf.js` - Auto-loads all four styles when `pdfUA: true`
+  - ✅ `setFont()` API works for all styles
+  - ✅ German umlauts in all styles
+
+  **API Usage:**
+  ```javascript
+  const doc = new jsPDF({ pdfUA: true });
+
+  // Regular (default)
+  doc.text('Regular text', 10, 10);
+
+  // Bold
+  doc.setFont("AtkinsonHyperlegible", "bold");
+  doc.text('Bold text', 10, 20);
+
+  // Italic
+  doc.setFont("AtkinsonHyperlegible", "italic");
+  doc.text('Italic text', 10, 30);
+
+  // BoldItalic
+  doc.setFont("AtkinsonHyperlegible", "bolditalic");
+  doc.text('Bold Italic text', 10, 40);
+
+  // Back to Regular
+  doc.setFont("AtkinsonHyperlegible", "normal");
+  ```
+
+  **Bundle Size Impact:**
+  - UMD minified: 710 KB (was 491 KB, +219 KB, +45%)
+  - ES minified: 635 KB (was 416 KB, +219 KB, +53%)
+  - Only affects PDF/UA mode - regular PDFs unchanged
+
+  **Test Results:**
+  - ✅ All 4 font styles available and working
+  - ✅ Font embedding verified (FontFile2 streams)
+  - ✅ German umlauts correct in all styles
+  - ✅ Font styles work in lists and tables
+
+- ✅ **Sprint 12 (COMPLETED)**: Comprehensive Test Document
+  - **Status**: Multi-page test document demonstrating all features
+  - **Key Feature**: Real-world example combining all implemented features
+
+  **What's been implemented:**
+  - ✅ `tests/pdfua/comprehensive-test.js` - Test document generator
+  - ✅ 3-page PDF with all implemented features
+  - ✅ German language throughout
+  - ✅ All 4 font styles demonstrated
+
+  **Document Structure:**
+  - Page 1: Title, font styles, simple and nested lists
+  - Page 2: Tables with row/column headers, mixed content
+  - Page 3: Links, feature summary
+
+  **Features Demonstrated:**
+  - PDF/UA structure with XMP metadata
+  - Structure Tree with all element types
+  - Font embedding (Atkinson Hyperlegible - all styles)
+  - German umlauts and special characters
+  - Lists (simple and nested)
+  - Tables with Row/Column scope
+  - Mixed content (multiple fonts in one paragraph)
+  - Links (structure and annotation)
+
+  **Test Results:**
+  - ✅ Document generates without errors
+  - ✅ All features combined successfully
+  - ✅ 99 KB file size (3 pages)
+
+- ✅ **Sprint 13 (COMPLETED)**: Semantic Text Highlights (Strong/Em) + Font Detection Fix
+  - **Status**: Strong/Em structure elements + screen reader font detection
+  - **Key Feature**: Semantic markup AND proper font change announcements
+
+  **What's been implemented:**
+
+  **Part 1: Strong/Em Structure Elements**
+  - ✅ `src/modules/structure_tree.js` - Strong/Em methods added
+  - ✅ `beginStrong()` / `endStrong()` - Important text (semantic bold)
+  - ✅ `beginEmphasis()` / `endEmphasis()` - Emphasized text (semantic italic)
+  - ✅ Inline elements work within P, LBody, TD, etc.
+
+  **Part 2: Font Detection Fix for Screen Readers**
+  - ✅ `src/modules/utf8.js` - Font name generation based on style
+  - ✅ Each font style now has unique PDF FontName:
+    - `normal` → `/FontName /AtkinsonHyperlegible`
+    - `bold` → `/FontName /AtkinsonHyperlegible-Bold`
+    - `italic` → `/FontName /AtkinsonHyperlegible-Italic`
+    - `bolditalic` → `/FontName /AtkinsonHyperlegible-BoldItalic`
+  - ✅ Correct Flags for italic fonts (bit 6 set)
+  - ✅ Correct ItalicAngle (-12°) for italic fonts
+  - ✅ **Fully transparent** - no API changes required!
+
+  **API Usage (unchanged):**
+  ```javascript
+  doc.beginStructureElement('P');
+  doc.text('This is a ', 10, 40);
+
+  // Semantically important (Strong)
+  doc.beginStrong();
+  doc.setFont("AtkinsonHyperlegible", "bold");
+  doc.text('very important', 35, 40);
+  doc.setFont("AtkinsonHyperlegible", "normal");
+  doc.endStrong();
+
+  doc.text(' message.', 75, 40);
+  doc.endStructureElement();
+
+  // Emphasized text (Em)
+  doc.beginStructureElement('P');
+  doc.text('The word ', 10, 55);
+
+  doc.beginEmphasis();
+  doc.setFont("AtkinsonHyperlegible", "italic");
+  doc.text('accessibility', 35, 55);
+  doc.setFont("AtkinsonHyperlegible", "normal");
+  doc.endEmphasis();
+
+  doc.text(' is important.', 80, 55);
+  doc.endStructureElement();
+  ```
+
+  **Important Discovery - Screen Reader Behavior:**
+  - **Strong/Em elements**: NOT announced by screen readers (by design!)
+    - NVDA had this feature but disabled it due to user complaints
+    - Too much "noise" because strong/em is overused in documents
+  - **Font changes (Bold/Italic)**: ARE announced when enabled in NVDA settings
+    - NVDA Settings → Document Formatting → Font attributes
+    - This is the working mechanism for emphasis detection
+
+  **Why Both Are Important:**
+  - Strong/Em = PDF/UA compliance + semantic structure
+  - Font names = Actual screen reader announcements
+
+  **Critical Fix (2025-12-05):**
+  - **Problem**: NVDA didn't announce font changes (bold/italic)
+  - **Root Cause**: All font styles had same `/FontName` in PDF
+  - **Solution**: Generate unique font names based on `fontStyle` in `utf8.js`
+  - **Verification**: Tested with NVDA + PDF/UA reference document
+  - **No Breaking Changes**: API remains identical, fix is internal
+
+  **Test Results:**
+  - ✅ All 5 test PDFs generated successfully
+  - ✅ Strong/Em elements in structure tree
+  - ✅ Font changes detected by NVDA (verified by user)
+  - ✅ Behavior matches official PDF/UA reference documents
+  - ✅ German umlauts work correctly
+
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
 - Acrobat Reader treats content without BDC/EMC as untagged (shows "empty page")
@@ -435,6 +623,22 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   3. Content is tagged with BDC/EMC operators (if structure tree exists)
   4. Screen reader can navigate and read the content
   5. Test file: Generate PDF → Open in Acrobat Reader → Verify with screen reader
+
+## Tool Installation
+
+When external tools are needed (e.g., `qpdf` for PDF inspection, `veraPDF` for validation), do NOT attempt to install them directly using `sudo` commands. The user must enter a password for such commands.
+
+Instead:
+1. Explain which tool is needed and why
+2. Provide the installation command for the user to run manually
+3. Wait for the user to confirm the tool is installed before proceeding
+
+Example:
+```
+Tool needed: qpdf (for PDF structure inspection)
+Installation: sudo apt-get install qpdf
+Please install this tool and let me know when it's ready.
+```
 
 ## Key Conventions
 
