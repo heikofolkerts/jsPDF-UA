@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 15 (COMPLETED ✅ - 2025-12-05)**
+**Current Status: Sprint 17 (COMPLETED ✅ - 2025-12-06)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -732,6 +732,137 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Combines with Strong/Em/Span
   - ✅ Works in lists
   - ✅ German umlauts correct (ü, ö, ä)
+
+- ✅ **Sprint 16 (COMPLETED)**: Code Element for Programming Code
+  - **Status**: Code structure element implemented for inline and block code
+  - **Key Feature**: Semantic markup for computer code, commands, file paths
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Code methods added
+  - ✅ `beginCode(options)` / `endCode()` - Code element wrapper
+  - ✅ `options.lang` - Optional language code for code comments
+  - ✅ Works as inline element within P, LBody, TD, etc.
+  - ✅ Works as block-level element for multi-line code
+  - ✅ Combines with Strong/Em for highlighted code
+
+  **API Usage:**
+  ```javascript
+  // Inline code within paragraph
+  doc.beginStructureElement('P');
+  doc.text('Die Variable ', 10, 40);
+
+  doc.beginCode();
+  doc.text('counter', x, 40);
+  doc.endCode();
+
+  doc.text(' speichert den Zähler.', x, 40);
+  doc.endStructureElement();
+
+  // Block-level code (multi-line)
+  doc.beginStructureElement('P');
+  doc.text('JavaScript Funktion:', 10, 40);
+  doc.endStructureElement();
+
+  doc.beginCode();
+  doc.text('function greet(name) {', 15, 55);
+  doc.text('  return "Hello, " + name;', 15, 63);
+  doc.text('}', 15, 71);
+  doc.endCode();
+
+  // Code with language change (for English comments in German doc)
+  doc.setLanguage('de-DE');
+  doc.beginCode({ lang: 'en-US' });
+  doc.text('// Initialize the counter', 15, 55);
+  doc.text('let count = 0;', 15, 63);
+  doc.endCode();
+  ```
+
+  **Screen Reader Behavior:**
+  - Code (Inline): May announce "code" or read content as-is
+  - Code (Block): May announce "code block" on entry/exit
+  - With `lang`: Changes pronunciation for code comments
+
+  **Test Results:**
+  - ✅ All 6 test PDFs generated successfully
+  - ✅ Code elements in structure tree (`/S /Code`)
+  - ✅ Language attribute works for code comments
+  - ✅ Combines with Strong/Em
+  - ✅ Works in lists
+  - ✅ German text around code works correctly
+
+  **Open Issue (Backlog):**
+  - ⚠️ Screenreader-Verhalten für Code-Elemente konnte nicht abschließend verifiziert werden
+  - Kein Referenz-PDF mit Code-Elementen verfügbar (auch nicht in der offiziellen PDF/UA Reference Suite)
+  - NVDA zeigt keinen expliziten Hinweis auf Code-Blöcke an (möglicherweise erwartetes Verhalten)
+  - TODO: Über Blindenverband geeignete Referenz-Dateien beschaffen
+
+- ✅ **Sprint 17 (COMPLETED)**: Note and Reference for Footnotes/Endnotes
+  - **Status**: Footnote structure elements implemented
+  - **Key Feature**: Semantic markup for footnotes and endnotes with proper linking
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Note/Reference methods added
+  - ✅ `beginReference(options)` / `endReference()` - Footnote reference in text
+  - ✅ `beginNote(options)` / `endNote()` - Footnote content
+  - ✅ `options.id` - Unique ID for PDF/UA compliance
+  - ✅ Works with Lbl element for numbering
+  - ✅ Supports both footnotes (page bottom) and endnotes (document end)
+
+  **API Usage:**
+  ```javascript
+  // Main text with footnote reference
+  doc.beginStructureElement('P');
+  doc.text('Ein wichtiger Satz', 10, 40);
+
+  doc.beginReference();
+  doc.beginStructureElement('Lbl');
+  doc.setFontSize(8);
+  doc.text('1', x, 37);  // superscript
+  doc.setFontSize(12);
+  doc.endStructureElement();
+  doc.endReference();
+
+  doc.text(' mit Quellenangabe.', x, 40);
+  doc.endStructureElement();
+
+  // Footnote at bottom of page
+  doc.beginNote({ id: 'fn1' });
+    doc.beginStructureElement('Lbl');
+    doc.text('1', 10, 272);
+    doc.endStructureElement();
+
+    doc.beginStructureElement('P');
+    doc.text('Hier steht die Erklärung.', 15, 272);
+    doc.endStructureElement();
+  doc.endNote();
+  ```
+
+  **Structure Hierarchy:**
+  ```
+  P (Paragraph)
+  ├── "Text content"
+  ├── Reference
+  │   └── Lbl ("1")
+  └── "more text"
+
+  Note (id="fn1")
+  ├── Lbl ("1")
+  └── P ("Footnote explanation text")
+  ```
+
+  **Screen Reader Behavior (expected):**
+  - Reference: Should announce "footnote reference" or similar
+  - Note: Should announce "footnote" on entry
+  - Navigation: AT should allow jumping between Reference and Note
+
+  **Test Results:**
+  - ✅ All 5 test PDFs generated successfully
+  - ✅ Reference elements in structure tree (`/S /Reference`)
+  - ✅ Note elements in structure tree (`/S /Note`)
+  - ✅ Lbl elements correctly nested
+  - ✅ Multiple footnotes work
+  - ✅ Endnotes on separate page work
+  - ✅ German academic text with umlauts works
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly

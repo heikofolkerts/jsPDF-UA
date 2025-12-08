@@ -324,6 +324,13 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/Alt (' + escapedAlt + ')');
       }
 
+      // ID attribute (required for Note elements per PDF/UA - MP 19-003)
+      if (elem.attributes && elem.attributes.id) {
+        // Escape special characters in ID
+        var escapedId = elem.attributes.id.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        this.internal.write('/ID (' + escapedId + ')');
+      }
+
       // Attribute dictionary (for table headers and other elements)
       if (elem.attributes && elem.attributes.scope) {
         // Scope must be in an attribute dictionary with /O /Table owner
@@ -894,6 +901,367 @@ import { jsPDF } from "../jspdf.js";
   jsPDFAPI.endBlockQuote = function() {
     return this.endStructureElement();
   };
+
+  /**
+   * Begin a Code (computer code) element
+   * For inline code snippets or block-level code sections.
+   * Corresponds to HTML <code> element.
+   *
+   * Use Code for:
+   * - Inline code snippets (variable names, function calls)
+   * - Block-level code examples
+   * - Command-line instructions
+   * - File paths and URLs in technical context
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'en-US', 'de-DE') for code comments
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginCode = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    // If language is specified, store it for BDC operator
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Code', attributes);
+  };
+
+  /**
+   * End a Code element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endCode = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a Reference element (citation to footnote/endnote)
+   * For the superscript number or symbol in the main text that
+   * refers to a footnote or endnote.
+   *
+   * Use Reference for:
+   * - Footnote numbers in running text
+   * - Endnote references
+   * - Cross-references to notes
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.noteId] - ID of the Note to link to (creates clickable link)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginReference = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    // Store noteId for creating link in endReference
+    if (options.noteId) {
+      if (!this.internal.pdfuaFootnotes) {
+        this.internal.pdfuaFootnotes = {
+          noteDestinations: {},  // Maps noteId -> { page, y }
+          pendingReferences: []  // References waiting for link creation
+        };
+      }
+      this.internal.pdfuaFootnotes.currentReferenceNoteId = options.noteId;
+    }
+
+    return this.beginStructureElement('Reference', attributes);
+  };
+
+  /**
+   * End a Reference element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endReference = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add a link from the current Reference to its Note
+   * Call this after adding the reference content (e.g., the superscript number)
+   *
+   * @param {number} x - X coordinate of link area
+   * @param {number} y - Y coordinate of link area
+   * @param {number} width - Width of link area
+   * @param {number} height - Height of link area
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addFootnoteLink = function(x, y, width, height, label) {
+    if (!this.internal.pdfuaFootnotes || !this.internal.pdfuaFootnotes.currentReferenceNoteId) {
+      return this;
+    }
+
+    var noteId = this.internal.pdfuaFootnotes.currentReferenceNoteId;
+    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+
+    // Store pending reference link info (includes label for back-link)
+    this.internal.pdfuaFootnotes.pendingReferences.push({
+      noteId: noteId,
+      page: pageNumber,
+      x: x,
+      y: y,
+      width: width,
+      height: height,
+      label: label || noteId  // Use label for back-link text, fallback to noteId
+    });
+
+    // Clear current reference
+    this.internal.pdfuaFootnotes.currentReferenceNoteId = null;
+
+    return this;
+  };
+
+  /**
+   * Begin a Note element (footnote/endnote content)
+   * For the actual footnote or endnote text.
+   *
+   * Use Note for:
+   * - Footnotes at the bottom of the page
+   * - Endnotes at the end of a chapter or document
+   * - Explanatory notes referenced from the main text
+   *
+   * PDF/UA requires:
+   * - Each Note must have a unique ID
+   * - Note should contain Lbl (label) element
+   *
+   * By default, a back-link to the reference is automatically added when
+   * endNote() is called. Use noBackLink: true to disable this.
+   *
+   * A visually hidden announcement text ("Fußnote: " or "Footnote: ") is
+   * automatically added for screen readers. This text is positioned off-page
+   * and invisible to sighted users but readable by assistive technology.
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.id] - Unique ID (required for PDF/UA compliance)
+   * @param {number} [options.y] - Y position of the note (for link destination)
+   * @param {boolean} [options.noBackLink] - Set to true to disable automatic back-link
+   * @param {string|null|false} [options.announceText] - Custom announcement text for screen readers.
+   *        Defaults to "Fußnote: " (German) or "Footnote: " (other languages).
+   *        Set to null or false to disable announcement.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginNote = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.id) {
+      attributes.id = options.id;
+
+      // Register note destination for footnote links
+      if (!this.internal.pdfuaFootnotes) {
+        this.internal.pdfuaFootnotes = {
+          noteDestinations: {},
+          pendingReferences: [],
+          pendingBackLinks: []
+        };
+      }
+
+      var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+      this.internal.pdfuaFootnotes.noteDestinations[options.id] = {
+        page: pageNumber,
+        y: options.y || 0  // Y position for destination
+      };
+
+      // Store current note info for back-link generation
+      this.internal.pdfuaFootnotes.currentNoteId = options.id;
+      this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
+    }
+
+    this.beginStructureElement('Note', attributes);
+
+    // Add screen reader announcement (visually hidden)
+    // Determine announcement text based on document language or option
+    var announceText = options.announceText;
+    if (announceText === undefined) {
+      // Auto-detect based on document language
+      var lang = this.getLanguage ? this.getLanguage() : 'en';
+      if (lang && lang.toLowerCase().startsWith('de')) {
+        announceText = 'Fußnote: ';
+      } else {
+        announceText = 'Footnote: ';
+      }
+    }
+
+    if (announceText !== null && announceText !== false && announceText !== '') {
+      // Render announcement text with minimal font size (visually hidden but readable by screen reader)
+      var originalFontSize = this.getFontSize();
+      this.setFontSize(0.5);  // Very small but still readable by screen readers
+
+      this.beginSpan();
+      this.text(announceText, -1000, -1000);  // Position off-page (invisible)
+      this.endSpan();
+
+      this.setFontSize(originalFontSize);
+    }
+
+    return this;
+  };
+
+  /**
+   * End a Note element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endNote = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add a back-link from the current Note to its Reference
+   * Call this at the end of the note content, before endNote()
+   *
+   * @param {number} x - X coordinate for back-link
+   * @param {number} y - Y coordinate for back-link
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addNoteBackLink = function(x, y) {
+    if (!this.internal.pdfuaFootnotes || !this.internal.pdfuaFootnotes.currentNoteId) {
+      return this;
+    }
+
+    var noteId = this.internal.pdfuaFootnotes.currentNoteId;
+
+    // Find the reference that points to this note
+    var ref = null;
+    for (var i = 0; i < this.internal.pdfuaFootnotes.pendingReferences.length; i++) {
+      if (this.internal.pdfuaFootnotes.pendingReferences[i].noteId === noteId) {
+        ref = this.internal.pdfuaFootnotes.pendingReferences[i];
+        break;
+      }
+    }
+
+    if (!ref) {
+      return this;  // No reference found for this note
+    }
+
+    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+
+    // Only create back-links for cross-page references (same page has no effect)
+    if (pageNumber === ref.page) {
+      return this;  // Skip same-page back-links entirely (no text, no link)
+    }
+
+    var label = ref.label;
+
+    // Render the back-link label (small, superscript-like)
+    var originalFontSize = this.getFontSize();
+    this.setFontSize(8);
+
+    // Create Link structure element for the back-link
+    this.beginLink();
+    this.text(label, x, y);
+    this.endLink();
+
+    // Calculate link dimensions
+    var linkWidth = this.getTextWidth(label) + 2;
+    var linkHeight = 10;
+
+    // Store pending back-link info (includes target Y for precise navigation)
+    this.internal.pdfuaFootnotes.pendingBackLinks = this.internal.pdfuaFootnotes.pendingBackLinks || [];
+    this.internal.pdfuaFootnotes.pendingBackLinks.push({
+      targetPage: ref.page,
+      targetY: ref.y,  // Y position of the reference for precise back-navigation
+      sourcePage: pageNumber,
+      x: x - 1,
+      y: y - 3,
+      width: linkWidth,
+      height: linkHeight
+    });
+
+    this.setFontSize(originalFontSize);
+
+    return this;
+  };
+
+  /**
+   * Create all pending footnote links and back-links
+   * Called internally before PDF output to resolve note destinations
+   */
+  var createFootnoteLinks = function() {
+    if (!this.internal.pdfuaFootnotes) {
+      return;
+    }
+
+    var footnotes = this.internal.pdfuaFootnotes;
+    var self = this;
+    var getHorizontalCoordinateString = this.internal.getCoordinateString;
+    var getVerticalCoordinateString = this.internal.getVerticalCoordinateString;
+
+    // Create forward links (Reference -> Note)
+    footnotes.pendingReferences.forEach(function(ref) {
+      var dest = footnotes.noteDestinations[ref.noteId];
+      if (dest) {
+        // Get the page where the reference is located (NOT current page)
+        var refPageInfo = self.internal.getPageInfo(ref.page);
+
+        // Create annotation object
+        var annotation = {
+          finalBounds: {
+            x: getHorizontalCoordinateString(ref.x),
+            y: getVerticalCoordinateString(ref.y),
+            w: getHorizontalCoordinateString(ref.x + ref.width),
+            h: getVerticalCoordinateString(ref.y + ref.height)
+          },
+          options: {
+            pageNumber: dest.page
+          },
+          type: "link"
+        };
+
+        // Add annotation to the REFERENCE's page, not the current page
+        refPageInfo.pageContext.annotations.push(annotation);
+      }
+    });
+
+    // Create back-links (Note -> Reference)
+    if (footnotes.pendingBackLinks) {
+      footnotes.pendingBackLinks.forEach(function(backLink) {
+        // Only create back-links for cross-page references (same page has no effect)
+        if (backLink.sourcePage === backLink.targetPage) {
+          return;  // Skip same-page back-links
+        }
+
+        // Get the page where the back-link is located (the note's page)
+        var notePageInfo = self.internal.getPageInfo(backLink.sourcePage);
+
+        // Create annotation object for back-link with Y position for precise navigation
+        var annotation = {
+          finalBounds: {
+            x: getHorizontalCoordinateString(backLink.x),
+            y: getVerticalCoordinateString(backLink.y),
+            w: getHorizontalCoordinateString(backLink.x + backLink.width),
+            h: getVerticalCoordinateString(backLink.y + backLink.height)
+          },
+          options: {
+            pageNumber: backLink.targetPage,
+            top: backLink.targetY  // Y position of reference for precise back-navigation
+          },
+          type: "link"
+        };
+
+        // Add annotation to the NOTE's page
+        notePageInfo.pageContext.annotations.push(annotation);
+      });
+
+      // Clear pending back-links
+      footnotes.pendingBackLinks = [];
+    }
+
+    // Clear pending references
+    footnotes.pendingReferences = [];
+  };
+
+  /**
+   * Hook into PDF output to create footnote links
+   * Use 'buildDocument' event which fires before pages are written
+   */
+  jsPDFAPI.events.push([
+    "buildDocument",
+    createFootnoteLinks
+  ]);
 
   /**
    * Add a link annotation reference (OBJR) to the current Link structure element
