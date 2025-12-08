@@ -903,6 +903,97 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Begin a Caption element
+   * For figure captions, table captions, or other descriptive labels.
+   * Corresponds to HTML <figcaption> or <caption> elements.
+   *
+   * Use Caption for:
+   * - Image/figure descriptions ("Abbildung 1: ...")
+   * - Table titles or descriptions
+   * - Diagram labels
+   * - Chart descriptions
+   *
+   * Typical structure:
+   *   Figure (container)
+   *   ├── (image content)
+   *   └── Caption
+   *       └── "Abbildung 1: Beschreibung des Bildes"
+   *
+   * Or for tables:
+   *   Table
+   *   ├── Caption
+   *   │   └── "Tabelle 1: Übersicht der Ergebnisse"
+   *   └── (table content)
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for caption text
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginCaption = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Caption', attributes);
+  };
+
+  /**
+   * End a Caption element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endCaption = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a Figure container element
+   * Use this to group an image with its caption.
+   *
+   * Note: This is different from adding an image with addImage().
+   * Use beginFigure() when you need to:
+   * - Add a caption to an image
+   * - Group multiple related images
+   * - Create a figure with complex content
+   *
+   * For simple images without captions, use addImage() directly.
+   *
+   * Typical structure:
+   *   doc.beginFigure();
+   *     doc.addImage({...});  // Image with alt text
+   *     doc.beginCaption();
+   *       doc.text('Abbildung 1: Beschreibung', x, y);
+   *     doc.endCaption();
+   *   doc.endFigure();
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for figure content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginFigure = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Figure', attributes);
+  };
+
+  /**
+   * End a Figure container element
+   * Convenience method for doc.endStructureElement()
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFigure = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Begin a Code (computer code) element
    * For inline code snippets or block-level code sections.
    * Corresponds to HTML <code> element.

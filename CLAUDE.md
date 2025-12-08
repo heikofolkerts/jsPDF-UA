@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 17 (COMPLETED ✅ - 2025-12-06)**
+**Current Status: Sprint 18 (COMPLETED ✅ - 2025-12-08)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -863,6 +863,56 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Multiple footnotes work
   - ✅ Endnotes on separate page work
   - ✅ German academic text with umlauts works
+
+- ✅ **Sprint 18 (COMPLETED)**: Caption Element for Figure/Table Descriptions
+  - **Status**: Implementation complete, screenreader verified
+  - **Key Feature**: Semantic markup for figure captions and table titles
+
+  **What's been implemented:**
+  - ✅ `src/modules/structure_tree.js` - Caption and Figure methods added
+  - ✅ `beginCaption(options)` / `endCaption()` - Caption element wrapper
+  - ✅ `beginFigure(options)` / `endFigure()` - Figure container element
+  - ✅ `options.lang` - Optional language code for foreign-language captions
+  - ✅ Works with Figure (images) and Table elements
+  - ✅ Support for numbered captions ("Abbildung 1:", "Tabelle 1:")
+
+  **API Usage:**
+  ```javascript
+  // Figure with caption
+  doc.beginFigure();
+    doc.addImage({ imageData, x, y, width, height, alt: 'Image description' });
+    doc.beginCaption();
+      doc.text('Abbildung 1: Beschreibung des Bildes', x, y);
+    doc.endCaption();
+  doc.endFigure();
+
+  // Table with caption
+  doc.beginStructureElement('Table');
+    doc.beginCaption();
+      doc.text('Tabelle 1: Quartalsumsätze 2024', x, y);
+    doc.endCaption();
+    // ... table content ...
+  doc.endStructureElement();
+
+  // Caption with different language
+  doc.beginCaption({ lang: 'en-US' });
+    doc.text('Figure 1: English caption in German document', x, y);
+  doc.endCaption();
+  ```
+
+  **Difference Figure vs addImage:**
+  | Method | Use Case |
+  |--------|----------|
+  | `addImage()` | Simple images without caption |
+  | `beginFigure()` | Images with captions, grouped images |
+
+  **Test Results:**
+  - ✅ All 6 test PDFs generated successfully
+  - ✅ Caption elements in structure tree (`/S /Caption`)
+  - ✅ Figure elements in structure tree (`/S /Figure`)
+  - ✅ Language attribute works for foreign-language captions
+  - ✅ Works with tables
+  - ✅ Screenreader verification successful
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
