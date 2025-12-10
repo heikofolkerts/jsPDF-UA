@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 19 (NOT STARTED)**
+**Current Status: Sprint 19 (COMPLETED - 2025-12-10)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -914,20 +914,55 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Works with tables
   - ✅ Screenreader verification successful
 
-- ⏳ **Sprint 19 (NOT STARTED)**: TOC (Table of Contents) Element
-  - **Status**: Planned
-  - **Key Feature**: Semantic markup for document navigation
+- ✅ **Sprint 19 (COMPLETED)**: TOC Structure + Bookmarks Navigation
+  - **Status**: Implemented and verified with screenreader
+  - **Key Features**: Semantic TOC markup + PDF bookmarks for navigation
 
-  **Planned implementation:**
-  - TOC (Table of Contents) container element
-  - TOCI (Table of Contents Item) entry element
-  - Nested TOC support for subsections
-  - Link integration for clickable entries
+  **Part 1: TOC/TOCI Structure Elements (BITi 02.1.1)**
+  - ✅ `beginTOC(options)` / `endTOC()` - TOC container element
+  - ✅ `beginTOCI(options)` / `endTOCI()` - TOC item element
+  - ✅ Nested TOC support for subsections
+  - ✅ Works with Reference elements for entry text
+  - ✅ Optional `lang` parameter for language changes
 
-  **Known challenges from previous attempt:**
-  - Tab navigation in Acrobat Reader was problematic with TOCI elements
-  - Reference PDF "pdfua-nutshell" uses custom tags (`/TOC-1`) mapped to `/P`
-  - Consider alternative approaches (custom tags mapped to standard roles)
+  **Part 2: Bookmarks/Lesezeichen (BITi 13 - Navigation)**
+  - ✅ Uses existing jsPDF outline API: `doc.outline.add(parent, title, { pageNumber })`
+  - ✅ Hierarchical bookmarks (nested structure)
+  - ✅ Navigation verified with NVDA screenreader
+  - ✅ Required for PDF/UA compliance in multi-page documents
+
+  **API Usage:**
+  ```javascript
+  // TOC structure
+  doc.beginTOC();
+    doc.beginTOCI();
+      doc.beginReference();
+      doc.text('1. Einleitung .......... 3', 20, 45);
+      doc.endReference();
+    doc.endTOCI();
+  doc.endTOC();
+
+  // Bookmarks (matching TOC)
+  doc.outline.add(null, '1. Einleitung', { pageNumber: 3 });
+
+  // Nested bookmarks
+  const chap1 = doc.outline.add(null, '1. Grundlagen', { pageNumber: 2 });
+  doc.outline.add(chap1, '1.1 Definitionen', { pageNumber: 3 });
+  ```
+
+  **PDF/UA Requirements (from research):**
+  - Bookmarks are **required** for multi-page documents (BITi 13)
+  - Links in TOC are **optional** - not required for PDF/UA compliance
+  - TOC structure must use TOC/TOCI elements when present
+
+  **Test Results:**
+  - ✅ TOC structure recognized by screenreader
+  - ✅ Bookmarks panel accessible via F6 navigation
+  - ✅ Hierarchical bookmarks work correctly
+  - ✅ Navigation to target pages successful
+
+  **Future Enhancement (Optional):**
+  - Link annotations in TOC entries (clickable TOC) - not required for PDF/UA
 
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
@@ -1035,7 +1070,7 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 01.0 | ✅ Implemented | 2/3 |
 | 02.0 | ✅ Implemented | 2/3 |
 | 02.1.0 | ✅ Implemented | 2/3 |
-| 02.1.1 | ⏳ Planned | 19 |
+| 02.1.1 | ✅ Implemented | 19 |
 | 02.1.2 | ✅ BlockQuote | 15 |
 | 02.2.0 | ✅ Implemented | 2/3 |
 | 02.2.1 | ✅ Implemented | 8 |
@@ -1049,6 +1084,7 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 06 | ✅ Implemented | 1 |
 | 07 | ✅ Implemented | 1, 14 |
 | 08.0 | ✅ Implemented | 2/3 |
+| 13 | ✅ Implemented | 19 |
 | 16 | ✅ Implemented | 4/5, 10 |
 
 ## Tool Installation
