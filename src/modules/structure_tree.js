@@ -1472,6 +1472,140 @@ import { jsPDF } from "../jspdf.js";
     return this;
   };
 
+  // ============================================================
+  // ARTIFACT API - For content that should be ignored by screen readers
+  // ============================================================
+
+  /**
+   * Begin an artifact block.
+   * Content within artifacts is ignored by screen readers (BITi 01.0, 01.1).
+   *
+   * Use artifacts for:
+   * - Headers and footers (use type: 'Pagination', subtype: 'Header'/'Footer')
+   * - Page numbers (use type: 'Pagination')
+   * - Decorative images, lines, borders
+   * - Background colors and patterns
+   * - Watermarks
+   *
+   * PDF/UA Requirements:
+   * - Headers/footers MUST be marked as artifacts with Type=Pagination
+   * - Subtype MUST be Header or Footer for headers/footers
+   *
+   * @param {Object} [options] - Artifact options
+   * @param {string} [options.type] - Artifact type: 'Pagination', 'Layout', 'Page', 'Background'
+   * @param {string} [options.subtype] - Artifact subtype: 'Header', 'Footer' (for Pagination type)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple decorative artifact
+   * doc.beginArtifact();
+   * doc.line(20, 100, 190, 100);  // Decorative line
+   * doc.endArtifact();
+   *
+   * @example
+   * // Header artifact (required format for PDF/UA)
+   * doc.beginArtifact({ type: 'Pagination', subtype: 'Header' });
+   * doc.text('Document Title', 20, 15);
+   * doc.endArtifact();
+   *
+   * @example
+   * // Footer with page number
+   * doc.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
+   * doc.text('Page ' + pageNum, 100, 285);
+   * doc.endArtifact();
+   */
+  jsPDFAPI.beginArtifact = function(options) {
+    options = options || {};
+
+    // Initialize artifact state if needed
+    if (!this.internal.pdfuaArtifact) {
+      this.internal.pdfuaArtifact = {
+        active: false,
+        type: null,
+        subtype: null,
+        depth: 0
+      };
+    }
+
+    // Store artifact properties
+    this.internal.pdfuaArtifact.active = true;
+    this.internal.pdfuaArtifact.type = options.type || null;
+    this.internal.pdfuaArtifact.subtype = options.subtype || null;
+    this.internal.pdfuaArtifact.depth++;
+
+    return this;
+  };
+
+  /**
+   * End an artifact block.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endArtifact = function() {
+    if (this.internal.pdfuaArtifact && this.internal.pdfuaArtifact.depth > 0) {
+      this.internal.pdfuaArtifact.depth--;
+      if (this.internal.pdfuaArtifact.depth === 0) {
+        this.internal.pdfuaArtifact.active = false;
+        this.internal.pdfuaArtifact.type = null;
+        this.internal.pdfuaArtifact.subtype = null;
+      }
+    }
+    return this;
+  };
+
+  /**
+   * Check if currently inside an artifact block
+   * @returns {boolean} - True if inside artifact block
+   */
+  jsPDFAPI.isInArtifact = function() {
+    return this.internal.pdfuaArtifact && this.internal.pdfuaArtifact.active;
+  };
+
+  /**
+   * Get current artifact properties (type and subtype)
+   * @returns {Object|null} - Artifact properties or null if not in artifact
+   */
+  jsPDFAPI.getArtifactProperties = function() {
+    if (!this.isInArtifact()) {
+      return null;
+    }
+    return {
+      type: this.internal.pdfuaArtifact.type,
+      subtype: this.internal.pdfuaArtifact.subtype
+    };
+  };
+
+  /**
+   * Convenience method for header artifact
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginHeader = function() {
+    return this.beginArtifact({ type: 'Pagination', subtype: 'Header' });
+  };
+
+  /**
+   * End header artifact
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endHeader = function() {
+    return this.endArtifact();
+  };
+
+  /**
+   * Convenience method for footer artifact
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginFooter = function() {
+    return this.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
+  };
+
+  /**
+   * End footer artifact
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFooter = function() {
+    return this.endArtifact();
+  };
+
 })(jsPDF.API);
 
 export default jsPDF;

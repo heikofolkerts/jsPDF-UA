@@ -4080,9 +4080,13 @@ function jsPDF(options) {
 
     // PDF/UA: Check if we need to wrap content in marked content operators
     var needsMarkedContent = false;
+    var isArtifact = false;
     var mcid = null;
     if (scope.isPDFUAEnabled && scope.isPDFUAEnabled()) {
-      if (scope.internal.structureTree && scope.internal.structureTree.currentParent) {
+      // Check if we're inside an artifact block
+      if (scope.isInArtifact && scope.isInArtifact()) {
+        isArtifact = true;
+      } else if (scope.internal.structureTree && scope.internal.structureTree.currentParent) {
         var currentElem = scope.internal.structureTree.currentParent;
         if (currentElem.type !== 'StructTreeRoot') {
           needsMarkedContent = true;
@@ -4097,7 +4101,21 @@ function jsPDF(options) {
     var result = "";
 
     // PDF/UA: Begin marked content before BT
-    if (needsMarkedContent) {
+    if (isArtifact) {
+      // Artifact content - ignored by screen readers
+      var artifactProps = scope.getArtifactProperties ? scope.getArtifactProperties() : null;
+      if (artifactProps && artifactProps.type) {
+        // Full artifact with type (e.g., /Artifact <</Type/Pagination/Subtype/Header>> BDC)
+        var artifactDict = "/Type/" + artifactProps.type;
+        if (artifactProps.subtype) {
+          artifactDict += "/Subtype/" + artifactProps.subtype;
+        }
+        result += "/Artifact <<" + artifactDict + ">> BDC\n";
+      } else {
+        // Simple artifact (e.g., /Artifact BMC)
+        result += "/Artifact BMC\n";
+      }
+    } else if (needsMarkedContent) {
       // CRITICAL FIX: Use actual structure element type instead of hardcoded /Span
       // This ensures the marked content tag matches the structure tree element type
       var currentElem = scope.internal.structureTree.currentParent;
@@ -4120,7 +4138,7 @@ function jsPDF(options) {
     result += "ET";
 
     // PDF/UA: End marked content after ET
-    if (needsMarkedContent) {
+    if (needsMarkedContent || isArtifact) {
       result += "\nEMC";
     }
 

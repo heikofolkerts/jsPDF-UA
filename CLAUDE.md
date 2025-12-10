@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 19 (COMPLETED - 2025-12-10)**
+**Current Status: Sprint 20 (COMPLETED - 2025-12-10)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -964,6 +964,51 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   **Future Enhancement (Optional):**
   - Link annotations in TOC entries (clickable TOC) - not required for PDF/UA
 
+- ✅ **Sprint 20 (COMPLETED)**: Artifacts for Headers, Footers, and Decorative Content
+  - **Status**: Implemented and verified with screenreader
+  - **Key Feature**: Content marked as artifacts is ignored by screen readers
+
+  **Artifact API (BITi 01.0, 01.1):**
+  - ✅ `beginArtifact(options)` / `endArtifact()` - General artifact wrapper
+  - ✅ `beginHeader()` / `endHeader()` - Convenience for page headers
+  - ✅ `beginFooter()` / `endFooter()` - Convenience for page footers
+  - ✅ Supported types: `Pagination`, `Layout`, `Page`, `Background`
+  - ✅ Supported subtypes: `Header`, `Footer`
+
+  **API Usage:**
+  ```javascript
+  // Header (ignored by screen reader)
+  doc.beginHeader();
+  doc.text('Document Title', 20, 15);
+  doc.endHeader();
+
+  // Main content (read by screen reader)
+  doc.beginStructureElement('P');
+  doc.text('This content is read aloud.', 20, 50);
+  doc.endStructureElement();
+
+  // Footer with page number (ignored)
+  doc.beginFooter();
+  doc.text('Page 1', 100, 285, { align: 'center' });
+  doc.endFooter();
+
+  // Decorative line (ignored)
+  doc.beginArtifact({ type: 'Layout' });
+  doc.line(20, 100, 190, 100);
+  doc.endArtifact();
+  ```
+
+  **PDF/UA Requirements:**
+  - Headers/footers MUST use `/Type/Pagination` with `/Subtype/Header` or `/Subtype/Footer`
+  - Decorative elements should use `/Type/Layout`
+  - Artifacts are NOT part of the structure tree
+
+  **Test Results:**
+  - ✅ Header text not read by NVDA
+  - ✅ Footer text not read by NVDA
+  - ✅ Main content correctly read
+  - ✅ Artifact markers correct in PDF stream
+
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
 - Acrobat Reader treats content without BDC/EMC as untagged (shows "empty page")
@@ -1067,7 +1112,8 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | BITi Step | jsPDF-UA Status | Sprint |
 |-----------|-----------------|--------|
 | 00.1 | ✅ Implemented | 2/3 |
-| 01.0 | ✅ Implemented | 2/3 |
+| 01.0 | ✅ Implemented | 2/3, 20 |
+| 01.1 | ✅ Implemented | 20 |
 | 02.0 | ✅ Implemented | 2/3 |
 | 02.1.0 | ✅ Implemented | 2/3 |
 | 02.1.1 | ✅ Implemented | 19 |
