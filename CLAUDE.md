@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints:
 
-**Current Status: Sprint 18 (COMPLETED ✅ - 2025-12-08)**
+**Current Status: Sprint 19 (NOT STARTED)**
 
 - ✅ **Sprint 1 (COMPLETED & VERIFIED)**: Basic PDF/UA mode, XMP metadata, DisplayDocTitle
   - Status: Text displays correctly in both Acrobat Reader and Firefox
@@ -914,6 +914,21 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   - ✅ Works with tables
   - ✅ Screenreader verification successful
 
+- ⏳ **Sprint 19 (NOT STARTED)**: TOC (Table of Contents) Element
+  - **Status**: Planned
+  - **Key Feature**: Semantic markup for document navigation
+
+  **Planned implementation:**
+  - TOC (Table of Contents) container element
+  - TOCI (Table of Contents Item) entry element
+  - Nested TOC support for subsections
+  - Link integration for clickable entries
+
+  **Known challenges from previous attempt:**
+  - Tab navigation in Acrobat Reader was problematic with TOCI elements
+  - Reference PDF "pdfua-nutshell" uses custom tags (`/TOC-1`) mapped to `/P`
+  - Consider alternative approaches (custom tags mapped to standard roles)
+
 **Critical Learning:**
 - PDF/UA structure tree REQUIRES marked content to work properly
 - Acrobat Reader treats content without BDC/EMC as untagged (shows "empty page")
@@ -933,6 +948,108 @@ This project is currently implementing PDF/UA (Universal Accessibility) support 
   3. Content is tagged with BDC/EMC operators (if structure tree exists)
   4. Screen reader can navigate and read the content
   5. Test file: Generate PDF → Open in Acrobat Reader → Verify with screen reader
+
+## BITi Prüfschritte (PDF/UA Accessibility Testing)
+
+Reference: https://biti-wiki.de/index.php?title=Prüfschritte
+
+These test steps are used to verify PDF/UA compliance. When implementing or modifying PDF/UA features, consider which test steps are affected.
+
+### 00 - OCR & Structure
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 00.0 | OCR-Validierung / Parsing | Text extraction quality |
+| BITi 00.1 | Hierarchie der Baumstruktur | Structure tree hierarchy |
+
+### 01 - Tagged Content
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 01.0 | Getaggter realer Inhalt / Artefakte | Real content vs artifacts |
+| BITi 01.1 | Artefakte / Kopfzeile und Fußzeile | Headers/footers as artifacts |
+
+### 02 - Structure Elements
+**02.0 - General**
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 02.0 | Rollenzuordnung und Strukturelemente allg. | Role mapping, RoleMap |
+
+**02.1 - Grouping Elements**
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 02.1.0 | Gruppierende Strukturelemente / Rootelemente | Document, Part, Art, Sect, Div |
+| BITi 02.1.1 | Gruppierende Strukturelemente / Inhaltsverzeichnis | TOC, TOCI (Sprint 19) |
+| BITi 02.1.2 | Gruppierende Strukturelemente / BlockQuote, Index, NonStruct, Private | BlockQuote (Sprint 15) |
+
+**02.2 - Block-Level Elements**
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 02.2.0 | Blocklevel Strukturelemente / Überschriften | H1-H6 (Sprint 2/3) |
+| BITi 02.2.1 | Blocklevel Strukturelemente / Listen | L, LI, Lbl, LBody (Sprint 8) |
+| BITi 02.2.2 | Blocklevel Strukturelemente / Tabellen | Table, TR, TH, TD (Sprint 7) |
+| BITi 02.2.3 | Blocklevel Strukturelemente / Absätze | P element (Sprint 2/3) |
+| BITi 02.2.3.1 | Abkürzungen | Abbreviation handling |
+
+**02.3 - Inline-Level Elements**
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 02.3.0 | Inlinelevel Strukturelemente / Fuß- Endnoten und Verweise | Note, Reference (Sprint 17) |
+| BITi 02.3.1 | Inlinelevel Strukturelemente / Links | Link, OBJR (Sprint 9) |
+| BITi 02.3.2 | Inlinelevel Strukturelemente / Annotationen | Annotation handling |
+| BITi 02.3.3 | Inlinelevel Strukturelemente / Ruby / Warichu | Ruby text (CJK) |
+| BITi 02.3.4 | Inlinelevel Strukturelemente / Span, Quote, BibEntry, Code | Span (Sprint 14), Quote (Sprint 15), Code (Sprint 16) |
+
+**02.4 - Presentational Elements**
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 02.4.0 | Darstellende Elemente / Mathematische Ausdrücke | Formula element |
+| BITi 02.4.1 | Darstellende Elemente / Grafiken | Figure element (Sprint 18) |
+| BITi 02.4.1.1 | Grafiken / Alternativtexte | Alt text for images (Sprint 6) |
+| BITi 02.4.2 | Darstellende Elemente / Formulare | Form elements |
+| BITi 02.4.2.1 | Nicht-interaktive Formularfelder | Non-interactive forms |
+
+### 03-16 - Additional Requirements
+| Step | Title | Relevance |
+|------|-------|-----------|
+| BITi 03 | Flimmer-, Blink- oder Blitzeffekte | No flashing content |
+| BITi 04 | Farben, Kontraste und Textvergrößerung | Color contrast, text scaling |
+| BITi 05 | Media | Audio/video accessibility |
+| BITi 06 | Metadaten / Dokumenttitel | XMP metadata, title (Sprint 1) |
+| BITi 07 | Ausgewiesene natürliche Sprache | Lang attribute (Sprint 1, 14) |
+| BITi 08.0 | Logische Lesereihenfolge | Reading order (/Tabs /S) |
+| BITi 08.1 | Lesereihenfolge Artikelabschnitte | Article sections order |
+| BITi 08.2 | Geeignete Verschachtelung der Tags | Proper tag nesting |
+| BITi 09 | Zeichenkodierungen | Character encoding (UTF-8) |
+| BITi 10 | Streckbare Zeichen | Scalable characters |
+| BITi 11 | Optional Content | Optional content groups |
+| BITi 12 | Sicherheit | Security settings |
+| BITi 13 | Navigation | Bookmarks, outlines |
+| BITi 14 | Aktionen | JavaScript actions |
+| BITi 15 | XObjects | Form XObjects |
+| BITi 16 | Schriften | Font embedding (Sprint 4/5, 10) |
+
+### Implementation Status by BITi Step
+
+| BITi Step | jsPDF-UA Status | Sprint |
+|-----------|-----------------|--------|
+| 00.1 | ✅ Implemented | 2/3 |
+| 01.0 | ✅ Implemented | 2/3 |
+| 02.0 | ✅ Implemented | 2/3 |
+| 02.1.0 | ✅ Implemented | 2/3 |
+| 02.1.1 | ⏳ Planned | 19 |
+| 02.1.2 | ✅ BlockQuote | 15 |
+| 02.2.0 | ✅ Implemented | 2/3 |
+| 02.2.1 | ✅ Implemented | 8 |
+| 02.2.2 | ✅ Implemented | 7 |
+| 02.2.3 | ✅ Implemented | 2/3 |
+| 02.3.0 | ✅ Implemented | 17 |
+| 02.3.1 | ✅ Implemented | 9 |
+| 02.3.4 | ✅ Implemented | 14-16 |
+| 02.4.1 | ✅ Implemented | 18 |
+| 02.4.1.1 | ✅ Implemented | 6 |
+| 06 | ✅ Implemented | 1 |
+| 07 | ✅ Implemented | 1, 14 |
+| 08.0 | ✅ Implemented | 2/3 |
+| 16 | ✅ Implemented | 4/5, 10 |
 
 ## Tool Installation
 

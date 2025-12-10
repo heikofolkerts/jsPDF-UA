@@ -994,6 +994,94 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Begin a TOC (Table of Contents) container element.
+   * Groups all table of contents items (TOCI elements).
+   *
+   * According to BITi 02.1.1, a TOC element may only contain:
+   * - TOCI elements (table of contents items)
+   * - Nested TOC elements (for sub-sections)
+   *
+   * Structure example:
+   *   TOC
+   *   ├── TOCI (Chapter 1)
+   *   │   └── Reference → "1. Einleitung .......... 5"
+   *   ├── TOCI (Chapter 2)
+   *   │   ├── Reference → "2. Hauptteil .......... 12"
+   *   │   └── TOC (nested for subsections)
+   *   │       └── TOCI → "2.1 Abschnitt .......... 13"
+   *   └── TOCI (Chapter 3)
+   *       └── Reference → "3. Schluss .......... 25"
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for TOC content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginTOC = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('TOC', attributes);
+  };
+
+  /**
+   * End a TOC container element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTOC = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a TOCI (Table of Contents Item) element.
+   * Represents a single entry in the table of contents.
+   *
+   * According to BITi 02.1.1, a TOCI may contain:
+   * - Lbl (label/number)
+   * - Reference (link to document content)
+   * - NonStruct (for decorative elements like dotted lines)
+   * - P (paragraph)
+   * - TOC (nested table of contents for sub-items)
+   *
+   * Typical structure:
+   *   TOCI
+   *   └── Reference
+   *       └── "1. Kapitelname .......... 5"
+   *
+   * Or with nested sub-sections:
+   *   TOCI
+   *   ├── Reference → "2. Hauptteil"
+   *   └── TOC
+   *       ├── TOCI → "2.1 Unterabschnitt"
+   *       └── TOCI → "2.2 Weiterer Abschnitt"
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for this entry
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginTOCI = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('TOCI', attributes);
+  };
+
+  /**
+   * End a TOCI element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endTOCI = function() {
+    return this.endStructureElement();
+  };
+
+  /**
    * Begin a Code (computer code) element
    * For inline code snippets or block-level code sections.
    * Corresponds to HTML <code> element.
