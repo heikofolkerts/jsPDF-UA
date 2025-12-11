@@ -251,6 +251,26 @@ import { jsPDF } from "../jspdf.js";
       this.internal.write(pageNum + ' ' + pageArrayObjects[pageNum] + ' 0 R');
     }
 
+    // Add form field StructParent entries to ParentTree
+    // Form fields have StructParent indices starting at 1000
+    // Each must point to the Form structure element that contains the OBJR
+    var formFieldParentMap = this.internal.structureTree.formFieldParentMap;
+    var structParentMap = this.internal.pdfuaFormFieldStructParentMap;
+
+    if (formFieldParentMap && structParentMap) {
+      for (var internalId in formFieldParentMap) {
+        if (formFieldParentMap.hasOwnProperty(internalId)) {
+          var formElement = formFieldParentMap[internalId];
+          var structParentIndex = structParentMap[internalId];
+
+          if (formElement && formElement.objectNumber && structParentIndex !== undefined) {
+            // Add entry: StructParent index -> Form element object number
+            this.internal.write(structParentIndex + ' ' + formElement.objectNumber + ' 0 R');
+          }
+        }
+      }
+    }
+
     this.internal.write(']');
     this.internal.write('>>');
     this.internal.write('endobj');
@@ -350,7 +370,8 @@ import { jsPDF } from "../jspdf.js";
       // Children (K entry)
       // An element can have MCIDs, child elements, OBJR references, or combinations
       var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
-      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs;
+      var hasFormFieldRefs = elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
+      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs;
 
       if (hasContent) {
         var kArray = [];
@@ -369,6 +390,28 @@ import { jsPDF } from "../jspdf.js";
             var objId = self.internal.pdfuaLinkIdMap && self.internal.pdfuaLinkIdMap[internalId];
             if (objId) {
               kArray.push('<< /Type /OBJR /Obj ' + objId + ' 0 R >>');
+            }
+          });
+        }
+
+        // Add OBJR references for form field widget annotations (PDF/UA requirement)
+        // Format: << /Type /OBJR /Obj <widget-objId> 0 R /Pg <page-objId> 0 R >>
+        if (hasFormFieldRefs) {
+          elem.formFieldInternalIds.forEach(function(internalId) {
+            // Resolve internal ID to actual object ID using the mapping
+            var objId = self.internal.pdfuaFormFieldIdMap && self.internal.pdfuaFormFieldIdMap[internalId];
+            if (objId) {
+              // Get page reference for this form field
+              var fieldPage = self.internal.pdfuaFormFieldPageMap && self.internal.pdfuaFormFieldPageMap[internalId];
+              var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+              if (fieldPage) {
+                var pageInfo = self.internal.getPageInfo(fieldPage);
+                if (pageInfo && pageInfo.objId) {
+                  objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                }
+              }
+              objrStr += ' >>';
+              kArray.push(objrStr);
             }
           });
         }
@@ -1468,6 +1511,90 @@ import { jsPDF } from "../jspdf.js";
       currentElem.annotationInternalIds = [];
     }
     currentElem.annotationInternalIds.push(annotationInternalId);
+
+    return this;
+  };
+
+  // ============================================================
+  // FORM FIELD API - For accessible form fields (BITi 02.4.2)
+  // ============================================================
+
+  /**
+   * Begin a Form structure element for accessible form fields.
+   * Each form field widget annotation must be wrapped in a Form element
+   * for PDF/UA compliance.
+   *
+   * The Form element provides:
+   * - Screen reader access to the field
+   * - Proper structure tree hierarchy
+   * - Connection to the widget annotation via OBJR
+   *
+   * @param {Object} [options] - Options for the form element
+   * @param {string} [options.lang] - Language code for form field labels
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * doc.beginFormField();
+   *   // Add the actual AcroForm field
+   *   doc.addField(textField);
+   *   // Add OBJR reference
+   *   doc.addFormFieldRef(textField._pdfuaInternalId);
+   * doc.endFormField();
+   */
+  jsPDFAPI.beginFormField = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Form', attributes);
+  };
+
+  /**
+   * End a Form structure element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFormField = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add a form field annotation reference (OBJR) to the current Form structure element.
+   * This connects the Form structure element to the widget annotation.
+   * Required for PDF/UA accessibility.
+   *
+   * @param {number} fieldInternalId - Internal ID of the form field (from _pdfuaInternalId)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addFormFieldRef = function(fieldInternalId) {
+    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+      return this;
+    }
+
+    var currentElem = this.internal.structureTree.currentParent;
+
+    // Only add to Form elements
+    if (currentElem.type !== 'Form') {
+      console.warn('addFormFieldRef called outside of Form element');
+      return this;
+    }
+
+    // Store the internal ID - the actual object ID will be resolved later
+    // during writeStructTree when pdfuaFormFieldIdMap is available
+    if (!currentElem.formFieldInternalIds) {
+      currentElem.formFieldInternalIds = [];
+    }
+    currentElem.formFieldInternalIds.push(fieldInternalId);
+
+    // Track which Form structure element owns this form field's StructParent
+    // This is needed for the ParentTree to correctly reference the Form element
+    if (!this.internal.structureTree.formFieldParentMap) {
+      this.internal.structureTree.formFieldParentMap = {};
+    }
+    // Store reference: internalId -> Form element
+    this.internal.structureTree.formFieldParentMap[fieldInternalId] = currentElem;
 
     return this;
   };
