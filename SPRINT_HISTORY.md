@@ -1626,3 +1626,93 @@ doc.endAside();
   3. Content is tagged with BDC/EMC operators (if structure tree exists)
   4. Screen reader can navigate and read the content
   5. Test file: Generate PDF -> Open in Acrobat Reader -> Verify with screen reader
+
+
+---
+
+## Sprint 27 (COMPLETED - 2025-12-12)
+**Accessible Annotations (BITi 02.3.2)**
+
+Implements PDF/UA-compliant Text and FreeText annotations.
+
+### Matterhorn Protocol Requirements
+- **28-002**: Annotations (except Widget, Popup, Link) must be nested in `<Annot>`
+- **28-004**: Annotations need `/Contents` or `/Alt` for accessibility
+
+### Known Limitation: Reading Order
+Screen readers may not read annotations at their logical position in the document structure.
+Annotations are stored separately from the content stream and may be announced after surrounding
+content blocks rather than inline. For critical reading order requirements, use the `Note` element
+(Sprint 17) instead of PDF annotations.
+
+See [docs/pdfua/limitations.md](./docs/pdfua/limitations.md) for details.
+
+### What's been implemented:
+
+**New Annot Structure Element:**
+- `beginAnnot(options)` / `endAnnot()` - Wrapper for annotations
+- `addAnnotationRef(id)` - Link annotation object to structure element via OBJR
+
+**Enhanced Annotation Functions:**
+- `createAnnotation()` now returns internal ID for PDF/UA reference
+- Text annotations get `/F 4` flag (print) for proper handling
+- FreeText annotations converted to indirect objects in PDF/UA mode
+- OBJR references added to structure tree output
+
+**API Usage:**
+```javascript
+// Text annotation (sticky note)
+doc.beginAnnot({ alt: 'Description for screen reader' });
+const annotId = doc.createAnnotation({
+  type: 'text',
+  title: 'Author',
+  contents: 'This is a comment',
+  bounds: { x: 180, y: 35, w: 20, h: 20 },
+  open: false
+});
+if (annotId) {
+  doc.addAnnotationRef(annotId);
+}
+doc.endAnnot();
+
+// FreeText annotation
+doc.beginAnnot({ alt: 'Note: Important reminder' });
+const ftId = doc.createAnnotation({
+  type: 'freetext',
+  contents: 'Important!',
+  bounds: { x: 150, y: 35, w: 50, h: 15 },
+  color: 'FF0000'
+});
+if (ftId) doc.addAnnotationRef(ftId);
+doc.endAnnot();
+
+// With language attribute
+doc.beginAnnot({ lang: 'en-US', alt: 'Comment in English' });
+// ...
+doc.endAnnot();
+```
+
+**Structure Tree Output:**
+```
+<Annot>
+  └── OBJR (reference to annotation object)
+</Annot>
+```
+
+**Note on Link Annotations:**
+Link annotations are already handled by the Link structure element (Sprint 9).
+This sprint adds support for non-link annotations like Text and FreeText.
+
+**Note on Optional Content (BITi 11 / OCG):**
+jsPDF does not currently support Optional Content Groups (layers).
+A documentation note has been added for future implementers with PDF/UA requirements.
+
+**Test Files:**
+- test-annot-1-text.pdf: Simple text annotation
+- test-annot-2-freetext.pdf: FreeText annotation
+- test-annot-3-multiple.pdf: Multiple annotations
+- test-annot-4-language.pdf: Annotation with language attribute
+- test-annot-5-open.pdf: Open annotation (popup visible)
+- test-annot-6-complete.pdf: Complete annotated document
+
+---

@@ -135,9 +135,11 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints.
 
-**Current Status: Sprint 25 (IN PROGRESS - 2025-12-12)**
+**Current Status: Sprint 27 (COMPLETED - 2025-12-12)**
 
 For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./SPRINT_HISTORY.md).
+
+For API documentation and usage examples, see [docs/pdfua/](./docs/pdfua/README.md).
 
 ### Completed Sprints Summary
 
@@ -166,7 +168,8 @@ For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./
 | 23 | BibEntry + Index Elements | ✅ |
 | 24 | NonStruct/Private + Art/Sect/Div/Part Grouping | ✅ |
 | 25 | Ruby/Warichu CJK Annotations | ✅ |
-| 26 | DocumentFragment + Aside (PDF 2.0) | 🔄 |
+| 26 | DocumentFragment + Aside (PDF 2.0) + Language Inheritance | ✅ |
+| 27 | Accessible Annotations (Text/FreeText with Annot element) | ✅ |
 
 ### Critical Requirements
 
@@ -253,7 +256,7 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | BITi 08.2 | Geeignete Verschachtelung der Tags | Proper tag nesting |
 | BITi 09 | Zeichenkodierungen | Character encoding (UTF-8) |
 | BITi 10 | Streckbare Zeichen | Scalable characters |
-| BITi 11 | Optional Content | Optional content groups |
+| BITi 11 | Optional Content | Optional content groups (see note below) |
 | BITi 12 | Sicherheit | Security settings |
 | BITi 13 | Navigation | Bookmarks, outlines |
 | BITi 14 | Aktionen | JavaScript actions |
@@ -278,6 +281,8 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 02.2.3.1 | ✅ Abbreviations | 22 |
 | 02.3.0 | ✅ Implemented | 17 |
 | 02.3.1 | ✅ Implemented | 9 |
+| 02.3.2 | ✅ Annot element for Text/FreeText | 27 |
+| 02.3.3 | ✅ Ruby/Warichu | 25 |
 | 02.3.4 | ✅ Span, Quote, BibEntry, Code | 14-16, 23 |
 | 02.4.0 | ✅ Formula | 22 |
 | 02.4.1 | ✅ Implemented | 18 |
@@ -288,6 +293,17 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 08.0 | ✅ Implemented | 2/3 |
 | 13 | ✅ Implemented | 19 |
 | 16 | ✅ Implemented | 4/5, 10 |
+
+### Note on Optional Content (BITi 11 / OCG)
+
+jsPDF currently does not support Optional Content Groups (OCG/Layers). If this feature is implemented in the future, the following PDF/UA requirements must be considered:
+
+1. **All layer content must be tagged** - Content in optional layers must be included in the structure tree
+2. **Default visibility must be accessible** - The default state of layers should show all essential content
+3. **Screen readers must access all content** - Hidden layers should not hide content that screen readers need
+4. **Tab order must be maintained** - `/Tabs /S` must work correctly across all layers
+
+Reference: Matterhorn Protocol checkpoints for Optional Content, ISO 14289-1 Section 7.9
 
 ## Tool Installation
 

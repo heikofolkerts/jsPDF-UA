@@ -146,7 +146,12 @@ import { jsPDF } from "../jspdf.js";
               ")";
             line += " /Popup " + objPopup.objId + " 0 R";
             line += " /P " + pageInfo.objId + " 0 R";
-            line += " /T (" + escape(encryptorText(title)) + ") >>";
+            line += " /T (" + escape(encryptorText(title)) + ")";
+            // PDF/UA: Add /F 4 flag (print flag) for proper annotation handling
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              line += " /F 4";
+            }
+            line += " >>";
             objText.content = line;
 
             var parent = objText.objId + " 0 R";
@@ -178,6 +183,20 @@ import { jsPDF } from "../jspdf.js";
 
             this.internal.write(objText.objId, "0 R", objPopup.objId, "0 R");
 
+            // PDF/UA: Store object ID and page for OBJR reference in structure tree
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled() && anno.internalId) {
+              if (!this.internal.pdfuaAnnotIdMap) {
+                this.internal.pdfuaAnnotIdMap = {};
+              }
+              this.internal.pdfuaAnnotIdMap[anno.internalId] = objText.objId;
+
+              // Store page number for /Pg reference
+              if (!this.internal.pdfuaAnnotPageMap) {
+                this.internal.pdfuaAnnotPageMap = {};
+              }
+              this.internal.pdfuaAnnotPageMap[anno.internalId] = putPageData.pageNumber;
+            }
+
             break;
           case "freetext":
             rect =
@@ -191,21 +210,59 @@ import { jsPDF } from "../jspdf.js";
               getVerticalCoordinateString(anno.bounds.y + anno.bounds.h) +
               "] ";
             var color = anno.color || "#000000";
-            line =
-              "<</Type /Annot /Subtype /" +
-              "FreeText" +
-              " " +
-              rect +
-              "/Contents (" +
-              escape(encryptor(anno.contents)) +
-              ")";
-            line +=
-              " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
-              color +
-              ")";
-            line += " /Border [0 0 0]";
-            line += " >>";
-            this.internal.write(line);
+
+            // PDF/UA: Create as indirect object for OBJR reference
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              var objFreeText = this.internal.newAdditionalObject();
+              var encryptorFreeText = this.internal.getEncryptor(objFreeText.objId);
+              line =
+                "<</Type /Annot /Subtype /" +
+                "FreeText" +
+                " " +
+                rect +
+                "/Contents (" +
+                escape(encryptorFreeText(anno.contents)) +
+                ")";
+              line +=
+                " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
+                color +
+                ")";
+              line += " /Border [0 0 0]";
+              line += " /F 4"; // Print flag for PDF/UA
+              line += " >>";
+              objFreeText.content = line;
+              this.internal.write(objFreeText.objId + " 0 R");
+
+              // Store object ID and page for OBJR reference in structure tree
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotIdMap) {
+                  this.internal.pdfuaAnnotIdMap = {};
+                }
+                this.internal.pdfuaAnnotIdMap[anno.internalId] = objFreeText.objId;
+
+                // Store page number for /Pg reference
+                if (!this.internal.pdfuaAnnotPageMap) {
+                  this.internal.pdfuaAnnotPageMap = {};
+                }
+                this.internal.pdfuaAnnotPageMap[anno.internalId] = putPageData.pageNumber;
+              }
+            } else {
+              line =
+                "<</Type /Annot /Subtype /" +
+                "FreeText" +
+                " " +
+                rect +
+                "/Contents (" +
+                escape(encryptor(anno.contents)) +
+                ")";
+              line +=
+                " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
+                color +
+                ")";
+              line += " /Border [0 0 0]";
+              line += " >>";
+              this.internal.write(line);
+            }
             break;
           case "link":
             if (anno.options.name) {
@@ -339,26 +396,46 @@ import { jsPDF } from "../jspdf.js";
   ]);
 
   /**
+   * Create an annotation.
+   * For PDF/UA mode, returns an internal ID that can be used with addAnnotationRef()
+   * to link the annotation to an Annot structure element.
+   *
    * @name createAnnotation
    * @function
-   * @param {Object} options
+   * @param {Object} options - Annotation options
+   * @param {string} options.type - Annotation type: 'link', 'text', or 'freetext'
+   * @param {Object} options.bounds - Bounding box {x, y, w, h}
+   * @param {string} [options.contents] - Text content (for text/freetext)
+   * @param {string} [options.title] - Title/author (for text annotations)
+   * @param {boolean} [options.open] - Whether popup is open (for text annotations)
+   * @param {string} [options.color] - Text color (for freetext)
+   * @returns {number|undefined} - Internal ID for PDF/UA (use with addAnnotationRef), or undefined
    */
   jsPDFAPI.createAnnotation = function(options) {
     var pageInfo = this.internal.getCurrentPageInfo();
+    var internalId;
+
     switch (options.type) {
       case "link":
-        this.link(
+        return this.link(
           options.bounds.x,
           options.bounds.y,
           options.bounds.w,
           options.bounds.h,
           options
         );
-        break;
       case "text":
       case "freetext":
+        // PDF/UA: Assign internal ID for OBJR reference
+        if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+          if (!this.internal.pdfuaAnnotCounter) {
+            this.internal.pdfuaAnnotCounter = 0;
+          }
+          internalId = ++this.internal.pdfuaAnnotCounter;
+          options.internalId = internalId;
+        }
         pageInfo.pageContext.annotations.push(options);
-        break;
+        return internalId;
     }
   };
 

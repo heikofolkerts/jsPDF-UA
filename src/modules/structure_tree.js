@@ -398,7 +398,8 @@ import { jsPDF } from "../jspdf.js";
       // An element can have MCIDs, child elements, OBJR references, or combinations
       var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
       var hasFormFieldRefs = elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
-      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs;
+      var hasAnnotRefs = elem.annotRefs && elem.annotRefs.length > 0; // For Text/FreeText annotations
+      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs || hasAnnotRefs;
 
       if (hasContent) {
         var kArray = [];
@@ -433,6 +434,28 @@ import { jsPDF } from "../jspdf.js";
               var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
               if (fieldPage) {
                 var pageInfo = self.internal.getPageInfo(fieldPage);
+                if (pageInfo && pageInfo.objId) {
+                  objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                }
+              }
+              objrStr += ' >>';
+              kArray.push(objrStr);
+            }
+          });
+        }
+
+        // Add OBJR references for Text/FreeText annotations (PDF/UA requirement)
+        // Format: << /Type /OBJR /Obj <annotation-objId> 0 R /Pg <page-objId> 0 R >>
+        if (hasAnnotRefs) {
+          elem.annotRefs.forEach(function(internalId) {
+            // Resolve internal ID to actual object ID using the mapping
+            var objId = self.internal.pdfuaAnnotIdMap && self.internal.pdfuaAnnotIdMap[internalId];
+            if (objId) {
+              // Get page reference for this annotation
+              var annotPage = self.internal.pdfuaAnnotPageMap && self.internal.pdfuaAnnotPageMap[internalId];
+              var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+              if (annotPage) {
+                var pageInfo = self.internal.getPageInfo(annotPage);
                 if (pageInfo && pageInfo.objId) {
                   objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
                 }
@@ -2984,6 +3007,88 @@ import { jsPDF } from "../jspdf.js";
    */
   jsPDFAPI.endAside = function() {
     return this.endStructureElement();
+  };
+
+  // ============================================================
+  // ANNOT API - For accessible annotations (PDF/UA BITi 02.3.2)
+  // Matterhorn Protocol Checkpoint 28-002, 28-004
+  // ============================================================
+
+  /**
+   * Begin an Annot structure element.
+   * Used to wrap annotations (except Link, Widget, Popup) for PDF/UA compliance.
+   *
+   * According to the Matterhorn Protocol:
+   * - 28-002: Annotations (except Widget, Popup, Link) must be nested in <Annot>
+   * - 28-004: Annotations need /Contents or /Alt for accessibility
+   *
+   * The Annot element can contain:
+   * - The marked-up content (for markup annotations like highlights)
+   * - An OBJR reference to the annotation object
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.alt] - Alternative text for the annotation
+   * @param {string} [options.lang] - Language code for the annotation content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Text annotation (sticky note) with accessible structure
+   * doc.beginAnnot({ alt: 'Comment: Important note about this section' });
+   * doc.createAnnotation({
+   *   type: 'text',
+   *   title: 'Author',
+   *   contents: 'This is an important note',
+   *   bounds: { x: 10, y: 50, w: 20, h: 20 }
+   * });
+   * doc.endAnnot();
+   */
+  jsPDFAPI.beginAnnot = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    var element = this.beginStructureElement('Annot', attributes);
+
+    // Store alt text for the annotation on the current structure element
+    if (options.alt && this.internal.structureTree && this.internal.structureTree.currentParent) {
+      this.internal.structureTree.currentParent.alt = options.alt;
+    }
+
+    return element;
+  };
+
+  /**
+   * End an Annot structure element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endAnnot = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add an annotation object reference (OBJR) to the current structure element.
+   * This links an annotation object to its structure element for PDF/UA compliance.
+   *
+   * @param {number} annotObjId - The object ID of the annotation
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addAnnotationRef = function(annotObjId) {
+    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+      return this;
+    }
+
+    var currentElem = this.internal.structureTree.currentParent;
+
+    // Store the annotation object reference to be written later
+    if (!currentElem.annotRefs) {
+      currentElem.annotRefs = [];
+    }
+    currentElem.annotRefs.push(annotObjId);
+
+    return this;
   };
 
 })(jsPDF.API);
