@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.4 Built on 2025-12-12T07:13:52.330Z
+ * Version 3.0.4 Built on 2025-12-12T07:53:25.463Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -29732,6 +29732,412 @@ WebPDecoder.prototype.getData = function() {
     this.endStructureElement(); // end LI
 
     return this;
+  };
+
+  // ============================================================
+  // NONSTRUCT API - For elements with no semantic meaning
+  // BITi 02.1.2 - Gruppierende Strukturelemente / NonStruct
+  // ============================================================
+
+  /**
+   * Begin a NonStruct (non-structural) element.
+   * Used for content that has no semantic meaning but should still be
+   * included in the structure tree.
+   *
+   * According to PDF 1.7 spec:
+   * - NonStruct has no substantive role or meaning
+   * - Its value is primarily for role mapping custom structure types
+   * - Content and child elements ARE passed to assistive technology
+   * - Unlike Private, the content IS accessible to screen readers
+   *
+   * Use NonStruct for:
+   * - Custom structure types with no standard equivalent
+   * - Layout containers that don't convey semantics
+   * - Grouping elements for formatting purposes
+   * - Role mapping custom element types
+   *
+   * Important: NonStruct is NOT the same as Artifact:
+   * - Artifact content is IGNORED by screen readers
+   * - NonStruct content IS READ by screen readers
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Grouping content without semantic meaning
+   * doc.beginNonStruct();
+   *   doc.beginStructureElement('P');
+   *   doc.text('This content is accessible but the grouping has no meaning.', 10, 30);
+   *   doc.endStructureElement();
+   * doc.endNonStruct();
+   *
+   * @example
+   * // Layout wrapper
+   * doc.beginNonStruct();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Column 1 content', 10, 30);
+   *   doc.endStructureElement();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Column 2 content', 110, 30);
+   *   doc.endStructureElement();
+   * doc.endNonStruct();
+   */
+  jsPDFAPI.beginNonStruct = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('NonStruct', attributes);
+  };
+
+  /**
+   * End a NonStruct element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endNonStruct = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // PRIVATE API - For private/proprietary content
+  // BITi 02.1.2 - Gruppierende Strukturelemente / Private
+  // ============================================================
+
+  /**
+   * Begin a Private element for proprietary content.
+   * Content within Private elements is IGNORED by assistive technology.
+   *
+   * According to PDF 1.7 spec (ISO 32000-1, 14.8.4.2):
+   * - Private is useful only for private purposes
+   * - Consuming processors SHOULD ignore the element AND its contents
+   * - This is different from NonStruct where content is accessible
+   *
+   * According to BITi 02.1.2:
+   * - "Private spielt in der Praxis keine Rolle und kann mitsamt seinem
+   *    Inhalt ignoriert werden."
+   * - "wird weder interpretiert noch beim Konvertieren in andere
+   *    Dokumentformate exportiert. Auch die von Private gruppierten
+   *    Elemente werden weder exportiert noch interpretiert."
+   *
+   * Implementation note:
+   * We create a proper /S /Private structure element for PDF/UA compliance,
+   * but ALSO mark child content as Artifact in the content stream. This is
+   * necessary because some screen readers (e.g., NVDA) do not correctly
+   * ignore Private content when only the structure element is present.
+   * This dual approach ensures:
+   * 1. PDF/UA validators see correct /S /Private structure
+   * 2. Screen readers reliably ignore the content via Artifact marking
+   *
+   * Reference: https://biti-wiki.de/index.php?title=BITi_02.1.2
+   *
+   * Use Private for:
+   * - Application-specific metadata
+   * - Processing instructions
+   * - Internal markers or tags
+   * - Content that should not be exposed to users
+   *
+   * Warning: Private elements and their children are NOT accessible!
+   * For decorative content, use Artifact instead (beginArtifact()).
+   * For content that should be read but has no semantic meaning, use NonStruct.
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (rarely needed)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Application-specific metadata
+   * doc.beginPrivate();
+   *   doc.text('Internal processing note: reviewed 2024-01-15', 10, 30);
+   * doc.endPrivate();
+   */
+  jsPDFAPI.beginPrivate = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    // Create proper /S /Private structure element for PDF/UA compliance
+    this.beginStructureElement('Private', attributes);
+
+    // Also start Artifact mode so content is ignored by screen readers
+    // This is needed because screen readers don't always respect Private
+    this.beginArtifact({ type: 'Layout' });
+
+    return this;
+  };
+
+  /**
+   * End a Private element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endPrivate = function() {
+    // End Artifact mode first
+    this.endArtifact();
+    // Then end the Private structure element
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // ART/SECT/DIV API - Document grouping elements
+  // BITi 02.1.0 - Gruppierende Strukturelemente / Rootelemente
+  // ============================================================
+
+  /**
+   * Begin an Art (Article) element.
+   * Identifies a self-contained body of text within a document.
+   *
+   * According to PDF 1.7 spec:
+   * - Art identifies an article or distinct portion of content
+   * - Articles are self-contained units that can be read independently
+   * - Useful for magazine-style layouts with multiple articles
+   *
+   * Use Art for:
+   * - Magazine/newspaper articles
+   * - Blog posts in a collection
+   * - News items
+   * - Self-contained content sections
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the article
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Magazine with multiple articles
+   * doc.beginStructureElement('Document');
+   *
+   *   doc.beginArt();
+   *     doc.beginStructureElement('H1');
+   *     doc.text('First Article Title', 10, 30);
+   *     doc.endStructureElement();
+   *     doc.beginStructureElement('P');
+   *     doc.text('Article content...', 10, 45);
+   *     doc.endStructureElement();
+   *   doc.endArt();
+   *
+   *   doc.beginArt();
+   *     doc.beginStructureElement('H1');
+   *     doc.text('Second Article Title', 10, 100);
+   *     doc.endStructureElement();
+   *     doc.beginStructureElement('P');
+   *     doc.text('Another article...', 10, 115);
+   *     doc.endStructureElement();
+   *   doc.endArt();
+   *
+   * doc.endStructureElement();
+   */
+  jsPDFAPI.beginArt = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Art', attributes);
+  };
+
+  /**
+   * End an Art element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endArt = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a Sect (Section) element.
+   * Identifies a section within a document, part, or article.
+   *
+   * According to PDF 1.7 spec:
+   * - Sect identifies sections of a document, part, or article
+   * - Sections can be nested to create hierarchical structure
+   * - Useful for organizing content into logical divisions
+   *
+   * Use Sect for:
+   * - Book chapters or chapter sections
+   * - Document sections
+   * - Sidebar content
+   * - Pull quotes
+   * - Boxed text
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the section
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Document with nested sections
+   * doc.beginStructureElement('Document');
+   *
+   *   doc.beginSect();
+   *     doc.beginStructureElement('H1');
+   *     doc.text('Chapter 1: Introduction', 10, 30);
+   *     doc.endStructureElement();
+   *
+   *     doc.beginSect();
+   *       doc.beginStructureElement('H2');
+   *       doc.text('1.1 Background', 10, 50);
+   *       doc.endStructureElement();
+   *       doc.beginStructureElement('P');
+   *       doc.text('Section content...', 10, 65);
+   *       doc.endStructureElement();
+   *     doc.endSect();
+   *
+   *     doc.beginSect();
+   *       doc.beginStructureElement('H2');
+   *       doc.text('1.2 Overview', 10, 100);
+   *       doc.endStructureElement();
+   *       doc.beginStructureElement('P');
+   *       doc.text('More content...', 10, 115);
+   *       doc.endStructureElement();
+   *     doc.endSect();
+   *   doc.endSect();
+   *
+   * doc.endStructureElement();
+   */
+  jsPDFAPI.beginSect = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Sect', attributes);
+  };
+
+  /**
+   * End a Sect element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endSect = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a Div (Division) element.
+   * A generic container for grouping content.
+   *
+   * According to PDF 1.7 spec:
+   * - Div is a generic block-level element or group of elements
+   * - Has no inherent semantic significance
+   * - Similar to HTML <div> element
+   *
+   * Important: Div does not convey semantics and is generally discouraged
+   * in favor of more meaningful elements like Sect or Art. However, it's
+   * useful when no other element is appropriate.
+   *
+   * Use Div for:
+   * - Generic layout grouping
+   * - Styling containers
+   * - When no other element is appropriate
+   *
+   * Prefer using:
+   * - Sect for logical sections
+   * - Art for self-contained articles
+   * - Part for major document divisions
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Generic content grouping
+   * doc.beginDiv();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Grouped content paragraph 1', 10, 30);
+   *   doc.endStructureElement();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Grouped content paragraph 2', 10, 45);
+   *   doc.endStructureElement();
+   * doc.endDiv();
+   */
+  jsPDFAPI.beginDiv = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Div', attributes);
+  };
+
+  /**
+   * End a Div element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endDiv = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin a Part element.
+   * Identifies a large division of a document.
+   *
+   * According to PDF 1.7 spec:
+   * - Part is intended to subdivide a large document into smaller elements
+   * - Typically used for major divisions like book parts or volumes
+   * - Parts can contain Art, Sect, and other grouping elements
+   *
+   * Use Part for:
+   * - Book parts (Part I, Part II)
+   * - Major document divisions
+   * - Volumes in a multi-volume work
+   * - Large-scale organization
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the part
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Multi-part document
+   * doc.beginStructureElement('Document');
+   *
+   *   doc.beginPart();
+   *     doc.beginStructureElement('H1');
+   *     doc.text('Part I: Foundations', 10, 30);
+   *     doc.endStructureElement();
+   *
+   *     doc.beginSect();
+   *       doc.beginStructureElement('H2');
+   *       doc.text('Chapter 1: Basics', 10, 50);
+   *       doc.endStructureElement();
+   *       // Chapter content...
+   *     doc.endSect();
+   *   doc.endPart();
+   *
+   *   doc.beginPart();
+   *     doc.beginStructureElement('H1');
+   *     doc.text('Part II: Advanced Topics', 10, 150);
+   *     doc.endStructureElement();
+   *     // More chapters...
+   *   doc.endPart();
+   *
+   * doc.endStructureElement();
+   */
+  jsPDFAPI.beginPart = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Part', attributes);
+  };
+
+  /**
+   * End a Part element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endPart = function() {
+    return this.endStructureElement();
   };
 
 })(jsPDF.API);

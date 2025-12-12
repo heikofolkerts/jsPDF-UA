@@ -1185,6 +1185,183 @@ doc.endIndex();
 
 ---
 
+## Sprint 24 (IN PROGRESS - 2025-12-12)
+**NonStruct/Private + Art/Sect/Div/Part Grouping Elements**
+
+### Part 1: NonStruct and Private (BITi 02.1.2)
+
+**What's been implemented:**
+- `beginNonStruct(options)` / `endNonStruct()` - NonStruct element wrapper
+- `beginPrivate(options)` / `endPrivate()` - Private element wrapper
+
+**NonStruct API:**
+```javascript
+// NonStruct: Content IS accessible to screen readers
+// Used for layout/grouping without semantic meaning
+doc.beginNonStruct();
+  doc.beginStructureElement('P');
+  doc.text('This content is accessible.', 10, 30);
+  doc.endStructureElement();
+doc.endNonStruct();
+
+// Two-column layout example
+doc.beginNonStruct();
+  doc.beginStructureElement('P');
+  doc.text('Left column', 10, 30);
+  doc.endStructureElement();
+doc.endNonStruct();
+
+doc.beginNonStruct();
+  doc.beginStructureElement('P');
+  doc.text('Right column', 110, 30);
+  doc.endStructureElement();
+doc.endNonStruct();
+```
+
+**Private API:**
+```javascript
+// Private: Content is IGNORED by screen readers
+// Used for internal/application-specific content
+doc.beginPrivate();
+  doc.beginStructureElement('P');
+  doc.text('Internal note: reviewed 2024-01-15', 10, 30);
+  doc.endStructureElement();
+doc.endPrivate();
+```
+
+**Key Differences:**
+- **NonStruct**: Content IS read by screen readers, grouping has no semantic meaning
+- **Private**: Content is IGNORED by screen readers, for application-internal use
+- **Artifact**: For decorative content (use beginArtifact() instead)
+
+**Implementation Decision for Private:**
+
+According to [BITi 02.1.2](https://biti-wiki.de/index.php?title=BITi_02.1.2):
+> "Private spielt in der Praxis keine Rolle und kann mitsamt seinem Inhalt ignoriert werden."
+> "wird weder interpretiert noch beim Konvertieren in andere Dokumentformate exportiert.
+> Auch die von Private gruppierten Elemente werden weder exportiert noch interpretiert."
+
+**Problem:** When implementing Private as a pure `/S /Private` structure element,
+screen readers like NVDA still read the content - they don't correctly ignore it.
+
+**Solution:** We use a dual approach:
+1. Create proper `/S /Private` structure element (for PDF/UA validator compliance)
+2. Mark child content as Artifact in content stream (for reliable screen reader behavior)
+
+This ensures:
+- PDF/UA validators see correct structure (`/S /Private`)
+- Screen readers reliably ignore the content (via `/Artifact` BDC marking)
+
+If future PDF/UA validators complain about artifacts inside Private elements,
+we could add an option to disable the artifact wrapping.
+
+### Part 2: Art/Sect/Div/Part (BITi 02.1.0)
+
+**What's been implemented:**
+- `beginPart(options)` / `endPart()` - Major document divisions
+- `beginArt(options)` / `endArt()` - Self-contained articles
+- `beginSect(options)` / `endSect()` - Sections within documents/parts
+- `beginDiv(options)` / `endDiv()` - Generic container (use sparingly)
+
+**Part API (Major Divisions):**
+```javascript
+// Book with multiple parts
+doc.beginStructureElement('Document');
+  doc.beginPart();
+    doc.beginStructureElement('H1');
+    doc.text('Part I: Foundations', 10, 20);
+    doc.endStructureElement();
+    // Chapters...
+  doc.endPart();
+
+  doc.beginPart();
+    doc.beginStructureElement('H1');
+    doc.text('Part II: Advanced Topics', 10, 150);
+    doc.endStructureElement();
+    // More chapters...
+  doc.endPart();
+doc.endStructureElement();
+```
+
+**Sect API (Sections/Chapters):**
+```javascript
+// Nested sections
+doc.beginSect();
+  doc.beginStructureElement('H1');
+  doc.text('Chapter 1', 10, 20);
+  doc.endStructureElement();
+
+  doc.beginSect();
+    doc.beginStructureElement('H2');
+    doc.text('1.1 Introduction', 10, 40);
+    doc.endStructureElement();
+  doc.endSect();
+
+  doc.beginSect();
+    doc.beginStructureElement('H2');
+    doc.text('1.2 Methods', 10, 80);
+    doc.endStructureElement();
+  doc.endSect();
+doc.endSect();
+```
+
+**Art API (Articles):**
+```javascript
+// Magazine with multiple articles
+doc.beginArt();
+  doc.beginStructureElement('H2');
+  doc.text('First Article Title', 10, 20);
+  doc.endStructureElement();
+  doc.beginStructureElement('P');
+  doc.text('Article content...', 10, 35);
+  doc.endStructureElement();
+doc.endArt();
+
+doc.beginArt();
+  doc.beginStructureElement('H2');
+  doc.text('Second Article Title', 10, 80);
+  doc.endStructureElement();
+  doc.beginStructureElement('P');
+  doc.text('Another article...', 10, 95);
+  doc.endStructureElement();
+doc.endArt();
+```
+
+**Div API (Generic Container):**
+```javascript
+// Avoid using Div when possible - prefer Sect or Art
+doc.beginDiv();
+  doc.beginStructureElement('P');
+  doc.text('Grouped content', 10, 30);
+  doc.endStructureElement();
+doc.endDiv();
+```
+
+**Best Practices:**
+- Use Part for book parts, volumes, major divisions
+- Use Sect for chapters, sections, subsections
+- Use Art for independent articles (magazines, news)
+- Avoid Div - prefer semantic elements (Sect, Art)
+- NonStruct for layout without semantics
+- Private for internal/application content (not user-facing)
+
+**Test Files:**
+- test-nonstruct-1-basic.pdf: Basic NonStruct usage
+- test-nonstruct-2-columns.pdf: Two-column layout
+- test-nonstruct-3-nested.pdf: Nested NonStruct elements
+- test-private-1-basic.pdf: Basic Private usage
+- test-private-2-notes.pdf: Internal document notes
+- test-nonstruct-private-comparison.pdf: Direct comparison
+- test-grouping-1-sect.pdf: Simple Sect usage
+- test-grouping-2-nested-sect.pdf: Nested sections
+- test-grouping-3-art.pdf: Magazine-style articles
+- test-grouping-4-part.pdf: Book with Parts
+- test-grouping-5-div.pdf: Generic Div container
+- test-grouping-6-complete.pdf: Complete document structure
+- test-grouping-7-multipage.pdf: Multi-page with grouping
+
+---
+
 ## Critical Learnings
 
 ### PDF/UA Structure Requirements

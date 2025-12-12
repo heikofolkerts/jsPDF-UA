@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints.
 
-**Current Status: Sprint 23 (COMPLETED - 2025-12-12)**
+**Current Status: Sprint 24 (IN PROGRESS - 2025-12-12)**
 
 For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./SPRINT_HISTORY.md).
 
@@ -164,6 +164,7 @@ For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./
 | 21 | Accessible Form Fields (AcroForm + PDF/UA) | ✅ |
 | 22 | Abbreviations + Formula Elements | ✅ |
 | 23 | BibEntry + Index Elements | ✅ |
+| 24 | NonStruct/Private + Art/Sect/Div/Part Grouping | 🔄 |
 
 ### Critical Requirements
 
