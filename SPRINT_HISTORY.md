@@ -1362,6 +1362,137 @@ doc.endDiv();
 
 ---
 
+## Sprint 25 (IN PROGRESS - 2025-12-12)
+**Ruby/Warichu CJK Annotations**
+
+### Part 1: Ruby (BITi 02.3.3)
+
+Ruby is a small annotation text placed adjacent to base text, typically used
+for pronunciation guides in East Asian languages (furigana, pinyin, etc.).
+
+**What's been implemented:**
+- `beginRuby(options)` / `endRuby()` - Ruby annotation assembly wrapper
+- `beginRubyBaseText(options)` / `endRubyBaseText()` - RB element (base text)
+- `beginRubyText(options)` / `endRubyText()` - RT element (annotation text)
+- `beginRubyPunctuation()` / `endRubyPunctuation()` - RP element (fallback parentheses)
+
+**Ruby Structure (ISO 32000-1 Table 338):**
+```
+Ruby
+├── RB (Ruby Base Text) - full-size base text
+└── RT (Ruby Text) - smaller annotation text
+
+Or with fallback:
+Ruby
+├── RB (Ruby Base Text)
+├── RP (opening parenthesis)
+├── RT (Ruby Text)
+└── RP (closing parenthesis)
+```
+
+**API Usage:**
+```javascript
+// Japanese kanji with furigana reading
+doc.beginRuby({ lang: 'ja-JP' });
+  doc.beginRubyBaseText();
+  doc.text('漢字', 10, 30);  // Kanji base text
+  doc.endRubyBaseText();
+  doc.beginRubyText({ rubyPosition: 'Before' });
+  doc.setFontSize(8);
+  doc.text('かんじ', 10, 25);  // Hiragana reading above
+  doc.setFontSize(14);
+  doc.endRubyText();
+doc.endRuby();
+
+// With fallback parentheses for non-Ruby readers
+doc.beginRuby();
+  doc.beginRubyBaseText();
+  doc.text('東京', 10, 30);
+  doc.endRubyBaseText();
+  doc.beginRubyPunctuation();
+  doc.text('(', 30, 30);
+  doc.endRubyPunctuation();
+  doc.beginRubyText();
+  doc.text('とうきょう', 35, 30);
+  doc.endRubyText();
+  doc.beginRubyPunctuation();
+  doc.text(')', 70, 30);
+  doc.endRubyPunctuation();
+doc.endRuby();
+```
+
+**Attributes:**
+- `lang`: Language code (e.g., 'ja-JP', 'zh-CN', 'ko-KR')
+- `rubyAlign`: 'Start', 'Center', 'End', 'Justify', 'Distribute'
+- `rubyPosition`: 'Before', 'After', 'Warichu', 'Inline'
+
+### Part 2: Warichu (BITi 02.3.3)
+
+Warichu is a comment or annotation in smaller text formatted into two lines
+within the height of the containing text line. Traditional Japanese typography.
+
+**What's been implemented:**
+- `beginWarichu(options)` / `endWarichu()` - Warichu assembly wrapper
+- `beginWarichuText()` / `endWarichuText()` - WT element (annotation text)
+- `beginWarichuPunctuation()` / `endWarichuPunctuation()` - WP element
+
+**Warichu Structure:**
+```
+Warichu
+├── WP (opening punctuation, optional)
+├── WT (warichu text in two lines)
+└── WP (closing punctuation, optional)
+```
+
+**API Usage:**
+```javascript
+doc.text('Main text ', 10, 30);
+doc.beginWarichu({ lang: 'ja-JP' });
+  doc.beginWarichuPunctuation();
+  doc.text('(', 50, 30);
+  doc.endWarichuPunctuation();
+  doc.beginWarichuText();
+  doc.setFontSize(8);
+  doc.text('inline comment', 55, 30);
+  doc.setFontSize(14);
+  doc.endWarichuText();
+  doc.beginWarichuPunctuation();
+  doc.text(')', 100, 30);
+  doc.endWarichuPunctuation();
+doc.endWarichu();
+doc.text(' continues.', 103, 30);
+```
+
+**Use Cases:**
+- Furigana in Japanese (hiragana above kanji)
+- Pinyin in Chinese (romanization above hanzi)
+- Bopomofo/Zhuyin in Traditional Chinese
+- Korean hanja pronunciation guides
+- Inline comments in Japanese text
+
+**Note:** Full visual rendering of Ruby/Warichu requires CJK fonts.
+The PDF structure is correct for accessibility even without CJK fonts.
+
+**Testing Limitation:**
+This feature could not be fully tested with a screen reader due to:
+- No CJK fonts installed for proper rendering
+- Western screen readers (NVDA) may not fully support Ruby/Warichu announcements
+- Testing would require Japanese/Chinese screen reader configuration
+
+The PDF structure has been verified with qpdf to contain correct elements
+(`/S /Ruby`, `/S /RB`, `/S /RT`, `/S /RP`, `/S /Warichu`, `/S /WT`, `/S /WP`).
+Basic readability of test files was confirmed.
+
+**Test Files:**
+- test-ruby-1-simple.pdf: Basic Ruby structure
+- test-ruby-2-fallback.pdf: Ruby with RP fallback parentheses
+- test-ruby-3-japanese.pdf: Japanese Ruby structure simulation
+- test-warichu-1-simple.pdf: Basic Warichu structure
+- test-ruby-4-multiple.pdf: Multiple Ruby annotations
+- test-ruby-warichu-complete.pdf: Complete document
+
+---
+
 ## Critical Learnings
 
 ### PDF/UA Structure Requirements

@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.4 Built on 2025-12-12T07:53:25.463Z
+ * Version 3.0.4 Built on 2025-12-12T08:07:10.692Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -30137,6 +30137,288 @@ WebPDecoder.prototype.getData = function() {
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endPart = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // RUBY API - For East Asian pronunciation annotations
+  // BITi 02.3.3 - Inlinelevel Strukturelemente / Ruby
+  // ============================================================
+
+  /**
+   * Begin a Ruby annotation assembly.
+   * Ruby is a small annotation text placed adjacent to base text,
+   * typically used for pronunciation guides in East Asian languages.
+   *
+   * According to ISO 32000-1 Table 338:
+   * - Ruby is the wrapper around the entire ruby assembly
+   * - It shall contain one RB element followed by either an RT element
+   *   or a three-element group consisting of RP, RT, and RP
+   *
+   * Structure:
+   *   Ruby
+   *   ├── RB (base text)
+   *   └── RT (annotation text)
+   *
+   * Or with fallback parentheses:
+   *   Ruby
+   *   ├── RB (base text)
+   *   ├── RP (opening parenthesis)
+   *   ├── RT (annotation text)
+   *   └── RP (closing parenthesis)
+   *
+   * Use cases:
+   * - Furigana in Japanese (hiragana above kanji)
+   * - Pinyin in Chinese (romanization above hanzi)
+   * - Bopomofo/Zhuyin in Traditional Chinese
+   * - Korean hanja pronunciation
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'ja-JP', 'zh-CN')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Japanese kanji with furigana
+   * doc.beginRuby();
+   *   doc.beginRubyBaseText();
+   *   doc.text('漢字', 10, 30);  // Kanji
+   *   doc.endRubyBaseText();
+   *   doc.beginRubyText();
+   *   doc.text('かんじ', 10, 25);  // Hiragana reading
+   *   doc.endRubyText();
+   * doc.endRuby();
+   *
+   * @example
+   * // With fallback parentheses for non-ruby-aware readers
+   * doc.beginRuby();
+   *   doc.beginRubyBaseText();
+   *   doc.text('東京', 10, 30);
+   *   doc.endRubyBaseText();
+   *   doc.beginRubyPunctuation();
+   *   doc.text('(', 30, 30);
+   *   doc.endRubyPunctuation();
+   *   doc.beginRubyText();
+   *   doc.text('とうきょう', 35, 30);
+   *   doc.endRubyText();
+   *   doc.beginRubyPunctuation();
+   *   doc.text(')', 70, 30);
+   *   doc.endRubyPunctuation();
+   * doc.endRuby();
+   */
+  jsPDFAPI.beginRuby = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Ruby', attributes);
+  };
+
+  /**
+   * End a Ruby annotation assembly.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endRuby = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin Ruby Base Text (RB) element.
+   * The full-size text to which the ruby annotation is applied.
+   *
+   * According to ISO 32000-1:
+   * - RB may contain text, other inline elements, or a mixture of both
+   * - May have RubyAlign attribute
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.rubyAlign] - Alignment: 'Start', 'Center', 'End',
+   *                                       'Justify', 'Distribute' (default: 'Distribute')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginRubyBaseText = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.rubyAlign) {
+      attributes.RubyAlign = options.rubyAlign;
+    }
+
+    return this.beginStructureElement('RB', attributes);
+  };
+
+  /**
+   * End Ruby Base Text (RB) element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endRubyBaseText = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin Ruby Text (RT) element.
+   * The smaller-size annotation text placed adjacent to the base text.
+   *
+   * According to ISO 32000-1:
+   * - RT may contain text, other inline elements, or a mixture of both
+   * - May have RubyAlign and RubyPosition attributes
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.rubyAlign] - Alignment: 'Start', 'Center', 'End',
+   *                                       'Justify', 'Distribute' (default: 'Distribute')
+   * @param {string} [options.rubyPosition] - Position: 'Before', 'After', 'Warichu',
+   *                                          'Inline' (default: 'Before')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginRubyText = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.rubyAlign) {
+      attributes.RubyAlign = options.rubyAlign;
+    }
+    if (options.rubyPosition) {
+      attributes.RubyPosition = options.rubyPosition;
+    }
+
+    return this.beginStructureElement('RT', attributes);
+  };
+
+  /**
+   * End Ruby Text (RT) element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endRubyText = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin Ruby Punctuation (RP) element.
+   * Punctuation surrounding the annotation text, used as fallback
+   * when ruby formatting cannot be properly applied.
+   *
+   * According to ISO 32000-1:
+   * - RP contains text, typically a single LEFT or RIGHT PARENTHESIS
+   *   or similar bracketing character
+   *
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginRubyPunctuation = function() {
+    return this.beginStructureElement('RP');
+  };
+
+  /**
+   * End Ruby Punctuation (RP) element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endRubyPunctuation = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // WARICHU API - For East Asian inline annotations
+  // BITi 02.3.3 - Inlinelevel Strukturelemente / Warichu
+  // ============================================================
+
+  /**
+   * Begin a Warichu annotation assembly.
+   * Warichu is a comment or annotation in smaller text formatted into
+   * two lines within the height of the containing text line.
+   *
+   * According to ISO 32000-1 Table 338:
+   * - Warichu is the wrapper around the entire warichu assembly
+   * - It may contain a three-element group consisting of WP, WT, and WP
+   * - Warichu elements and their content may wrap across multiple lines
+   *   according to JIS X 4051-1995
+   *
+   * Structure:
+   *   Warichu
+   *   ├── WP (opening punctuation, optional)
+   *   ├── WT (warichu text)
+   *   └── WP (closing punctuation, optional)
+   *
+   * Use cases:
+   * - Inline comments in Japanese text
+   * - Annotations that should appear as two smaller lines
+   * - Traditional Japanese typographic presentations
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code (e.g., 'ja-JP')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple warichu annotation
+   * doc.beginWarichu();
+   *   doc.beginWarichuPunctuation();
+   *   doc.text('(', 50, 30);
+   *   doc.endWarichuPunctuation();
+   *   doc.beginWarichuText();
+   *   doc.text('注釈テキスト', 55, 30);  // Annotation text
+   *   doc.endWarichuText();
+   *   doc.beginWarichuPunctuation();
+   *   doc.text(')', 100, 30);
+   *   doc.endWarichuPunctuation();
+   * doc.endWarichu();
+   */
+  jsPDFAPI.beginWarichu = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Warichu', attributes);
+  };
+
+  /**
+   * End a Warichu annotation assembly.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endWarichu = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin Warichu Text (WT) element.
+   * The smaller-size text formatted into two lines within the
+   * containing text line height.
+   *
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginWarichuText = function() {
+    return this.beginStructureElement('WT');
+  };
+
+  /**
+   * End Warichu Text (WT) element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endWarichuText = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Begin Warichu Punctuation (WP) element.
+   * Punctuation surrounding the WT text, typically parentheses
+   * or similar bracketing characters.
+   *
+   * According to ISO 32000-1:
+   * - WP contains text, typically punctuation
+   * - May be converted to appropriate spacing by the formatter
+   *
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.beginWarichuPunctuation = function() {
+    return this.beginStructureElement('WP');
+  };
+
+  /**
+   * End Warichu Punctuation (WP) element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endWarichuPunctuation = function() {
     return this.endStructureElement();
   };
 
