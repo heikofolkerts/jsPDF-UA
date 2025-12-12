@@ -4126,7 +4126,29 @@ function jsPDF(options) {
       var lang = (currentElem && currentElem.attributes && currentElem.attributes.lang)
         ? currentElem.attributes.lang
         : scope.getLanguage();
-      result += "/" + structType + " <</Lang (" + lang + ")/MCID " + mcid + ">> BDC\n";
+
+      // Build BDC dictionary with all required attributes
+      var bdcDict = "/Lang (" + lang + ")/MCID " + mcid;
+
+      // Add /E (Expansion) attribute for abbreviations - MUST be in BDC for screen readers
+      if (currentElem && currentElem.expansion) {
+        var escapedE = currentElem.expansion
+          .replace(/\\/g, '\\\\')
+          .replace(/\(/g, '\\(')
+          .replace(/\)/g, '\\)');
+        bdcDict += "/E (" + escapedE + ")";
+      }
+
+      // Add /Alt attribute for formulas/images - MUST be in BDC for screen readers
+      if (currentElem && currentElem.alt) {
+        var escapedAlt = currentElem.alt
+          .replace(/\\/g, '\\\\')
+          .replace(/\(/g, '\\(')
+          .replace(/\)/g, '\\)');
+        bdcDict += "/Alt (" + escapedAlt + ")";
+      }
+
+      result += "/" + structType + " <<" + bdcDict + ">> BDC\n";
     }
 
     result += "BT\n/";

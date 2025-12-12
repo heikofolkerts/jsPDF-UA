@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints.
 
-**Current Status: Sprint 20 (COMPLETED - 2025-12-10)**
+**Current Status: Sprint 22 (COMPLETED - 2025-12-12)**
 
 For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./SPRINT_HISTORY.md).
 
@@ -161,6 +161,8 @@ For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./
 | 18 | Caption Element for Figure/Table Descriptions | ✅ |
 | 19 | TOC Structure + Bookmarks Navigation | ✅ |
 | 20 | Artifacts for Headers, Footers, Decorative Content | ✅ |
+| 21 | Accessible Form Fields (AcroForm + PDF/UA) | ✅ |
+| 22 | Abbreviations + Formula Elements | ✅ |
 
 ### Critical Requirements
 
@@ -269,11 +271,14 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 02.2.1 | ✅ Implemented | 8 |
 | 02.2.2 | ✅ Implemented | 7 |
 | 02.2.3 | ✅ Implemented | 2/3 |
+| 02.2.3.1 | ✅ Abbreviations | 22 |
 | 02.3.0 | ✅ Implemented | 17 |
 | 02.3.1 | ✅ Implemented | 9 |
 | 02.3.4 | ✅ Implemented | 14-16 |
+| 02.4.0 | ✅ Formula | 22 |
 | 02.4.1 | ✅ Implemented | 18 |
 | 02.4.1.1 | ✅ Implemented | 6 |
+| 02.4.2 | ✅ Implemented | 21 |
 | 06 | ✅ Implemented | 1 |
 | 07 | ✅ Implemented | 1, 14 |
 | 08.0 | ✅ Implemented | 2/3 |

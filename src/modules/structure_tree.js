@@ -337,11 +337,18 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
       }
 
-      // Alternative text (for images, required for PDF/UA)
+      // Alternative text (for images and formulas, required for PDF/UA)
       if (elem.alt) {
         // Escape special characters in alt text
         var escapedAlt = elem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
         this.internal.write('/Alt (' + escapedAlt + ')');
+      }
+
+      // Expansion text (for abbreviations - PDF 1.7, 14.9.5)
+      if (elem.expansion) {
+        // Escape special characters in expansion text
+        var escapedE = elem.expansion.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        this.internal.write('/E (' + escapedE + ')');
       }
 
       // ID attribute (required for Note elements per PDF/UA - MP 19-003)
@@ -351,10 +358,30 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/ID (' + escapedId + ')');
       }
 
-      // Attribute dictionary (for table headers and other elements)
-      if (elem.attributes && elem.attributes.scope) {
-        // Scope must be in an attribute dictionary with /O /Table owner
-        this.internal.write('/A << /O /Table /Scope /' + elem.attributes.scope + ' >>');
+      // Attribute dictionary (for table headers, formula placement, etc.)
+      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement)) {
+        var attrParts = [];
+
+        // Table scope attribute
+        if (elem.attributes.scope) {
+          attrParts.push('/O /Table /Scope /' + elem.attributes.scope);
+        }
+
+        // Placement attribute (for Formula, Figure, etc.)
+        if (elem.attributes.placement) {
+          attrParts.push('/O /Layout /Placement /' + elem.attributes.placement);
+        }
+
+        if (attrParts.length === 1) {
+          this.internal.write('/A << ' + attrParts[0] + ' >>');
+        } else if (attrParts.length > 1) {
+          // Multiple attribute dictionaries
+          this.internal.write('/A [');
+          for (var a = 0; a < attrParts.length; a++) {
+            this.internal.write('<< ' + attrParts[a] + ' >>');
+          }
+          this.internal.write(']');
+        }
       }
 
       // Page reference (required when element has MCIDs)
@@ -1731,6 +1758,186 @@ import { jsPDF } from "../jspdf.js";
    */
   jsPDFAPI.endFooter = function() {
     return this.endArtifact();
+  };
+
+  // ============================================================
+  // ABBREVIATION API - For abbreviations with expansion text
+  // BITi 02.2.3.1 - Abkürzungen
+  // ============================================================
+
+  /**
+   * Begin an abbreviation element with expansion text.
+   * The /E (Expansion) attribute provides the full form of the abbreviation
+   * for screen readers to announce.
+   *
+   * According to PDF 1.7 spec (14.9.5):
+   * - The E entry contains the expansion of the abbreviation
+   * - Format recommendation: "expansion, abbreviation" (e.g., "December, Dec")
+   *
+   * Use abbreviations for:
+   * - Acronyms (PDF -> Portable Document Format)
+   * - Short forms (Dr. -> Doktor, lb -> pound)
+   * - Technical abbreviations (HTML, CSS, API)
+   * - Units (kg, mm, °C)
+   *
+   * @param {string} expansion - The full expansion text (e.g., "Portable Document Format")
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the abbreviation
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple abbreviation
+   * doc.beginStructureElement('P');
+   * doc.text('Die ', 10, 30);
+   * doc.beginAbbreviation('Europäische Union');
+   * doc.text('EU', x, 30);
+   * doc.endAbbreviation();
+   * doc.text(' hat 27 Mitgliedsstaaten.', x, 30);
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Abbreviation in table header
+   * doc.beginTableHeaderCell('Column');
+   * doc.beginAbbreviation('December');
+   * doc.text('Dec', x, y);
+   * doc.endAbbreviation();
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Technical abbreviation with language
+   * doc.beginAbbreviation('Hypertext Markup Language', { lang: 'en-US' });
+   * doc.text('HTML', x, y);
+   * doc.endAbbreviation();
+   */
+  jsPDFAPI.beginAbbreviation = function(expansion, options) {
+    if (!expansion || typeof expansion !== 'string') {
+      throw new Error('Abbreviation requires expansion text');
+    }
+
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    // Begin Span element (abbreviations use Span with /E attribute)
+    this.beginStructureElement('Span', attributes);
+
+    // Store expansion text on the current element
+    var currentElem = this.internal.structureTree.currentParent;
+    if (currentElem) {
+      currentElem.expansion = expansion;
+    }
+
+    return this;
+  };
+
+  /**
+   * End an abbreviation element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endAbbreviation = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // FORMULA API - For mathematical expressions
+  // BITi 02.4.0 - Mathematische Ausdrücke
+  // ============================================================
+
+  /**
+   * Begin a Formula element for mathematical expressions.
+   * Required for PDF/UA compliance when including formulas.
+   *
+   * PDF/UA Requirements:
+   * - All formulas MUST have an /Alt attribute (alternative text)
+   * - Formula is inline by default; use placement: 'Block' for block-level
+   * - Alt text should describe the formula in readable form
+   *
+   * In PDF/UA-1, MathML is not supported, so alt text is the primary
+   * accessibility mechanism. The alt text should be a readable
+   * description that a screen reader can announce.
+   *
+   * Use Formula for:
+   * - Mathematical equations (E = mc², a² + b² = c²)
+   * - Chemical formulas (H₂O, CO₂)
+   * - Physics formulas (F = ma)
+   * - Statistical expressions (μ, σ, Σ)
+   *
+   * @param {string} alt - Alternative text describing the formula (REQUIRED)
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
+   * @param {string} [options.lang] - Language code for the formula description
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Inline formula
+   * doc.beginStructureElement('P');
+   * doc.text('Die berühmte Formel ', 10, 30);
+   * doc.beginFormula('E gleich m c Quadrat');
+   * doc.text('E = mc²', x, 30);
+   * doc.endFormula();
+   * doc.text(' von Einstein.', x, 30);
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Block-level formula
+   * doc.beginStructureElement('P');
+   * doc.text('Der Satz des Pythagoras:', 10, 30);
+   * doc.endStructureElement();
+   *
+   * doc.beginFormula('a Quadrat plus b Quadrat gleich c Quadrat', { placement: 'Block' });
+   * doc.text('a² + b² = c²', 50, 50);
+   * doc.endFormula();
+   *
+   * @example
+   * // Chemical formula
+   * doc.beginFormula('Wasser, H 2 O');
+   * doc.text('H₂O', x, y);
+   * doc.endFormula();
+   *
+   * @example
+   * // Complex formula with subscripts/superscripts
+   * doc.beginFormula('Summe von i gleich 1 bis n von x Index i', { placement: 'Block' });
+   * doc.text('Σᵢ₌₁ⁿ xᵢ', 50, y);
+   * doc.endFormula();
+   */
+  jsPDFAPI.beginFormula = function(alt, options) {
+    if (!alt || typeof alt !== 'string') {
+      throw new Error('Formula requires alternative text (alt) for PDF/UA compliance');
+    }
+
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    // Add placement attribute for block-level formulas
+    if (options.placement === 'Block') {
+      attributes.placement = 'Block';
+    }
+
+    // Begin Formula element
+    this.beginStructureElement('Formula', attributes);
+
+    // Store alt text on the current element
+    var currentElem = this.internal.structureTree.currentParent;
+    if (currentElem) {
+      currentElem.alt = alt;
+    }
+
+    return this;
+  };
+
+  /**
+   * End a Formula element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFormula = function() {
+    return this.endStructureElement();
   };
 
 })(jsPDF.API);

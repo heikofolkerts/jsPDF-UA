@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.4 Built on 2025-12-11T07:37:48.237Z
+ * Version 3.0.4 Built on 2025-12-12T06:43:12.060Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -4353,7 +4353,22 @@ function jsPDF(options) {
       // Reference PDFs show that Acrobat Reader needs this to recognize tagged content
       // Check if current element has a specific lang attribute (e.g., for Span with language change)
       var lang = currentElem && currentElem.attributes && currentElem.attributes.lang ? currentElem.attributes.lang : scope.getLanguage();
-      result += "/" + structType + " <</Lang (" + lang + ")/MCID " + mcid + ">> BDC\n";
+
+      // Build BDC dictionary with all required attributes
+      var bdcDict = "/Lang (" + lang + ")/MCID " + mcid;
+
+      // Add /E (Expansion) attribute for abbreviations - MUST be in BDC for screen readers
+      if (currentElem && currentElem.expansion) {
+        var escapedE = currentElem.expansion.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        bdcDict += "/E (" + escapedE + ")";
+      }
+
+      // Add /Alt attribute for formulas/images - MUST be in BDC for screen readers
+      if (currentElem && currentElem.alt) {
+        var escapedAlt = currentElem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        bdcDict += "/Alt (" + escapedAlt + ")";
+      }
+      result += "/" + structType + " <<" + bdcDict + ">> BDC\n";
     }
     result += "BT\n/";
     result += activeFontKey + " " + activeFontSize + " Tf\n"; // font face, style, size
@@ -6634,6 +6649,60 @@ var createFieldCallback = function createFieldCallback(fieldArray, scope) {
       if (_typeof(fieldObject) === "object" && typeof fieldObject.getKeyValueListForStream === "function") {
         keyValueList = fieldObject.getKeyValueListForStream();
       }
+
+      // PDF/UA: Add StructParent for widget annotation connection to structure tree
+      if (scope.isPDFUAEnabled && scope.isPDFUAEnabled() && fieldObject._pdfuaInternalId) {
+        // Get the next StructParent index
+        if (!scope.internal.pdfuaFormFieldStructParentCounter) {
+          // Start after page StructParents (use a high offset to avoid conflicts)
+          // Pages use 0, 1, 2, ... so we start form fields at a higher range
+          scope.internal.pdfuaFormFieldStructParentCounter = 1000;
+        }
+        var structParentIndex = scope.internal.pdfuaFormFieldStructParentCounter++;
+        keyValueList.push({
+          key: "StructParent",
+          value: structParentIndex
+        });
+
+        // Store the mapping from internal ID to actual object ID for OBJR resolution
+        if (!scope.internal.pdfuaFormFieldIdMap) {
+          scope.internal.pdfuaFormFieldIdMap = {};
+        }
+        scope.internal.pdfuaFormFieldIdMap[fieldObject._pdfuaInternalId] = fieldObject.objId;
+
+        // Store the StructParent index for ParentTree entry
+        // This mapping is used by structure_tree.js to add form fields to ParentTree
+        if (!scope.internal.pdfuaFormFieldStructParentMap) {
+          scope.internal.pdfuaFormFieldStructParentMap = {};
+        }
+        scope.internal.pdfuaFormFieldStructParentMap[fieldObject._pdfuaInternalId] = structParentIndex;
+
+        // Store the page number for OBJR /Pg reference
+        // This is required by PDF/UA for proper structure tree linkage
+        if (!scope.internal.pdfuaFormFieldPageMap) {
+          scope.internal.pdfuaFormFieldPageMap = {};
+        }
+        scope.internal.pdfuaFormFieldPageMap[fieldObject._pdfuaInternalId] = fieldObject.page;
+
+        // PDF/UA: Add/Replace DA (Default Appearance) for text and choice fields
+        // This is required for screen readers to recognize form fields
+        // The DA must use /Helv (Helvetica) which is defined in AcroForm DR
+        // The default DA uses /F1 which doesn't work properly with screen readers
+        if (fieldObject.FT === "/Tx" || fieldObject.FT === "/Ch") {
+          // Remove any existing DA entry (may use wrong font like /F1)
+          for (var daIdx = keyValueList.length - 1; daIdx >= 0; daIdx--) {
+            if (keyValueList[daIdx].key === "DA") {
+              keyValueList.splice(daIdx, 1);
+            }
+          }
+          // Add correct DA with Helvetica font, 12pt size, black color
+          // This matches the reference PDF/UA form document format
+          keyValueList.push({
+            key: "DA",
+            value: "(/Helv 12 Tf 0 g)"
+          });
+        }
+      }
       fieldObject.Rect = oldRect;
       if (fieldObject.hasAppearanceStream && !fieldObject.appearanceStreamContent) {
         // Calculate Appearance
@@ -6975,6 +7044,14 @@ var AcroFormDictionary = function AcroFormDictionary() {
     }
   });
 
+  // NeedAppearances - tells the PDF reader to generate appearance streams
+  // This is important for form fields to be interactive and accessible
+  Object.defineProperty(this, "NeedAppearances", {
+    enumerable: false,
+    configurable: false,
+    value: true
+  });
+
   // Default Appearance
   var _DA;
   Object.defineProperty(this, "DA", {
@@ -7206,7 +7283,7 @@ var AcroFormField = function AcroFormField() {
   });
 
   /**
-   * (Optional) The partial field name (see 12.7.3.2, “Field Names”).
+   * (Optional) The partial field name (see 12.7.3.2, "Field Names").
    *
    * @name AcroFormField#fieldName
    * @default null
@@ -7220,6 +7297,59 @@ var AcroFormField = function AcroFormField() {
     },
     set: function set(value) {
       _T = value;
+    }
+  });
+
+  // TU - Text string for tooltip/alternate field description (PDF/UA accessibility)
+  var _TU = null;
+
+  /**
+   * (Optional; PDF 1.3) An alternate field name that shall be used in place of the actual
+   * field name wherever the field shall be identified in the user interface (such as in error
+   * or status messages referring to the field). This text is also useful when extracting the
+   * document's contents in support of accessibility to users with disabilities or for other
+   * purposes (see 14.9.3, "Alternate Descriptions").
+   *
+   * For PDF/UA compliance, this MUST be set for all form fields.
+   *
+   * @name AcroFormField#TU
+   * @default null
+   * @type {string}
+   */
+  Object.defineProperty(this, "TU", {
+    enumerable: true,
+    configurable: false,
+    get: function get() {
+      if (!_TU) {
+        return undefined;
+      }
+      var encryptor = function encryptor(data) {
+        return data;
+      };
+      if (this.scope) encryptor = this.scope.internal.getEncryptor(this.objId);
+      return "(" + pdfEscape(encryptor(_TU)) + ")";
+    },
+    set: function set(value) {
+      _TU = value ? value.toString() : null;
+    }
+  });
+
+  /**
+   * Alias for TU - the tooltip/alternate description for screen readers.
+   * For PDF/UA compliance, this MUST be set for all form fields.
+   *
+   * @name AcroFormField#tooltip
+   * @default null
+   * @type {string}
+   */
+  Object.defineProperty(this, "tooltip", {
+    enumerable: true,
+    configurable: true,
+    get: function get() {
+      return _TU;
+    },
+    set: function set(value) {
+      _TU = value ? value.toString() : null;
     }
   });
   var _fontName = "helvetica";
@@ -8852,6 +8982,13 @@ AcroFormAppearance.internal.getHeight = function (formObject) {
 var addField = jsPDFAPI.addField = function (fieldObject) {
   initializeAcroForm(this, fieldObject);
   if (fieldObject instanceof AcroFormField) {
+    // PDF/UA: Assign internal ID for structure tree OBJR reference
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      if (!this.internal.pdfuaFormFieldCounter) {
+        this.internal.pdfuaFormFieldCounter = 0;
+      }
+      fieldObject._pdfuaInternalId = ++this.internal.pdfuaFormFieldCounter;
+    }
     putForm(fieldObject);
   } else {
     throw new Error("Invalid argument passed to jsPDF.addField.");
@@ -8897,6 +9034,481 @@ jsPDF.AcroForm = {
   Appearance: AcroFormAppearance
 };
 var AcroForm = jsPDF.AcroForm;
+
+// ============================================================
+// HIGH-LEVEL ACCESSIBLE FORM API (PDF/UA - BITi 02.4.2)
+// ============================================================
+
+/**
+ * Add an accessible text field with proper PDF/UA structure.
+ * This high-level API automatically handles:
+ * - Form structure element creation
+ * - Tooltip (TU attribute) for screen readers
+ * - OBJR connection to structure tree
+ * - Visible label rendering
+ * - Strict validation for accessibility
+ *
+ * @name addAccessibleTextField
+ * @function
+ * @instance
+ * @param {Object} options - Field options
+ * @param {number} options.x - X position of the field
+ * @param {number} options.y - Y position of the field
+ * @param {number} options.width - Width of the field
+ * @param {number} options.height - Height of the field
+ * @param {string} options.name - Internal field name
+ * @param {string} options.tooltip - Screen reader description (REQUIRED for PDF/UA)
+ * @param {string} [options.label] - Visible label text (defaults to tooltip)
+ * @param {string} [options.value] - Default field value
+ * @param {boolean} [options.required] - Mark field as required
+ * @param {boolean} [options.multiline] - Enable multiline text
+ * @param {number} [options.maxLength] - Maximum character length
+ * @returns {jsPDF} - Returns jsPDF instance for method chaining
+ *
+ * @example
+ * doc.addAccessibleTextField({
+ *   x: 50, y: 50, width: 100, height: 20,
+ *   name: 'vorname',
+ *   tooltip: 'Geben Sie Ihren Vornamen ein',
+ *   label: 'Vorname:',
+ *   required: true
+ * });
+ */
+jsPDFAPI.addAccessibleTextField = function (options) {
+  options = options || {};
+
+  // Strict validation for PDF/UA
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    if (!options.tooltip) {
+      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' + 'Provide a tooltip that describes the field for screen reader users.');
+    }
+  }
+
+  // Render visible label if provided
+  var labelText = options.label || options.tooltip;
+  var labelX = options.x;
+  var labelY = options.y - 5; // Position label above field
+
+  // Begin Form structure element
+  if (this.beginFormField) {
+    this.beginFormField();
+  }
+
+  // Add visible label as P element within Form
+  if (labelText && this.beginStructureElement) {
+    this.beginStructureElement('P');
+    this.text(labelText + (options.required ? ' *' : ''), labelX, labelY);
+    this.endStructureElement();
+  }
+
+  // Create the AcroForm text field
+  var field = new AcroFormTextField();
+  field.x = options.x;
+  field.y = options.y;
+  field.width = options.width;
+  field.height = options.height;
+  field.fieldName = options.name;
+  field.V = options.value || '';
+
+  // Set tooltip for screen readers
+  var tooltipText = options.tooltip;
+  if (options.required) {
+    tooltipText += ' (Pflichtfeld)';
+  }
+  field.TU = tooltipText;
+
+  // Field options
+  if (options.multiline) {
+    field.multiline = true;
+  }
+  if (options.maxLength) {
+    field.maxLength = options.maxLength;
+  }
+  if (options.required) {
+    field.required = true;
+  }
+
+  // Add the field
+  this.addField(field);
+
+  // Add OBJR reference to structure tree
+  if (this.addFormFieldRef && field._pdfuaInternalId) {
+    this.addFormFieldRef(field._pdfuaInternalId);
+  }
+
+  // End Form structure element
+  if (this.endFormField) {
+    this.endFormField();
+  }
+  return this;
+};
+
+/**
+ * Add an accessible checkbox with proper PDF/UA structure.
+ *
+ * @name addAccessibleCheckBox
+ * @function
+ * @instance
+ * @param {Object} options - Field options
+ * @param {number} options.x - X position of the field
+ * @param {number} options.y - Y position of the field
+ * @param {number} [options.width=15] - Width of the checkbox
+ * @param {number} [options.height=15] - Height of the checkbox
+ * @param {string} options.name - Internal field name
+ * @param {string} options.tooltip - Screen reader description (REQUIRED for PDF/UA)
+ * @param {string} [options.label] - Visible label text (defaults to tooltip)
+ * @param {boolean} [options.checked] - Initial checked state
+ * @param {boolean} [options.required] - Mark field as required
+ * @returns {jsPDF} - Returns jsPDF instance for method chaining
+ *
+ * @example
+ * doc.addAccessibleCheckBox({
+ *   x: 50, y: 100, width: 15, height: 15,
+ *   name: 'agb',
+ *   tooltip: 'Ich akzeptiere die Allgemeinen Geschäftsbedingungen',
+ *   label: 'AGB akzeptieren',
+ *   required: true
+ * });
+ */
+jsPDFAPI.addAccessibleCheckBox = function (options) {
+  options = options || {};
+
+  // Strict validation for PDF/UA
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    if (!options.tooltip) {
+      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' + 'Provide a tooltip that describes the checkbox for screen reader users.');
+    }
+  }
+  var boxWidth = options.width || 15;
+  var boxHeight = options.height || 15;
+
+  // Begin Form structure element
+  if (this.beginFormField) {
+    this.beginFormField();
+  }
+
+  // Render visible label next to checkbox
+  var labelText = options.label || options.tooltip;
+  if (labelText && this.beginStructureElement) {
+    this.beginStructureElement('P');
+    this.text(labelText + (options.required ? ' *' : ''), options.x + boxWidth + 5, options.y + boxHeight - 3);
+    this.endStructureElement();
+  }
+
+  // Create the AcroForm checkbox
+  var field = new AcroFormCheckBox();
+  field.x = options.x;
+  field.y = options.y;
+  field.width = boxWidth;
+  field.height = boxHeight;
+  field.fieldName = options.name;
+
+  // Set tooltip for screen readers
+  var tooltipText = options.tooltip;
+  if (options.required) {
+    tooltipText += ' (Pflichtfeld)';
+  }
+  field.TU = tooltipText;
+
+  // Initial state
+  if (options.checked) {
+    field.AS = '/Yes';
+    field.V = '/Yes';
+  }
+
+  // Add the field
+  this.addField(field);
+
+  // Add OBJR reference to structure tree
+  if (this.addFormFieldRef && field._pdfuaInternalId) {
+    this.addFormFieldRef(field._pdfuaInternalId);
+  }
+
+  // End Form structure element
+  if (this.endFormField) {
+    this.endFormField();
+  }
+  return this;
+};
+
+/**
+ * Add an accessible dropdown/combobox with proper PDF/UA structure.
+ *
+ * @name addAccessibleComboBox
+ * @function
+ * @instance
+ * @param {Object} options - Field options
+ * @param {number} options.x - X position of the field
+ * @param {number} options.y - Y position of the field
+ * @param {number} options.width - Width of the field
+ * @param {number} options.height - Height of the field
+ * @param {string} options.name - Internal field name
+ * @param {string} options.tooltip - Screen reader description (REQUIRED for PDF/UA)
+ * @param {string[]} options.options - Array of option strings
+ * @param {string} [options.label] - Visible label text
+ * @param {string} [options.value] - Default selected value
+ * @param {boolean} [options.required] - Mark field as required
+ * @param {boolean} [options.editable] - Allow typing custom values
+ * @returns {jsPDF} - Returns jsPDF instance for method chaining
+ *
+ * @example
+ * doc.addAccessibleComboBox({
+ *   x: 50, y: 150, width: 100, height: 20,
+ *   name: 'land',
+ *   tooltip: 'Wählen Sie Ihr Land aus',
+ *   label: 'Land:',
+ *   options: ['Deutschland', 'Österreich', 'Schweiz'],
+ *   required: true
+ * });
+ */
+jsPDFAPI.addAccessibleComboBox = function (options) {
+  options = options || {};
+
+  // Strict validation for PDF/UA
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    if (!options.tooltip) {
+      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' + 'Provide a tooltip that describes the dropdown for screen reader users.');
+    }
+  }
+
+  // Render visible label
+  var labelText = options.label || options.tooltip;
+  var labelY = options.y - 5;
+
+  // Begin Form structure element
+  if (this.beginFormField) {
+    this.beginFormField();
+  }
+  if (labelText && this.beginStructureElement) {
+    this.beginStructureElement('P');
+    this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
+    this.endStructureElement();
+  }
+
+  // Create the AcroForm combobox
+  var field = new AcroFormComboBox();
+  field.x = options.x;
+  field.y = options.y;
+  field.width = options.width;
+  field.height = options.height;
+  field.fieldName = options.name;
+
+  // Set options
+  if (options.options && Array.isArray(options.options)) {
+    field.setOptions(options.options);
+  }
+
+  // Set tooltip for screen readers
+  var tooltipText = options.tooltip;
+  if (options.required) {
+    tooltipText += ' (Pflichtfeld)';
+  }
+  field.TU = tooltipText;
+
+  // Default value
+  if (options.value) {
+    field.V = options.value;
+  }
+
+  // Editable combobox
+  if (options.editable) {
+    field.edit = true;
+  }
+
+  // Add the field
+  this.addField(field);
+
+  // Add OBJR reference to structure tree
+  if (this.addFormFieldRef && field._pdfuaInternalId) {
+    this.addFormFieldRef(field._pdfuaInternalId);
+  }
+
+  // End Form structure element
+  if (this.endFormField) {
+    this.endFormField();
+  }
+  return this;
+};
+
+/**
+ * Add an accessible list box (multiple selection) with proper PDF/UA structure.
+ *
+ * @name addAccessibleListBox
+ * @function
+ * @instance
+ * @param {Object} options - Field options
+ * @param {number} options.x - X position of the field
+ * @param {number} options.y - Y position of the field
+ * @param {number} options.width - Width of the field
+ * @param {number} options.height - Height of the field
+ * @param {string} options.name - Internal field name
+ * @param {string} options.tooltip - Screen reader description (REQUIRED for PDF/UA)
+ * @param {string[]} options.options - Array of option strings
+ * @param {string} [options.label] - Visible label text
+ * @param {string|string[]} [options.value] - Default selected value(s)
+ * @param {boolean} [options.required] - Mark field as required
+ * @param {boolean} [options.multiSelect] - Allow multiple selections
+ * @returns {jsPDF} - Returns jsPDF instance for method chaining
+ */
+jsPDFAPI.addAccessibleListBox = function (options) {
+  options = options || {};
+
+  // Strict validation for PDF/UA
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    if (!options.tooltip) {
+      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' + 'Provide a tooltip that describes the list for screen reader users.');
+    }
+  }
+
+  // Render visible label
+  var labelText = options.label || options.tooltip;
+  var labelY = options.y - 5;
+
+  // Begin Form structure element
+  if (this.beginFormField) {
+    this.beginFormField();
+  }
+  if (labelText && this.beginStructureElement) {
+    this.beginStructureElement('P');
+    this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
+    this.endStructureElement();
+  }
+
+  // Create the AcroForm list box
+  var field = new AcroFormListBox();
+  field.x = options.x;
+  field.y = options.y;
+  field.width = options.width;
+  field.height = options.height;
+  field.fieldName = options.name;
+
+  // Set options
+  if (options.options && Array.isArray(options.options)) {
+    field.setOptions(options.options);
+  }
+
+  // Set tooltip for screen readers
+  var tooltipText = options.tooltip;
+  if (options.required) {
+    tooltipText += ' (Pflichtfeld)';
+  }
+  field.TU = tooltipText;
+
+  // Default value
+  if (options.value) {
+    field.V = options.value;
+  }
+
+  // Multi-select
+  if (options.multiSelect) {
+    field.multiSelect = true;
+  }
+
+  // Add the field
+  this.addField(field);
+
+  // Add OBJR reference to structure tree
+  if (this.addFormFieldRef && field._pdfuaInternalId) {
+    this.addFormFieldRef(field._pdfuaInternalId);
+  }
+
+  // End Form structure element
+  if (this.endFormField) {
+    this.endFormField();
+  }
+  return this;
+};
+
+/**
+ * Add an accessible radio button group with proper PDF/UA structure.
+ *
+ * @name addAccessibleRadioGroup
+ * @function
+ * @instance
+ * @param {Object} options - Group options
+ * @param {string} options.name - Internal group name
+ * @param {string} options.tooltip - Screen reader description for the group
+ * @param {Object[]} options.buttons - Array of radio button definitions
+ * @param {number} options.buttons[].x - X position of button
+ * @param {number} options.buttons[].y - Y position of button
+ * @param {string} options.buttons[].label - Visible label for button
+ * @param {string} options.buttons[].value - Value when selected
+ * @param {number} [options.buttonSize=12] - Size of radio buttons
+ * @param {string} [options.value] - Initially selected value
+ * @param {boolean} [options.required] - Mark group as required
+ * @returns {jsPDF} - Returns jsPDF instance for method chaining
+ *
+ * @example
+ * doc.addAccessibleRadioGroup({
+ *   name: 'geschlecht',
+ *   tooltip: 'Wählen Sie Ihr Geschlecht',
+ *   required: true,
+ *   buttons: [
+ *     { x: 50, y: 200, label: 'Männlich', value: 'm' },
+ *     { x: 50, y: 220, label: 'Weiblich', value: 'w' },
+ *     { x: 50, y: 240, label: 'Divers', value: 'd' }
+ *   ]
+ * });
+ */
+jsPDFAPI.addAccessibleRadioGroup = function (options) {
+  options = options || {};
+
+  // Strict validation for PDF/UA
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    if (!options.tooltip) {
+      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' + 'Provide a tooltip that describes the radio group for screen reader users.');
+    }
+  }
+  var buttonSize = options.buttonSize || 12;
+  var buttons = options.buttons || [];
+
+  // Create radio button group
+  var radioGroup = new AcroFormRadioButton();
+  radioGroup.fieldName = options.name;
+
+  // Set tooltip for screen readers
+  var tooltipText = options.tooltip;
+  if (options.required) {
+    tooltipText += ' (Pflichtfeld)';
+  }
+  radioGroup.TU = tooltipText;
+
+  // Default value
+  if (options.value) {
+    radioGroup.V = '/' + options.value;
+  }
+
+  // Add each button as a child
+  for (var i = 0; i < buttons.length; i++) {
+    var btn = buttons[i];
+
+    // Begin Form structure element for each button
+    if (this.beginFormField) {
+      this.beginFormField();
+    }
+
+    // Render visible label
+    if (btn.label && this.beginStructureElement) {
+      this.beginStructureElement('P');
+      this.text(btn.label, btn.x + buttonSize + 5, btn.y + buttonSize - 3);
+      this.endStructureElement();
+    }
+
+    // Create radio button option
+    var radioOption = radioGroup.createOption(btn.value);
+    radioOption.Rect = [btn.x, btn.y, buttonSize, buttonSize];
+    radioOption.AS = options.value === btn.value ? '/' + btn.value : '/Off';
+
+    // End Form structure element
+    if (this.endFormField) {
+      this.endFormField();
+    }
+  }
+
+  // Add the radio group
+  this.addField(radioGroup);
+  return this;
+};
 
 (function (jsPDFAPI) {
 
@@ -21680,6 +22292,24 @@ WebPDecoder.prototype.getData = function () {
       var pageNum = pageKeys[k];
       this.internal.write(pageNum + ' ' + pageArrayObjects[pageNum] + ' 0 R');
     }
+
+    // Add form field StructParent entries to ParentTree
+    // Form fields have StructParent indices starting at 1000
+    // Each must point to the Form structure element that contains the OBJR
+    var formFieldParentMap = this.internal.structureTree.formFieldParentMap;
+    var structParentMap = this.internal.pdfuaFormFieldStructParentMap;
+    if (formFieldParentMap && structParentMap) {
+      for (var internalId in formFieldParentMap) {
+        if (formFieldParentMap.hasOwnProperty(internalId)) {
+          var formElement = formFieldParentMap[internalId];
+          var structParentIndex = structParentMap[internalId];
+          if (formElement && formElement.objectNumber && structParentIndex !== undefined) {
+            // Add entry: StructParent index -> Form element object number
+            this.internal.write(structParentIndex + ' ' + formElement.objectNumber + ' 0 R');
+          }
+        }
+      }
+    }
     this.internal.write(']');
     this.internal.write('>>');
     this.internal.write('endobj');
@@ -21743,11 +22373,18 @@ WebPDecoder.prototype.getData = function () {
         this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
       }
 
-      // Alternative text (for images, required for PDF/UA)
+      // Alternative text (for images and formulas, required for PDF/UA)
       if (elem.alt) {
         // Escape special characters in alt text
         var escapedAlt = elem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
         this.internal.write('/Alt (' + escapedAlt + ')');
+      }
+
+      // Expansion text (for abbreviations - PDF 1.7, 14.9.5)
+      if (elem.expansion) {
+        // Escape special characters in expansion text
+        var escapedE = elem.expansion.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+        this.internal.write('/E (' + escapedE + ')');
       }
 
       // ID attribute (required for Note elements per PDF/UA - MP 19-003)
@@ -21757,10 +22394,29 @@ WebPDecoder.prototype.getData = function () {
         this.internal.write('/ID (' + escapedId + ')');
       }
 
-      // Attribute dictionary (for table headers and other elements)
-      if (elem.attributes && elem.attributes.scope) {
-        // Scope must be in an attribute dictionary with /O /Table owner
-        this.internal.write('/A << /O /Table /Scope /' + elem.attributes.scope + ' >>');
+      // Attribute dictionary (for table headers, formula placement, etc.)
+      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement)) {
+        var attrParts = [];
+
+        // Table scope attribute
+        if (elem.attributes.scope) {
+          attrParts.push('/O /Table /Scope /' + elem.attributes.scope);
+        }
+
+        // Placement attribute (for Formula, Figure, etc.)
+        if (elem.attributes.placement) {
+          attrParts.push('/O /Layout /Placement /' + elem.attributes.placement);
+        }
+        if (attrParts.length === 1) {
+          this.internal.write('/A << ' + attrParts[0] + ' >>');
+        } else if (attrParts.length > 1) {
+          // Multiple attribute dictionaries
+          this.internal.write('/A [');
+          for (var a = 0; a < attrParts.length; a++) {
+            this.internal.write('<< ' + attrParts[a] + ' >>');
+          }
+          this.internal.write(']');
+        }
       }
 
       // Page reference (required when element has MCIDs)
@@ -21776,7 +22432,8 @@ WebPDecoder.prototype.getData = function () {
       // Children (K entry)
       // An element can have MCIDs, child elements, OBJR references, or combinations
       var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
-      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs;
+      var hasFormFieldRefs = elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
+      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs;
       if (hasContent) {
         var kArray = [];
         var self = this;
@@ -21794,6 +22451,28 @@ WebPDecoder.prototype.getData = function () {
             var objId = self.internal.pdfuaLinkIdMap && self.internal.pdfuaLinkIdMap[internalId];
             if (objId) {
               kArray.push('<< /Type /OBJR /Obj ' + objId + ' 0 R >>');
+            }
+          });
+        }
+
+        // Add OBJR references for form field widget annotations (PDF/UA requirement)
+        // Format: << /Type /OBJR /Obj <widget-objId> 0 R /Pg <page-objId> 0 R >>
+        if (hasFormFieldRefs) {
+          elem.formFieldInternalIds.forEach(function (internalId) {
+            // Resolve internal ID to actual object ID using the mapping
+            var objId = self.internal.pdfuaFormFieldIdMap && self.internal.pdfuaFormFieldIdMap[internalId];
+            if (objId) {
+              // Get page reference for this form field
+              var fieldPage = self.internal.pdfuaFormFieldPageMap && self.internal.pdfuaFormFieldPageMap[internalId];
+              var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+              if (fieldPage) {
+                var pageInfo = self.internal.getPageInfo(fieldPage);
+                if (pageInfo && pageInfo.objId) {
+                  objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                }
+              }
+              objrStr += ' >>';
+              kArray.push(objrStr);
             }
           });
         }
@@ -22843,6 +23522,86 @@ WebPDecoder.prototype.getData = function () {
   };
 
   // ============================================================
+  // FORM FIELD API - For accessible form fields (BITi 02.4.2)
+  // ============================================================
+
+  /**
+   * Begin a Form structure element for accessible form fields.
+   * Each form field widget annotation must be wrapped in a Form element
+   * for PDF/UA compliance.
+   *
+   * The Form element provides:
+   * - Screen reader access to the field
+   * - Proper structure tree hierarchy
+   * - Connection to the widget annotation via OBJR
+   *
+   * @param {Object} [options] - Options for the form element
+   * @param {string} [options.lang] - Language code for form field labels
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * doc.beginFormField();
+   *   // Add the actual AcroForm field
+   *   doc.addField(textField);
+   *   // Add OBJR reference
+   *   doc.addFormFieldRef(textField._pdfuaInternalId);
+   * doc.endFormField();
+   */
+  jsPDFAPI.beginFormField = function (options) {
+    options = options || {};
+    var attributes = {};
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+    return this.beginStructureElement('Form', attributes);
+  };
+
+  /**
+   * End a Form structure element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFormField = function () {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add a form field annotation reference (OBJR) to the current Form structure element.
+   * This connects the Form structure element to the widget annotation.
+   * Required for PDF/UA accessibility.
+   *
+   * @param {number} fieldInternalId - Internal ID of the form field (from _pdfuaInternalId)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addFormFieldRef = function (fieldInternalId) {
+    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+      return this;
+    }
+    var currentElem = this.internal.structureTree.currentParent;
+
+    // Only add to Form elements
+    if (currentElem.type !== 'Form') {
+      console.warn('addFormFieldRef called outside of Form element');
+      return this;
+    }
+
+    // Store the internal ID - the actual object ID will be resolved later
+    // during writeStructTree when pdfuaFormFieldIdMap is available
+    if (!currentElem.formFieldInternalIds) {
+      currentElem.formFieldInternalIds = [];
+    }
+    currentElem.formFieldInternalIds.push(fieldInternalId);
+
+    // Track which Form structure element owns this form field's StructParent
+    // This is needed for the ParentTree to correctly reference the Form element
+    if (!this.internal.structureTree.formFieldParentMap) {
+      this.internal.structureTree.formFieldParentMap = {};
+    }
+    // Store reference: internalId -> Form element
+    this.internal.structureTree.formFieldParentMap[fieldInternalId] = currentElem;
+    return this;
+  };
+
+  // ============================================================
   // ARTIFACT API - For content that should be ignored by screen readers
   // ============================================================
 
@@ -22979,6 +23738,180 @@ WebPDecoder.prototype.getData = function () {
    */
   jsPDFAPI.endFooter = function () {
     return this.endArtifact();
+  };
+
+  // ============================================================
+  // ABBREVIATION API - For abbreviations with expansion text
+  // BITi 02.2.3.1 - Abkürzungen
+  // ============================================================
+
+  /**
+   * Begin an abbreviation element with expansion text.
+   * The /E (Expansion) attribute provides the full form of the abbreviation
+   * for screen readers to announce.
+   *
+   * According to PDF 1.7 spec (14.9.5):
+   * - The E entry contains the expansion of the abbreviation
+   * - Format recommendation: "expansion, abbreviation" (e.g., "December, Dec")
+   *
+   * Use abbreviations for:
+   * - Acronyms (PDF -> Portable Document Format)
+   * - Short forms (Dr. -> Doktor, lb -> pound)
+   * - Technical abbreviations (HTML, CSS, API)
+   * - Units (kg, mm, °C)
+   *
+   * @param {string} expansion - The full expansion text (e.g., "Portable Document Format")
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the abbreviation
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple abbreviation
+   * doc.beginStructureElement('P');
+   * doc.text('Die ', 10, 30);
+   * doc.beginAbbreviation('Europäische Union');
+   * doc.text('EU', x, 30);
+   * doc.endAbbreviation();
+   * doc.text(' hat 27 Mitgliedsstaaten.', x, 30);
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Abbreviation in table header
+   * doc.beginTableHeaderCell('Column');
+   * doc.beginAbbreviation('December');
+   * doc.text('Dec', x, y);
+   * doc.endAbbreviation();
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Technical abbreviation with language
+   * doc.beginAbbreviation('Hypertext Markup Language', { lang: 'en-US' });
+   * doc.text('HTML', x, y);
+   * doc.endAbbreviation();
+   */
+  jsPDFAPI.beginAbbreviation = function (expansion, options) {
+    if (!expansion || typeof expansion !== 'string') {
+      throw new Error('Abbreviation requires expansion text');
+    }
+    options = options || {};
+    var attributes = {};
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    // Begin Span element (abbreviations use Span with /E attribute)
+    this.beginStructureElement('Span', attributes);
+
+    // Store expansion text on the current element
+    var currentElem = this.internal.structureTree.currentParent;
+    if (currentElem) {
+      currentElem.expansion = expansion;
+    }
+    return this;
+  };
+
+  /**
+   * End an abbreviation element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endAbbreviation = function () {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // FORMULA API - For mathematical expressions
+  // BITi 02.4.0 - Mathematische Ausdrücke
+  // ============================================================
+
+  /**
+   * Begin a Formula element for mathematical expressions.
+   * Required for PDF/UA compliance when including formulas.
+   *
+   * PDF/UA Requirements:
+   * - All formulas MUST have an /Alt attribute (alternative text)
+   * - Formula is inline by default; use placement: 'Block' for block-level
+   * - Alt text should describe the formula in readable form
+   *
+   * In PDF/UA-1, MathML is not supported, so alt text is the primary
+   * accessibility mechanism. The alt text should be a readable
+   * description that a screen reader can announce.
+   *
+   * Use Formula for:
+   * - Mathematical equations (E = mc², a² + b² = c²)
+   * - Chemical formulas (H₂O, CO₂)
+   * - Physics formulas (F = ma)
+   * - Statistical expressions (μ, σ, Σ)
+   *
+   * @param {string} alt - Alternative text describing the formula (REQUIRED)
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
+   * @param {string} [options.lang] - Language code for the formula description
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Inline formula
+   * doc.beginStructureElement('P');
+   * doc.text('Die berühmte Formel ', 10, 30);
+   * doc.beginFormula('E gleich m c Quadrat');
+   * doc.text('E = mc²', x, 30);
+   * doc.endFormula();
+   * doc.text(' von Einstein.', x, 30);
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Block-level formula
+   * doc.beginStructureElement('P');
+   * doc.text('Der Satz des Pythagoras:', 10, 30);
+   * doc.endStructureElement();
+   *
+   * doc.beginFormula('a Quadrat plus b Quadrat gleich c Quadrat', { placement: 'Block' });
+   * doc.text('a² + b² = c²', 50, 50);
+   * doc.endFormula();
+   *
+   * @example
+   * // Chemical formula
+   * doc.beginFormula('Wasser, H 2 O');
+   * doc.text('H₂O', x, y);
+   * doc.endFormula();
+   *
+   * @example
+   * // Complex formula with subscripts/superscripts
+   * doc.beginFormula('Summe von i gleich 1 bis n von x Index i', { placement: 'Block' });
+   * doc.text('Σᵢ₌₁ⁿ xᵢ', 50, y);
+   * doc.endFormula();
+   */
+  jsPDFAPI.beginFormula = function (alt, options) {
+    if (!alt || typeof alt !== 'string') {
+      throw new Error('Formula requires alternative text (alt) for PDF/UA compliance');
+    }
+    options = options || {};
+    var attributes = {};
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    // Add placement attribute for block-level formulas
+    if (options.placement === 'Block') {
+      attributes.placement = 'Block';
+    }
+
+    // Begin Formula element
+    this.beginStructureElement('Formula', attributes);
+
+    // Store alt text on the current element
+    var currentElem = this.internal.structureTree.currentParent;
+    if (currentElem) {
+      currentElem.alt = alt;
+    }
+    return this;
+  };
+
+  /**
+   * End a Formula element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endFormula = function () {
+    return this.endStructureElement();
   };
 })(jsPDF.API);
 

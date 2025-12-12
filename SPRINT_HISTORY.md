@@ -947,6 +947,147 @@ doc.endArtifact();
 
 ---
 
+## Sprint 21 (COMPLETED)
+**Accessible Form Fields (AcroForm + PDF/UA)**
+
+- **Status**: Implemented and verified
+- **Key Feature**: Form fields with structure tree integration for screen reader accessibility
+
+**What's been implemented:**
+- `beginFormField()` / `endFormField()` - Form structure element wrapper
+- `addFormFieldRef()` - Links form field to structure tree via OBJR
+- TextField support with TU (tooltip/accessible name)
+- Checkbox and ComboBox support
+- Required field indication
+- Widget annotation StructParent integration
+
+**BITi Prüfschritte:**
+- BITi 02.4.2 - Formulare (Form fields)
+
+---
+
+## Sprint 22 (COMPLETED - 2025-12-12)
+**Abbreviations + Formula Elements**
+
+- **Status**: Implemented and verified
+- **Key Features**:
+  - Abbreviations with expansion text (/E attribute) for screen readers
+  - Formula elements with alternative text for mathematical expressions
+
+### Part 1: Abbreviations (BITi 02.2.3.1)
+
+**What's been implemented:**
+- `beginAbbreviation(expansion, options)` / `endAbbreviation()` - Abbreviation wrapper
+- `/E` (Expansion) attribute in structure element
+- Uses Span element with /E attribute per PDF 1.7 spec (14.9.5)
+- Optional `lang` attribute for foreign abbreviations
+
+**API Usage:**
+```javascript
+// Simple abbreviation
+doc.beginStructureElement('P');
+doc.text('Die ', 10, 40);
+
+doc.beginAbbreviation('Europäische Union');
+doc.text('EU', x, 40);
+doc.endAbbreviation();
+
+doc.text(' hat 27 Mitgliedsstaaten.', x, 40);
+doc.endStructureElement();
+
+// English abbreviation in German document
+doc.beginAbbreviation('World Wide Web Consortium', { lang: 'en-US' });
+doc.text('W3C', x, 40);
+doc.endAbbreviation();
+
+// Units
+doc.beginAbbreviation('Kilogramm');
+doc.text('kg', x, y);
+doc.endAbbreviation();
+```
+
+**Use Cases:**
+- Acronyms (PDF, HTML, EU, WHO)
+- Technical abbreviations (API, CSS)
+- Units (kg, cm, °C, kW)
+- Professional titles (Dr., Prof., Dipl.-Ing.)
+
+**Screen Reader Behavior:**
+- NVDA/JAWS reads the expansion text alongside the abbreviation
+- Example: "EU" is read as "Europäische Union" or "EU, Europäische Union"
+
+### Part 2: Formula (BITi 02.4.0)
+
+**What's been implemented:**
+- `beginFormula(alt, options)` / `endFormula()` - Formula wrapper
+- `/Alt` attribute (REQUIRED for PDF/UA compliance)
+- `/Placement /Block` attribute for block-level formulas
+- Optional `lang` attribute for formula descriptions
+
+**API Usage:**
+```javascript
+// Inline formula
+doc.beginStructureElement('P');
+doc.text('Die Formel ', 10, 40);
+
+doc.beginFormula('E gleich m mal c Quadrat');
+doc.text('E = mc²', x, 40);
+doc.endFormula();
+
+doc.text(' beschreibt die Masse-Energie-Äquivalenz.', x, 40);
+doc.endStructureElement();
+
+// Block-level formula
+doc.beginFormula('a Quadrat plus b Quadrat gleich c Quadrat', { placement: 'Block' });
+doc.text('a² + b² = c²', 80, 65);
+doc.endFormula();
+
+// Chemical formula
+doc.beginFormula('H 2 O, zwei Wasserstoffatome und ein Sauerstoffatom');
+doc.text('H₂O', x, y);
+doc.endFormula();
+```
+
+**Use Cases:**
+- Mathematical equations (E=mc², a²+b²=c²)
+- Chemical formulas (H₂O, CO₂)
+- Physics formulas (F=ma, v=s/t)
+- Statistical expressions (Σ, μ, σ)
+
+**PDF/UA Requirements:**
+- Formula MUST have /Alt attribute (alternative text)
+- Formula is inline by default
+- Use `placement: 'Block'` for block-level display
+- Alt text should be a readable description (not LaTeX/MathML)
+
+**Screen Reader Behavior:**
+- Screen reader reads the alt text instead of the visual formula
+- Example: "E = mc²" is read as "E gleich m mal c Quadrat"
+
+**Test Results:**
+- All abbreviation tests pass (6 test cases)
+- All formula tests pass (8 test cases)
+- Validation tests pass (missing expansion/alt throws error)
+- PDF structure verified (/E and /Alt attributes present in BDC operators)
+- NVDA correctly reads expansion text for abbreviations
+- NVDA correctly reads alt text for formulas
+
+**Critical Implementation Detail:**
+The `/E` and `/Alt` attributes MUST be in the **BDC operator** (content stream), not just in the Structure Element dictionary. Screen readers read attributes from the content stream.
+
+Correct format:
+```
+/Span <</Lang (de-DE)/MCID 2/E (Europäische Union)>> BDC
+/Formula <</Lang (de-DE)/MCID 3/Alt (E gleich m c Quadrat)>> BDC
+```
+
+**Best Practice for Formulas:**
+- Tag the **entire equation** as one Formula element
+- Do NOT split parts of an equation into separate Formula elements
+- Example: `sin²x + cos²x = 1` → one Formula with alt "Sinus Quadrat x plus Kosinus Quadrat x gleich eins"
+
+---
+
 ## Critical Learnings
 
 ### PDF/UA Structure Requirements
@@ -956,6 +1097,9 @@ doc.endArtifact();
   - Without `/Lang` in BDC: Acrobat shows "AVPageView Textrahmen" (treats content as artifact)
   - With `/Lang` in BDC: Content is recognized as tagged and readable by screen readers
   - Format: `/StructType <</Lang (language-code)/MCID n>> BDC`
+- **CRITICAL**: `/E` and `/Alt` attributes MUST be in BDC operator for screen readers to read them
+  - Placing them only in Structure Element dictionary is NOT sufficient
+  - Format: `/Span <</Lang (lang)/MCID n/E (expansion)>> BDC`
 - Firefox is more lenient and displays text even without proper tagging
 - Always test with Acrobat Reader + screen reader for true PDF/UA compliance
 - Reference PDFs consistently include `/Lang` in every BDC operator
