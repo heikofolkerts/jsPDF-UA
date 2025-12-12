@@ -1940,6 +1940,201 @@ import { jsPDF } from "../jspdf.js";
     return this.endStructureElement();
   };
 
+  // ============================================================
+  // BIBENTRY API - For bibliography entries
+  // BITi 02.3.4 - Span, Quote, BibEntry, Code
+  // ============================================================
+
+  /**
+   * Begin a BibEntry (Bibliography Entry) element.
+   * Used to identify individual entries in a bibliography or reference list.
+   *
+   * According to PDF 1.7 spec:
+   * - BibEntry is a reference identifying the external source of cited content
+   * - May contain a label (Lbl) as a child
+   * - No standard structure types are defined for author, title, etc.
+   *
+   * Note: BibEntry is an inline-level element in PDF/UA-1.
+   * In PDF 2.0, BibEntry is no longer encouraged but still valid.
+   *
+   * Use BibEntry for:
+   * - Academic paper references
+   * - Book citations
+   * - Journal article references
+   * - Web resource citations
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the entry
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple bibliography entry
+   * doc.beginStructureElement('P');
+   * doc.beginBibEntry();
+   * doc.text('Smith, J. (2023). "PDF Accessibility". Publisher.', 10, y);
+   * doc.endBibEntry();
+   * doc.endStructureElement();
+   *
+   * @example
+   * // Bibliography entry with label
+   * doc.beginBibEntry();
+   * doc.beginStructureElement('Lbl');
+   * doc.text('[1]', 10, y);
+   * doc.endStructureElement();
+   * doc.text(' Miller, A. (2022). "Accessible Documents". Press.', 20, y);
+   * doc.endBibEntry();
+   *
+   * @example
+   * // Bibliography list
+   * doc.beginStructureElement('H2');
+   * doc.text('Literaturverzeichnis', 10, 100);
+   * doc.endStructureElement();
+   *
+   * doc.beginListUnordered();
+   *   doc.beginListItem();
+   *     doc.beginListBody();
+   *       doc.beginBibEntry();
+   *       doc.text('Reference text...', 20, y);
+   *       doc.endBibEntry();
+   *     doc.endListBody();
+   *   doc.endStructureElement();
+   * doc.endList();
+   */
+  jsPDFAPI.beginBibEntry = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('BibEntry', attributes);
+  };
+
+  /**
+   * End a BibEntry element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endBibEntry = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // INDEX API - For document indexes (subject index, keyword index)
+  // BITi 02.1.2 - Gruppierende Strukturelemente / BlockQuote, Index
+  // ============================================================
+
+  /**
+   * Begin an Index element for a document index (subject index, keyword index).
+   *
+   * According to PDF 1.7 spec:
+   * - Index is a sequence of entries containing identifying text
+   * - Each entry has reference elements pointing to occurrences in the document
+   * - Typically organized as lists (L, LI)
+   *
+   * Best practices (PDF/UA):
+   * - Avoid heading elements (H1-H6) inside Index
+   * - The heading "Index" should be BEFORE the Index element, not inside
+   * - Use lists (L, LI) to organize entries
+   * - Can contain Reference elements for cross-references
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the index
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple index
+   * doc.beginStructureElement('H2');
+   * doc.text('Stichwortverzeichnis', 10, 100);
+   * doc.endStructureElement();
+   *
+   * doc.beginIndex();
+   *   doc.beginListUnordered();
+   *     doc.beginListItem();
+   *       doc.addListLabel('A', 10, 120);
+   *       doc.beginListBody();
+   *         doc.text('Accessibility, 12, 45, 78', 20, 120);
+   *       doc.endListBody();
+   *     doc.endStructureElement();
+   *     // ... more entries
+   *   doc.endList();
+   * doc.endIndex();
+   *
+   * @example
+   * // Index with nested sublists (alphabetical sections)
+   * doc.beginIndex();
+   *   // Section A
+   *   doc.beginStructureElement('P');
+   *   doc.text('A', 10, y);
+   *   doc.endStructureElement();
+   *
+   *   doc.beginListUnordered();
+   *     doc.beginListItem();
+   *       doc.beginListBody();
+   *         doc.text('Artikel, 5', 15, y);
+   *       doc.endListBody();
+   *     doc.endStructureElement();
+   *   doc.endList();
+   *
+   *   // Section B
+   *   doc.beginStructureElement('P');
+   *   doc.text('B', 10, y);
+   *   doc.endStructureElement();
+   *   // ... more entries
+   * doc.endIndex();
+   */
+  jsPDFAPI.beginIndex = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Index', attributes);
+  };
+
+  /**
+   * End an Index element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endIndex = function() {
+    return this.endStructureElement();
+  };
+
+  /**
+   * Add an index entry with term and page references.
+   * Convenience method that creates a list item with the term and references.
+   *
+   * @param {string} term - The index term
+   * @param {string} pageRefs - Page references (e.g., "12, 45, 78")
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * doc.beginIndex();
+   *   doc.beginListUnordered();
+   *     doc.addIndexEntry('Accessibility', '12, 45, 78', 10, 120);
+   *     doc.addIndexEntry('Barrierefreiheit', '23, 56', 10, 135);
+   *   doc.endList();
+   * doc.endIndex();
+   */
+  jsPDFAPI.addIndexEntry = function(term, pageRefs, x, y, options) {
+    options = options || {};
+
+    this.beginListItem();
+      this.beginListBody();
+        var text = term + ', ' + pageRefs;
+        this.text(text, x, y);
+      this.endListBody();
+    this.endStructureElement(); // end LI
+
+    return this;
+  };
+
 })(jsPDF.API);
 
 export default jsPDF;

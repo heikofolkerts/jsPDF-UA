@@ -1088,6 +1088,103 @@ Correct format:
 
 ---
 
+## Sprint 23 (COMPLETED - 2025-12-12)
+**BibEntry + Index Elements**
+
+- **Status**: Implemented and verified
+- **Key Features**:
+  - BibEntry for bibliography/reference entries
+  - Index for document subject/keyword indexes
+
+### Part 1: BibEntry (BITi 02.3.4)
+
+**What's been implemented:**
+- `beginBibEntry(options)` / `endBibEntry()` - Bibliography entry wrapper
+- Optional `lang` attribute for entries in different languages
+- Inline-level structure element
+
+**API Usage:**
+```javascript
+// Bibliography list
+doc.beginStructureElement('H2');
+doc.text('Literaturverzeichnis', 10, 100);
+doc.endStructureElement();
+
+doc.beginListNumbered();
+  doc.beginListItem();
+    doc.addListLabel('[1]', 10, 120);
+    doc.beginListBody();
+      doc.beginBibEntry();
+      doc.text('ISO 14289-1:2014. PDF/UA-1 Standard.', 25, 120);
+      doc.endBibEntry();
+    doc.endListBody();
+  doc.endStructureElement();
+doc.endList();
+
+// Inline citation
+doc.beginStructureElement('P');
+doc.text('As described in ', 10, 40);
+doc.beginBibEntry();
+doc.text('(Müller, 2023)', x, 40);
+doc.endBibEntry();
+doc.text(', accessibility is important.', x, 40);
+doc.endStructureElement();
+```
+
+**Use Cases:**
+- Academic paper references
+- Book citations (APA, MLA, etc.)
+- Journal article references
+- Web resource citations
+- Inline citations in running text
+
+### Part 2: Index (BITi 02.1.2)
+
+**What's been implemented:**
+- `beginIndex(options)` / `endIndex()` - Index container wrapper
+- `addIndexEntry(term, pageRefs, x, y)` - Convenience method for index entries
+- Grouping-level structure element
+
+**API Usage:**
+```javascript
+// Heading OUTSIDE of Index (best practice)
+doc.beginStructureElement('H2');
+doc.text('Stichwortverzeichnis', 10, 100);
+doc.endStructureElement();
+
+doc.beginIndex();
+  doc.beginList();
+    doc.addIndexEntry('Accessibility', '12, 45, 78', 15, 120);
+    doc.addIndexEntry('Barrierefreiheit', '23, 56', 15, 135);
+  doc.endList();
+doc.endIndex();
+
+// Alphabetical sections
+doc.beginIndex();
+  doc.beginStructureElement('P');
+  doc.text('A', 10, 40);  // Section header
+  doc.endStructureElement();
+
+  doc.beginList();
+    doc.addIndexEntry('Alternativtext', '15, 23', 15, 55);
+    doc.addIndexEntry('Annotation', '45, 67', 15, 70);
+  doc.endList();
+doc.endIndex();
+```
+
+**Best Practices:**
+- Place heading (e.g., "Index") OUTSIDE the Index element
+- Avoid H1-H6 elements inside Index
+- Use lists (L, LI) to organize entries
+- Nested lists for sub-entries
+
+**Test Results:**
+- 6 BibEntry test cases pass
+- 6 Index test cases pass
+- PDF structure verified (/S /BibEntry and /S /Index present)
+
+---
+
 ## Critical Learnings
 
 ### PDF/UA Structure Requirements

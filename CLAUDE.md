@@ -135,7 +135,7 @@ The library implements parts of the PDF 1.3 specification. When adding features,
 
 This project is currently implementing PDF/UA (Universal Accessibility) support in sprints.
 
-**Current Status: Sprint 22 (COMPLETED - 2025-12-12)**
+**Current Status: Sprint 23 (COMPLETED - 2025-12-12)**
 
 For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./SPRINT_HISTORY.md).
 
@@ -163,6 +163,7 @@ For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./
 | 20 | Artifacts for Headers, Footers, Decorative Content | ✅ |
 | 21 | Accessible Form Fields (AcroForm + PDF/UA) | ✅ |
 | 22 | Abbreviations + Formula Elements | ✅ |
+| 23 | BibEntry + Index Elements | ✅ |
 
 ### Critical Requirements
 
@@ -266,7 +267,7 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 02.0 | ✅ Implemented | 2/3 |
 | 02.1.0 | ✅ Implemented | 2/3 |
 | 02.1.1 | ✅ Implemented | 19 |
-| 02.1.2 | ✅ BlockQuote | 15 |
+| 02.1.2 | ✅ BlockQuote, Index | 15, 23 |
 | 02.2.0 | ✅ Implemented | 2/3 |
 | 02.2.1 | ✅ Implemented | 8 |
 | 02.2.2 | ✅ Implemented | 7 |
@@ -274,7 +275,7 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | 02.2.3.1 | ✅ Abbreviations | 22 |
 | 02.3.0 | ✅ Implemented | 17 |
 | 02.3.1 | ✅ Implemented | 9 |
-| 02.3.4 | ✅ Implemented | 14-16 |
+| 02.3.4 | ✅ Span, Quote, BibEntry, Code | 14-16, 23 |
 | 02.4.0 | ✅ Formula | 22 |
 | 02.4.1 | ✅ Implemented | 18 |
 | 02.4.1.1 | ✅ Implemented | 6 |
