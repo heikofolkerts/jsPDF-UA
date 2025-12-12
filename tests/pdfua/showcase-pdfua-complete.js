@@ -362,21 +362,25 @@ doc.beginSect();
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
   doc.text('External link: ', 20, 253);
-  doc.beginLink('https://github.com/parallax/jsPDF');
+  doc.endStructureElement();
+
+  // External link using textWithLink for proper link annotation
+  doc.beginLink();
   doc.setTextColor(0, 0, 255);
-  doc.text('jsPDF on GitHub', 52, 253);
+  doc.textWithLink('jsPDF on GitHub', 52, 253, { url: 'https://github.com/parallax/jsPDF' });
   doc.setTextColor(0, 0, 0);
   doc.endLink();
-  doc.endStructureElement();
 
   doc.beginStructureElement('P');
   doc.text('Internal link: ', 20, 265);
-  doc.beginLink({ pageNumber: 6 });
+  doc.endStructureElement();
+
+  // Internal link to page 6
+  doc.beginLink();
   doc.setTextColor(0, 0, 255);
-  doc.text('Jump to Bibliography (Page 6)', 51, 265);
+  doc.textWithLink('Jump to Bibliography (Page 6)', 51, 265, { pageNumber: 6 });
   doc.setTextColor(0, 0, 0);
   doc.endLink();
-  doc.endStructureElement();
 doc.endSect();
 
 // --- Footer Artifact ---

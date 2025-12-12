@@ -862,18 +862,67 @@ import { jsPDF } from "../jspdf.js";
   /**
    * Begin a link structure element
    * Links must be wrapped in Link elements for PDF/UA accessibility
+   *
+   * @param {string|Object} [options] - URL string or options object
+   * @param {string} [options.url] - External URL
+   * @param {number} [options.pageNumber] - Internal page number (1-based)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // External link
+   * doc.beginLink('https://example.com');
+   * doc.text('Click here', 20, 50);
+   * doc.endLink();
+   *
+   * @example
+   * // Internal link to page 3
+   * doc.beginLink({ pageNumber: 3 });
+   * doc.text('Go to page 3', 20, 50);
+   * doc.endLink();
    */
-  jsPDFAPI.beginLink = function() {
+  jsPDFAPI.beginLink = function(options) {
+    // Store link options for endLink to create the annotation
+    if (!this.internal.pdfuaLinkState) {
+      this.internal.pdfuaLinkState = [];
+    }
+
+    var linkData = {
+      startX: null,
+      startY: null,
+      options: null
+    };
+
+    // Parse options
+    if (typeof options === 'string') {
+      linkData.options = { url: options };
+    } else if (options && (options.url || options.pageNumber)) {
+      linkData.options = options;
+    }
+
+    // Store current position as link start
+    // We'll capture text position when text is rendered
+    this.internal.pdfuaLinkState.push(linkData);
+
     return this.beginStructureElement('Link');
   };
 
   /**
-   * End a link structure element
-   * Convenience method for doc.endStructureElement()
+   * End a link structure element and create the link annotation
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endLink = function() {
+    // Get link data
+    var linkState = this.internal.pdfuaLinkState;
+    if (linkState && linkState.length > 0) {
+      var linkData = linkState.pop();
+
+      // Create link annotation if we have options and text bounds
+      if (linkData.options && linkData.textBounds) {
+        var bounds = linkData.textBounds;
+        this.link(bounds.x, bounds.y, bounds.width, bounds.height, linkData.options);
+      }
+    }
+
     return this.endStructureElement();
   };
 
