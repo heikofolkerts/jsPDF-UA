@@ -1493,6 +1493,115 @@ Basic readability of test files was confirmed.
 
 ---
 
+## Sprint 26 (IN PROGRESS - 2025-12-12)
+**DocumentFragment + Aside (PDF 2.0 Elements)**
+
+NOTE: These are PDF 2.0 (ISO 32000-2) structure elements, part of PDF/UA-2.
+Older PDF readers may not fully support them, but content remains accessible
+through graceful fallback.
+
+### Part 1: DocumentFragment (ISO 32000-2:2020, 14.8.4.3)
+
+DocumentFragment identifies content as an excerpt from another document.
+
+**What's been implemented:**
+- `beginDocumentFragment(options)` / `endDocumentFragment()` - Document excerpt wrapper
+
+**Use Cases:**
+- Excerpts from other documents
+- Legal document citations (e.g., laws, contracts)
+- Technical specification quotes
+- Embedded document sections
+
+**Do NOT use for:**
+- Regular quotations (use BlockQuote instead)
+- Content not representing an actual document extract
+
+**API Usage:**
+```javascript
+doc.beginStructureElement('P');
+doc.text('The following is from the German constitution:', 10, 20);
+doc.endStructureElement();
+
+doc.beginDocumentFragment({ lang: 'de-DE' });
+  doc.beginStructureElement('H2');
+  doc.text('Grundgesetz Artikel 1', 10, 40);
+  doc.endStructureElement();
+  doc.beginStructureElement('P');
+  doc.text('Die Würde des Menschen ist unantastbar.', 10, 55);
+  doc.endStructureElement();
+doc.endDocumentFragment();
+```
+
+### Part 2: Aside (ISO 32000-2:2020, 14.8.4.3)
+
+Aside represents content tangentially related to the main content.
+
+**What's been implemented:**
+- `beginAside(options)` / `endAside()` - Sidebar/tangential content wrapper
+
+**Use Cases:**
+- Sidebars with supplementary information
+- Pull quotes
+- Advertising content
+- Side notes in educational materials
+- Author biography boxes
+- Related links sections
+
+**Historical Context:**
+Before PDF 2.0, sidebars were problematic because heading tags within them
+would break the document's logical structure. Caption elements were sometimes
+used as a workaround. Aside solves this problem.
+
+**API Usage:**
+```javascript
+// Sidebar
+doc.beginStructureElement('P');
+doc.text('Main article content...', 10, 30);
+doc.endStructureElement();
+
+doc.beginAside();
+  doc.beginStructureElement('H2');
+  doc.text('Did You Know?', 120, 30);
+  doc.endStructureElement();
+  doc.beginStructureElement('P');
+  doc.text('Interesting fact...', 120, 45);
+  doc.endStructureElement();
+doc.endAside();
+
+// Pull quote
+doc.beginAside();
+  doc.beginBlockQuote();
+  doc.text('"Important statement."', 30, 80);
+  doc.endBlockQuote();
+doc.endAside();
+
+// Author bio
+doc.beginAside();
+  doc.beginStructureElement('H3');
+  doc.text('About the Author', 10, 200);
+  doc.endStructureElement();
+  doc.beginStructureElement('P');
+  doc.text('Dr. Smith is a researcher...', 10, 215);
+  doc.endStructureElement();
+doc.endAside();
+```
+
+**Compatibility:**
+- PDF 2.0 elements (PDF/UA-2)
+- Older readers show content but may not announce element type specially
+- Content remains fully accessible
+
+**Test Files:**
+- test-docfragment-1-simple.pdf: Legal document excerpt
+- test-aside-1-sidebar.pdf: Article with sidebar
+- test-aside-2-pullquote.pdf: Pull quote example
+- test-docfragment-2-multilang.pdf: Multi-language excerpt
+- test-aside-3-author.pdf: Author biography box
+- test-docfragment-aside-complete.pdf: Complete demo
+
+---
+
 ## Critical Learnings
 
 ### PDF/UA Structure Requirements

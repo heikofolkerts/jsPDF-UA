@@ -4122,10 +4122,20 @@ function jsPDF(options) {
       var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
       // PDF/UA REQUIRES /Lang in BDC operator (not just in Catalog)
       // Reference PDFs show that Acrobat Reader needs this to recognize tagged content
-      // Check if current element has a specific lang attribute (e.g., for Span with language change)
-      var lang = (currentElem && currentElem.attributes && currentElem.attributes.lang)
-        ? currentElem.attributes.lang
-        : scope.getLanguage();
+      // Check if current element or any ancestor has a specific lang attribute
+      // This enables language inheritance (e.g., DocumentFragment with lang: 'en-US')
+      var lang = null;
+      var elemToCheck = currentElem;
+      while (elemToCheck && !lang) {
+        if (elemToCheck.attributes && elemToCheck.attributes.lang) {
+          lang = elemToCheck.attributes.lang;
+        }
+        elemToCheck = elemToCheck.parent;
+      }
+      // Fall back to document language if no ancestor has lang attribute
+      if (!lang) {
+        lang = scope.getLanguage();
+      }
 
       // Build BDC dictionary with all required attributes
       var bdcDict = "/Lang (" + lang + ")/MCID " + mcid;

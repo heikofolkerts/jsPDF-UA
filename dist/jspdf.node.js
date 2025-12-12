@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.4 Built on 2025-12-12T08:07:10.692Z
+ * Version 3.0.4 Built on 2025-12-12T08:34:21.017Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -5019,10 +5019,20 @@ function jsPDF(options) {
       var structType = currentElem && currentElem.type ? currentElem.type : 'Span';
       // PDF/UA REQUIRES /Lang in BDC operator (not just in Catalog)
       // Reference PDFs show that Acrobat Reader needs this to recognize tagged content
-      // Check if current element has a specific lang attribute (e.g., for Span with language change)
-      var lang = (currentElem && currentElem.attributes && currentElem.attributes.lang)
-        ? currentElem.attributes.lang
-        : scope.getLanguage();
+      // Check if current element or any ancestor has a specific lang attribute
+      // This enables language inheritance (e.g., DocumentFragment with lang: 'en-US')
+      var lang = null;
+      var elemToCheck = currentElem;
+      while (elemToCheck && !lang) {
+        if (elemToCheck.attributes && elemToCheck.attributes.lang) {
+          lang = elemToCheck.attributes.lang;
+        }
+        elemToCheck = elemToCheck.parent;
+      }
+      // Fall back to document language if no ancestor has lang attribute
+      if (!lang) {
+        lang = scope.getLanguage();
+      }
 
       // Build BDC dictionary with all required attributes
       var bdcDict = "/Lang (" + lang + ")/MCID " + mcid;
@@ -30419,6 +30429,169 @@ WebPDecoder.prototype.getData = function() {
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endWarichuPunctuation = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // DOCUMENTFRAGMENT API - For document excerpts (PDF 2.0)
+  // ISO 32000-2:2020, 14.8.4.3
+  // ============================================================
+
+  /**
+   * Begin a DocumentFragment element.
+   * Represents a logical document fragment - an excerpt from another document.
+   *
+   * NOTE: This is a PDF 2.0 (ISO 32000-2) structure element, introduced for
+   * PDF/UA-2. Older PDF readers may not fully support it, but the content
+   * remains accessible as it falls back gracefully.
+   *
+   * According to ISO 32000-2:2020, 14.8.4.3:
+   * - DocumentFragment identifies content as an extract from another document
+   * - Heading levels within a fragment may not align with the overall document
+   * - Headings within the fragment should be self-consistent
+   *
+   * Use DocumentFragment for:
+   * - Excerpts from other documents
+   * - Quoted passages from external sources
+   * - Embedded document sections
+   * - Legal document citations
+   *
+   * Do NOT use DocumentFragment for:
+   * - Regular quotations (use BlockQuote instead)
+   * - Content that doesn't represent an actual document extract
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the fragment
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Excerpt from a legal document
+   * doc.beginDocumentFragment({ lang: 'de-DE' });
+   *   doc.beginStructureElement('H1');
+   *   doc.text('Auszug aus dem Grundgesetz', 10, 30);
+   *   doc.endStructureElement();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Artikel 1: Die Würde des Menschen ist unantastbar.', 10, 45);
+   *   doc.endStructureElement();
+   * doc.endDocumentFragment();
+   *
+   * @example
+   * // Technical specification excerpt
+   * doc.beginStructureElement('P');
+   * doc.text('The following is from ISO 32000-2:', 10, 20);
+   * doc.endStructureElement();
+   *
+   * doc.beginDocumentFragment();
+   *   doc.beginStructureElement('P');
+   *   doc.text('[Specification text here...]', 10, 35);
+   *   doc.endStructureElement();
+   * doc.endDocumentFragment();
+   */
+  jsPDFAPI.beginDocumentFragment = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('DocumentFragment', attributes);
+  };
+
+  /**
+   * End a DocumentFragment element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endDocumentFragment = function() {
+    return this.endStructureElement();
+  };
+
+  // ============================================================
+  // ASIDE API - For sidebars and related content (PDF 2.0)
+  // ISO 32000-2:2020, 14.8.4.3
+  // ============================================================
+
+  /**
+   * Begin an Aside element.
+   * Represents content that is tangentially related to the main content,
+   * such as sidebars, pull quotes, or advertising.
+   *
+   * NOTE: This is a PDF 2.0 (ISO 32000-2) structure element, introduced for
+   * PDF/UA-2. Older PDF readers may not fully support it, but the content
+   * remains accessible as it falls back gracefully.
+   *
+   * According to ISO 32000-2:2020:
+   * - Aside is for content outside the main flow
+   * - Examples: sidebars, advertising, side notes in textbooks
+   * - If related to main content, parent should be the deepest related element
+   *
+   * Historical context (pre-PDF 2.0):
+   * Before Aside existed, sidebars were problematic because heading tags
+   * within them would break the document's logical structure. Caption
+   * elements were sometimes used as a workaround.
+   *
+   * Use Aside for:
+   * - Sidebars with supplementary information
+   * - Pull quotes
+   * - Advertising content
+   * - Side notes in educational materials
+   * - Related links sections
+   * - Author bio boxes
+   *
+   * @param {Object} [options] - Optional attributes
+   * @param {string} [options.lang] - Language code for the aside content
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Sidebar with additional information
+   * doc.beginStructureElement('P');
+   * doc.text('Main article content here...', 10, 30);
+   * doc.endStructureElement();
+   *
+   * doc.beginAside();
+   *   doc.beginStructureElement('H2');
+   *   doc.text('Did You Know?', 120, 30);
+   *   doc.endStructureElement();
+   *   doc.beginStructureElement('P');
+   *   doc.text('Interesting fact related to the article.', 120, 45);
+   *   doc.endStructureElement();
+   * doc.endAside();
+   *
+   * @example
+   * // Pull quote
+   * doc.beginAside();
+   *   doc.beginBlockQuote();
+   *   doc.text('"This is an important statement."', 10, 80);
+   *   doc.endBlockQuote();
+   * doc.endAside();
+   *
+   * @example
+   * // Author information box
+   * doc.beginAside({ lang: 'en-US' });
+   *   doc.beginStructureElement('H3');
+   *   doc.text('About the Author', 10, 200);
+   *   doc.endStructureElement();
+   *   doc.beginStructureElement('P');
+   *   doc.text('John Doe is a software developer...', 10, 215);
+   *   doc.endStructureElement();
+   * doc.endAside();
+   */
+  jsPDFAPI.beginAside = function(options) {
+    options = options || {};
+    var attributes = {};
+
+    if (options.lang) {
+      attributes.lang = options.lang;
+    }
+
+    return this.beginStructureElement('Aside', attributes);
+  };
+
+  /**
+   * End an Aside element.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.endAside = function() {
     return this.endStructureElement();
   };
 

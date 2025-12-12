@@ -165,7 +165,8 @@ For detailed sprint history and implementation notes, see [SPRINT_HISTORY.md](./
 | 22 | Abbreviations + Formula Elements | ✅ |
 | 23 | BibEntry + Index Elements | ✅ |
 | 24 | NonStruct/Private + Art/Sect/Div/Part Grouping | ✅ |
-| 25 | Ruby/Warichu CJK Annotations | 🔄 |
+| 25 | Ruby/Warichu CJK Annotations | ✅ |
+| 26 | DocumentFragment + Aside (PDF 2.0) | 🔄 |
 
 ### Critical Requirements
 
