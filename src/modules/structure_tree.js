@@ -108,7 +108,18 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var element = new StructElement(type, parent, this);
-    element.attributes = attributes || {};
+    attributes = attributes || {};
+
+    // Extract special attributes that are stored directly on the element
+    if (attributes.alt) {
+      element.alt = attributes.alt;
+    }
+    if (attributes.expansion) {
+      element.expansion = attributes.expansion;
+    }
+
+    // Store remaining attributes
+    element.attributes = attributes;
     element.id = this.internal.structureTree.nextStructId++;
     // Object number will be assigned later in reserveStructObjectNumbers
 
@@ -358,8 +369,8 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/ID (' + escapedId + ')');
       }
 
-      // Attribute dictionary (for table headers, formula placement, etc.)
-      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement)) {
+      // Attribute dictionary (for table headers, formula placement, form role, etc.)
+      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role)) {
         var attrParts = [];
 
         // Table scope attribute
@@ -370,6 +381,12 @@ import { jsPDF } from "../jspdf.js";
         // Placement attribute (for Formula, Figure, etc.)
         if (elem.attributes.placement) {
           attrParts.push('/O /Layout /Placement /' + elem.attributes.placement);
+        }
+
+        // Role attribute (for Form elements per ISO 32000-1:2008, Table 348)
+        // Rb = radio button, Cb = checkbox, Pb = push button, Tv = text value, Lb = list box
+        if (elem.attributes.role) {
+          attrParts.push('/O /PrintField /Role /' + elem.attributes.role);
         }
 
         if (attrParts.length === 1) {
@@ -481,9 +498,19 @@ import { jsPDF } from "../jspdf.js";
     // Write ParentTree
     writeParentTree.call(this);
 
-    // Write RoleMap (empty but required for PDF/UA)
+    // Write RoleMap - map non-standard structure types to standard types
+    // Required for PDF/UA-1 compliance (ISO 14289-1, clause 7.1, test 5)
     var roleMapObj = this.internal.newObject();
-    this.internal.write('<< >>');
+    this.internal.write('<<');
+    // PDF 2.0 elements mapped to PDF 1.7 standard types
+    this.internal.write('/DocumentFragment /Sect');  // Document excerpt -> Section
+    this.internal.write('/Aside /Sect');             // Sidebar content -> Section (Note requires /ID)
+    // Semantic inline elements mapped to Span (closest standard equivalent)
+    this.internal.write('/Strong /Span');            // Bold/important text
+    this.internal.write('/Em /Span');                // Emphasized/italic text
+    // Ensure Em is also mapped (alternative name)
+    this.internal.write('/Emphasis /Span');          // Alternative emphasis name
+    this.internal.write('>>');
     this.internal.write('endobj');
 
     // Write StructTreeRoot (objectNumber was reserved earlier)
@@ -1319,28 +1346,35 @@ import { jsPDF } from "../jspdf.js";
     options = options || {};
     var attributes = {};
 
-    if (options.id) {
-      attributes.id = options.id;
-
-      // Register note destination for footnote links
-      if (!this.internal.pdfuaFootnotes) {
-        this.internal.pdfuaFootnotes = {
-          noteDestinations: {},
-          pendingReferences: [],
-          pendingBackLinks: []
-        };
+    // Auto-generate ID if not provided (required for PDF/UA compliance)
+    var noteId = options.id;
+    if (!noteId) {
+      if (!this.internal.pdfuaNoteCounter) {
+        this.internal.pdfuaNoteCounter = 0;
       }
-
-      var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-      this.internal.pdfuaFootnotes.noteDestinations[options.id] = {
-        page: pageNumber,
-        y: options.y || 0  // Y position for destination
-      };
-
-      // Store current note info for back-link generation
-      this.internal.pdfuaFootnotes.currentNoteId = options.id;
-      this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
+      this.internal.pdfuaNoteCounter++;
+      noteId = 'note-' + this.internal.pdfuaNoteCounter;
     }
+    attributes.id = noteId;
+
+    // Register note destination for footnote links
+    if (!this.internal.pdfuaFootnotes) {
+      this.internal.pdfuaFootnotes = {
+        noteDestinations: {},
+        pendingReferences: [],
+        pendingBackLinks: []
+      };
+    }
+
+    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
+      page: pageNumber,
+      y: options.y || 0  // Y position for destination
+    };
+
+    // Store current note info for back-link generation
+    this.internal.pdfuaFootnotes.currentNoteId = noteId;
+    this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
 
     this.beginStructureElement('Note', attributes);
 
@@ -1598,6 +1632,14 @@ import { jsPDF } from "../jspdf.js";
     if (options.lang) {
       attributes.lang = options.lang;
     }
+
+    // PDF/UA requires either:
+    // 1. Form has exactly one child (OBJR to widget) - OR
+    // 2. Form has a Role attribute
+    // Since we may add label text as children, we add Role attribute
+    // Role can be: Rb (radio button), Cb (checkbox), Pb (push button),
+    //              Tv (text value), Lb (list box)
+    attributes.role = options.role || 'Tv';  // Default to text value
 
     return this.beginStructureElement('Form', attributes);
   };

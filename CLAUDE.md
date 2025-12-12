@@ -170,6 +170,7 @@ For API documentation and usage examples, see [docs/pdfua/](./docs/pdfua/README.
 | 25 | Ruby/Warichu CJK Annotations | ✅ |
 | 26 | DocumentFragment + Aside (PDF 2.0) + Language Inheritance | ✅ |
 | 27 | Accessible Annotations (Text/FreeText with Annot element) | ✅ |
+| 28 | veraPDF Validation Fixes + Comprehensive Showcase | ✅ |
 
 ### Critical Requirements
 

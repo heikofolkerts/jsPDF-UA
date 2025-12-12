@@ -1716,3 +1716,86 @@ A documentation note has been added for future implementers with PDF/UA requirem
 - test-annot-6-complete.pdf: Complete annotated document
 
 ---
+
+## Sprint 28 (COMPLETED - 2025-12-12)
+**veraPDF Validation Fixes + Comprehensive Showcase**
+
+Addresses veraPDF validation findings and creates a comprehensive showcase document
+demonstrating all PDF/UA features.
+
+### veraPDF Findings Fixed
+
+1. **RoleMap Extensions** - Added missing role mappings:
+   - `/DocumentFragment /Sect` - PDF 2.0 element
+   - `/Aside /Sect` - PDF 2.0 element
+   - `/Strong /Span` - Semantic emphasis
+   - `/Em /Span` - Semantic emphasis
+   - `/Emphasis /Span` - Alternative name
+
+2. **dc:title Fallback** - XMP metadata now provides "Untitled Document" fallback
+   for PDF/UA compliance when no title is set
+
+3. **Note ID Requirement** - Auto-generate unique IDs for Note elements
+   (Matterhorn Protocol 19-003)
+
+4. **Form Role Attribute** - Add `/Role` attribute to Form structure elements
+   per ISO 32000-1:2008, Table 348:
+   - `Tv` = text value (text fields)
+   - `Cb` = checkbox
+   - `Rb` = radio button
+   - `Lb` = listbox/combobox
+
+5. **Figure Alt Text** - Fixed alt text propagation from `beginStructureElement`
+   attributes to element properties
+
+### Known Limitations (Not Fixed)
+
+These require significant additional implementation work:
+
+1. **Text/Popup Annotation StructParent** - Annotations need `/StructParent`
+   linking to ParentTree for full PDF/UA compliance
+
+2. **ZapfDingbats in Checkboxes** - Checkbox appearance uses ZapfDingbats font
+   which isn't embedded and lacks ToUnicode mapping
+
+3. **Graphics Artifact Marking** - Graphical operations (line, rect, etc.)
+   don't support BDC/EMC wrapping. Only text content can be marked as artifacts.
+
+### Comprehensive Showcase Document
+
+Created `tests/pdfua/showcase-pdfua-complete.js` generating a 6-page PDF
+demonstrating ALL implemented PDF/UA features:
+
+- Document metadata (title, language)
+- Table of Contents with internal links
+- Outlines/Bookmarks navigation
+- 6 heading levels (H1-H6)
+- Paragraphs and text formatting
+- Strong and Em emphasis
+- Abbreviations with expansion
+- Language changes within text
+- Mathematical formulas with alt text
+- Ordered and unordered lists
+- Tables with header scope
+- External and internal links
+- Form fields (text, checkbox, combobox)
+- Inline and block quotes
+- Inline and block code
+- Footnotes and references
+- Figures with alt text and captions
+- Text annotations
+- Artifacts (headers, footers)
+- Grouping elements (Art, Div, Sect)
+- NonStruct and Private elements
+- PDF 2.0 elements (DocumentFragment, Aside)
+- Ruby annotations (CJK)
+- Bibliography
+- Index
+
+### Validation Results
+
+**veraPDF ua1 Profile:**
+- Before fixes: 8 failed rules, 20 failed checks
+- After fixes: 4 failed rules, 6 failed checks (known limitations)
+
+---

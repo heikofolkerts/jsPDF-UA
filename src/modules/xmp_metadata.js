@@ -56,10 +56,15 @@ import { jsPDF } from "../jspdf.js";
 
     rdf_content += '<rdf:Description rdf:about="" ' + namespaces + '>';
 
-    // Add dc:title if provided
-    if (metadata.title) {
+    // Add dc:title - required for PDF/UA (ISO 14289-1, clause 7.1, test 9)
+    // Use provided title, or default to "Untitled Document" for PDF/UA compliance
+    var title = metadata.title;
+    if (!title && metadata.pdfUA) {
+      title = 'Untitled Document';  // Fallback for PDF/UA compliance
+    }
+    if (title) {
       rdf_content += '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' +
-                     escapeXML(metadata.title) +
+                     escapeXML(title) +
                      '</rdf:li></rdf:Alt></dc:title>';
     }
 

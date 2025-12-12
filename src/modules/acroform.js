@@ -3333,9 +3333,9 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   var labelX = options.x;
   var labelY = options.y - 5; // Position label above field
 
-  // Begin Form structure element
+  // Begin Form structure element with Tv (text value) role
   if (this.beginFormField) {
-    this.beginFormField();
+    this.beginFormField({ role: 'Tv' });  // Tv = text value
   }
 
   // Add visible label as P element within Form
@@ -3431,7 +3431,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField();
+    this.beginFormField({ role: 'Cb' });  // Cb = checkbox
   }
 
   // Render visible label next to checkbox
@@ -3526,7 +3526,7 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField();
+    this.beginFormField({ role: 'Lb' });  // Lb = listbox/combobox
   }
 
   if (labelText && this.beginStructureElement) {
@@ -3618,7 +3618,7 @@ jsPDFAPI.addAccessibleListBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField();
+    this.beginFormField({ role: 'Lb' });  // Lb = listbox
   }
 
   if (labelText && this.beginStructureElement) {
@@ -3740,7 +3740,7 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
 
     // Begin Form structure element for each button
     if (this.beginFormField) {
-      this.beginFormField();
+      this.beginFormField({ role: 'Rb' });  // Rb = radio button
     }
 
     // Render visible label
