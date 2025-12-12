@@ -316,7 +316,6 @@ doc.beginSect();
 
     // Table Body
     doc.beginTableBody();
-      doc.setFont(undefined, 'normal');
       const tableData = [
         ['Widget A', '$10.00', '5', '$50.00'],
         ['Widget B', '$15.00', '3', '$45.00'],
@@ -325,9 +324,13 @@ doc.beginSect();
       let tableY = 188;
       tableData.forEach(row => {
         doc.beginStructureElement('TR');
-          doc.beginStructureElement('TD');
+          // First column is row header (product name)
+          doc.beginStructureElement('TH', { scope: 'Row' });
+          doc.setFont(undefined, 'bold');
           doc.text(row[0], 25, tableY);
           doc.endStructureElement();
+          // Data cells
+          doc.setFont(undefined, 'normal');
           doc.beginStructureElement('TD');
           doc.text(row[1], 80, tableY);
           doc.endStructureElement();
