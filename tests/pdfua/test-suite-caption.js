@@ -32,12 +32,8 @@ try {
     doc.text('Das folgende Bild zeigt ein Beispiel:', 10, 35);
     doc.endStructureElement();
 
-    // Figure with caption
-    doc.beginFigure();
-      // Add image (simple colored rectangle as placeholder)
-      doc.setFillColor(100, 150, 200);
-      doc.rect(10, 45, 80, 50, 'F');
-
+    // Figure with caption - use alt on Figure element for PDF/UA compliance
+    doc.beginFigure({ alt: 'Ein blaues Rechteck als Beispielbild mit Bildunterschrift' });
       // The image itself with alt text
       doc.addImage({
         imageData: testImageBase64,
@@ -170,9 +166,7 @@ try {
     doc.endStructureElement();
 
     // Figure 1
-    doc.beginFigure();
-      doc.setFillColor(255, 100, 100);
-      doc.rect(10, 35, 60, 40, 'F');
+    doc.beginFigure({ alt: 'Erstes Beispielbild (rot) mit Bildunterschrift' });
       doc.addImage({
         imageData: testImageBase64,
         format: 'PNG',
@@ -187,9 +181,7 @@ try {
     doc.endFigure();
 
     // Figure 2
-    doc.beginFigure();
-      doc.setFillColor(100, 255, 100);
-      doc.rect(10, 95, 60, 40, 'F');
+    doc.beginFigure({ alt: 'Zweites Beispielbild (grün) mit Bildunterschrift' });
       doc.addImage({
         imageData: testImageBase64,
         format: 'PNG',
@@ -204,9 +196,7 @@ try {
     doc.endFigure();
 
     // Figure 3
-    doc.beginFigure();
-      doc.setFillColor(100, 100, 255);
-      doc.rect(10, 155, 60, 40, 'F');
+    doc.beginFigure({ alt: 'Drittes Beispielbild (blau) mit Bildunterschrift' });
       doc.addImage({
         imageData: testImageBase64,
         format: 'PNG',
@@ -245,9 +235,7 @@ try {
     doc.text('Abbildung mit langer Beschreibung', 10, 20);
     doc.endStructureElement();
 
-    doc.beginFigure();
-      doc.setFillColor(200, 180, 100);
-      doc.rect(10, 35, 100, 60, 'F');
+    doc.beginFigure({ alt: 'Komplexes Diagramm mit detaillierter Beschreibung' });
       doc.addImage({
         imageData: testImageBase64,
         format: 'PNG',
@@ -294,9 +282,7 @@ try {
     doc.text('Die folgende Abbildung stammt aus einer englischen Publikation:', 10, 35);
     doc.endStructureElement();
 
-    doc.beginFigure();
-      doc.setFillColor(150, 150, 150);
-      doc.rect(10, 45, 80, 50, 'F');
+    doc.beginFigure({ alt: 'Abbildung aus englischer Publikation mit englischer Bildunterschrift' });
       doc.addImage({
         imageData: testImageBase64,
         format: 'PNG',

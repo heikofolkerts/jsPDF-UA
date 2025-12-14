@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 3.0.4 Built on 2025-12-12T08:34:21.008Z
+ * Version 3.0.4 Built on 2025-12-14T12:24:10.354Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -4862,6 +4862,29 @@
         throw new Error("Invalid arguments passed to jsPDF.lines");
       }
 
+      // PDF/UA: Check if we need to wrap graphics in Artifact markers
+      var needsArtifactMarking = false;
+      var artifactProps = null;
+      if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+        if (this.isInArtifact && this.isInArtifact()) {
+          needsArtifactMarking = true;
+          artifactProps = this.getArtifactProperties ? this.getArtifactProperties() : null;
+        }
+      }
+
+      // PDF/UA: Begin Artifact marking if needed
+      if (needsArtifactMarking) {
+        if (artifactProps && artifactProps.type) {
+          var artifactDict = "/Type/" + artifactProps.type;
+          if (artifactProps.subtype) {
+            artifactDict += "/Subtype/" + artifactProps.subtype;
+          }
+          out("/Artifact <<" + artifactDict + ">> BDC");
+        } else {
+          out("/Artifact BMC");
+        }
+      }
+
       // starting point
       moveTo(x, y);
       scalex = scale[0];
@@ -4895,6 +4918,11 @@
         close();
       }
       putStyle(style);
+
+      // PDF/UA: End Artifact marking if needed
+      if (needsArtifactMarking) {
+        out("EMC");
+      }
       return this;
     };
 
@@ -4958,8 +4986,36 @@
       if (apiMode === ApiMode.COMPAT) {
         h = -h;
       }
+
+      // PDF/UA: Check if we need to wrap graphics in Artifact markers
+      var needsArtifactMarking = false;
+      var artifactProps = null;
+      if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+        if (this.isInArtifact && this.isInArtifact()) {
+          needsArtifactMarking = true;
+          artifactProps = this.getArtifactProperties ? this.getArtifactProperties() : null;
+        }
+      }
+
+      // PDF/UA: Begin Artifact marking if needed
+      if (needsArtifactMarking) {
+        if (artifactProps && artifactProps.type) {
+          var artifactDict = "/Type/" + artifactProps.type;
+          if (artifactProps.subtype) {
+            artifactDict += "/Subtype/" + artifactProps.subtype;
+          }
+          out("/Artifact <<" + artifactDict + ">> BDC");
+        } else {
+          out("/Artifact BMC");
+        }
+      }
       out([hpf(scale(x)), hpf(transformScaleY(y)), hpf(scale(w)), hpf(scale(h)), "re"].join(" "));
       putStyle(style);
+
+      // PDF/UA: End Artifact marking if needed
+      if (needsArtifactMarking) {
+        out("EMC");
+      }
       return this;
     };
 
@@ -9160,9 +9216,11 @@
     var labelX = options.x;
     var labelY = options.y - 5; // Position label above field
 
-    // Begin Form structure element
+    // Begin Form structure element with Tv (text value) role
     if (this.beginFormField) {
-      this.beginFormField();
+      this.beginFormField({
+        role: 'Tv'
+      }); // Tv = text value
     }
 
     // Add visible label as P element within Form
@@ -9170,6 +9228,21 @@
       this.beginStructureElement('P');
       this.text(labelText + (options.required ? ' *' : ''), labelX, labelY);
       this.endStructureElement();
+    }
+
+    // Draw visible field border as artifact (decorative, not part of content)
+    if (this.beginArtifact) {
+      this.beginArtifact({
+        type: 'Layout'
+      });
+    }
+    var borderColor = options.borderColor || [0, 0, 0]; // Default: black
+    var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
+    this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+    this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+    if (this.endArtifact) {
+      this.endArtifact();
     }
 
     // Create the AcroForm text field
@@ -9255,7 +9328,9 @@
 
     // Begin Form structure element
     if (this.beginFormField) {
-      this.beginFormField();
+      this.beginFormField({
+        role: 'Cb'
+      }); // Cb = checkbox
     }
 
     // Render visible label next to checkbox
@@ -9273,6 +9348,15 @@
     field.width = boxWidth;
     field.height = boxHeight;
     field.fieldName = options.name;
+
+    // PDF/UA: Use standard font instead of ZapfDingbats to avoid font embedding issues
+    // ZapfDingbats is not embedded by default and lacks ToUnicode mapping
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      field.fontName = "helvetica";
+      field.caption = "X"; // Use "X" as checkbox symbol instead of ZapfDingbats checkmark
+      // Regenerate appearance stream with the new font
+      field.appearanceStreamContent = null; // Clear to regenerate
+    }
 
     // Set tooltip for screen readers
     var tooltipText = options.tooltip;
@@ -9348,12 +9432,29 @@
 
     // Begin Form structure element
     if (this.beginFormField) {
-      this.beginFormField();
+      this.beginFormField({
+        role: 'Lb'
+      }); // Lb = listbox/combobox
     }
     if (labelText && this.beginStructureElement) {
       this.beginStructureElement('P');
       this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
       this.endStructureElement();
+    }
+
+    // Draw visible field border as artifact (decorative, not part of content)
+    if (this.beginArtifact) {
+      this.beginArtifact({
+        type: 'Layout'
+      });
+    }
+    var borderColor = options.borderColor || [0, 0, 0]; // Default: black
+    var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
+    this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+    this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+    if (this.endArtifact) {
+      this.endArtifact();
     }
 
     // Create the AcroForm combobox
@@ -9437,7 +9538,9 @@
 
     // Begin Form structure element
     if (this.beginFormField) {
-      this.beginFormField();
+      this.beginFormField({
+        role: 'Lb'
+      }); // Lb = listbox
     }
     if (labelText && this.beginStructureElement) {
       this.beginStructureElement('P');
@@ -9555,7 +9658,9 @@
 
       // Begin Form structure element for each button
       if (this.beginFormField) {
-        this.beginFormField();
+        this.beginFormField({
+          role: 'Rb'
+        }); // Rb = radio button
       }
 
       // Render visible label
@@ -10473,7 +10578,26 @@
             line = "<</Type /Annot /Subtype /" + "Text" + " " + rect + "/Contents (" + escape(encryptorText(anno.contents)) + ")";
             line += " /Popup " + objPopup.objId + " 0 R";
             line += " /P " + pageInfo.objId + " 0 R";
-            line += " /T (" + escape(encryptorText(title)) + ") >>";
+            line += " /T (" + escape(encryptorText(title)) + ")";
+            // PDF/UA: Add /F 4 flag (print flag) for proper annotation handling
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              line += " /F 4";
+              // Add StructParent for PDF/UA compliance
+              // Use indices starting at 2000 to avoid conflicts with pages (0-n) and form fields (1000+)
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotStructParentCounter) {
+                  this.internal.pdfuaAnnotStructParentCounter = 2000;
+                }
+                var structParentIndex = this.internal.pdfuaAnnotStructParentCounter++;
+                line += " /StructParent " + structParentIndex;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaAnnotStructParentMap) {
+                  this.internal.pdfuaAnnotStructParentMap = {};
+                }
+                this.internal.pdfuaAnnotStructParentMap[anno.internalId] = structParentIndex;
+              }
+            }
+            line += " >>";
             objText.content = line;
             var parent = objText.objId + " 0 R";
             var popoff = 30;
@@ -10482,18 +10606,77 @@
             if (anno.open) {
               line += " /Open true";
             }
+            // PDF/UA: Add hidden flag (F 2) to popup so it doesn't require structure
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              line += " /F 2";
+            }
             line += " >>";
             objPopup.content = line;
             this.internal.write(objText.objId, "0 R", objPopup.objId, "0 R");
+
+            // PDF/UA: Store object ID and page for OBJR reference in structure tree
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled() && anno.internalId) {
+              if (!this.internal.pdfuaAnnotIdMap) {
+                this.internal.pdfuaAnnotIdMap = {};
+              }
+              this.internal.pdfuaAnnotIdMap[anno.internalId] = objText.objId;
+
+              // Store page number for /Pg reference
+              if (!this.internal.pdfuaAnnotPageMap) {
+                this.internal.pdfuaAnnotPageMap = {};
+              }
+              this.internal.pdfuaAnnotPageMap[anno.internalId] = putPageData.pageNumber;
+            }
             break;
           case "freetext":
             rect = "/Rect [" + getHorizontalCoordinateString(anno.bounds.x) + " " + getVerticalCoordinateString(anno.bounds.y) + " " + getHorizontalCoordinateString(anno.bounds.x + anno.bounds.w) + " " + getVerticalCoordinateString(anno.bounds.y + anno.bounds.h) + "] ";
             var color = anno.color || "#000000";
-            line = "<</Type /Annot /Subtype /" + "FreeText" + " " + rect + "/Contents (" + escape(encryptor(anno.contents)) + ")";
-            line += " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" + color + ")";
-            line += " /Border [0 0 0]";
-            line += " >>";
-            this.internal.write(line);
+
+            // PDF/UA: Create as indirect object for OBJR reference
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              var objFreeText = this.internal.newAdditionalObject();
+              var encryptorFreeText = this.internal.getEncryptor(objFreeText.objId);
+              line = "<</Type /Annot /Subtype /" + "FreeText" + " " + rect + "/Contents (" + escape(encryptorFreeText(anno.contents)) + ")";
+              line += " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" + color + ")";
+              line += " /Border [0 0 0]";
+              line += " /F 4"; // Print flag for PDF/UA
+              // Add StructParent for PDF/UA compliance
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotStructParentCounter) {
+                  this.internal.pdfuaAnnotStructParentCounter = 2000;
+                }
+                var structParentIdx = this.internal.pdfuaAnnotStructParentCounter++;
+                line += " /StructParent " + structParentIdx;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaAnnotStructParentMap) {
+                  this.internal.pdfuaAnnotStructParentMap = {};
+                }
+                this.internal.pdfuaAnnotStructParentMap[anno.internalId] = structParentIdx;
+              }
+              line += " >>";
+              objFreeText.content = line;
+              this.internal.write(objFreeText.objId + " 0 R");
+
+              // Store object ID and page for OBJR reference in structure tree
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotIdMap) {
+                  this.internal.pdfuaAnnotIdMap = {};
+                }
+                this.internal.pdfuaAnnotIdMap[anno.internalId] = objFreeText.objId;
+
+                // Store page number for /Pg reference
+                if (!this.internal.pdfuaAnnotPageMap) {
+                  this.internal.pdfuaAnnotPageMap = {};
+                }
+                this.internal.pdfuaAnnotPageMap[anno.internalId] = putPageData.pageNumber;
+              }
+            } else {
+              line = "<</Type /Annot /Subtype /" + "FreeText" + " " + rect + "/Contents (" + escape(encryptor(anno.contents)) + ")";
+              line += " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" + color + ")";
+              line += " /Border [0 0 0]";
+              line += " >>";
+              this.internal.write(line);
+            }
             break;
           case "link":
             if (anno.options.name) {
@@ -10538,10 +10721,28 @@
               }
             }
             if (line != "") {
-              line += " >>";
               // For PDF/UA: Create link annotation as indirect object
               // so it can be referenced by the Link structure element via OBJR
               if (anno.needsObjId) {
+                // PDF/UA 7.18.5: Add /Contents key for alternate description
+                if (anno.contentsText) {
+                  line += " /Contents (" + escape(encryptor(anno.contentsText)) + ")";
+                }
+                // PDF/UA: Add /F 4 flag (print flag) for proper annotation handling
+                line += " /F 4";
+                // PDF/UA: Add /StructParent for structure tree connection
+                if (!this.internal.pdfuaLinkStructParentCounter) {
+                  this.internal.pdfuaLinkStructParentCounter = 3000; // Use 3000+ range to avoid conflicts
+                }
+                var linkStructParentIndex = this.internal.pdfuaLinkStructParentCounter++;
+                line += " /StructParent " + linkStructParentIndex;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaLinkStructParentMap) {
+                  this.internal.pdfuaLinkStructParentMap = {};
+                }
+                this.internal.pdfuaLinkStructParentMap[anno.internalId] = linkStructParentIndex;
+                line += " >>";
+
                 // Reserve object ID now (during putPage, after pages are created)
                 var linkObjId = this.internal.newObjectDeferred();
 
@@ -10563,6 +10764,7 @@
                 this.internal.write(linkObjId + " 0 R");
               } else {
                 // Inline annotation (backwards compatible)
+                line += " >>";
                 this.internal.write(line);
               }
             }
@@ -10593,20 +10795,39 @@
     }]);
 
     /**
+     * Create an annotation.
+     * For PDF/UA mode, returns an internal ID that can be used with addAnnotationRef()
+     * to link the annotation to an Annot structure element.
+     *
      * @name createAnnotation
      * @function
-     * @param {Object} options
+     * @param {Object} options - Annotation options
+     * @param {string} options.type - Annotation type: 'link', 'text', or 'freetext'
+     * @param {Object} options.bounds - Bounding box {x, y, w, h}
+     * @param {string} [options.contents] - Text content (for text/freetext)
+     * @param {string} [options.title] - Title/author (for text annotations)
+     * @param {boolean} [options.open] - Whether popup is open (for text annotations)
+     * @param {string} [options.color] - Text color (for freetext)
+     * @returns {number|undefined} - Internal ID for PDF/UA (use with addAnnotationRef), or undefined
      */
     jsPDFAPI.createAnnotation = function (options) {
       var pageInfo = this.internal.getCurrentPageInfo();
+      var internalId;
       switch (options.type) {
         case "link":
-          this.link(options.bounds.x, options.bounds.y, options.bounds.w, options.bounds.h, options);
-          break;
+          return this.link(options.bounds.x, options.bounds.y, options.bounds.w, options.bounds.h, options);
         case "text":
         case "freetext":
+          // PDF/UA: Assign internal ID for OBJR reference
+          if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+            if (!this.internal.pdfuaAnnotCounter) {
+              this.internal.pdfuaAnnotCounter = 0;
+            }
+            internalId = ++this.internal.pdfuaAnnotCounter;
+            options.internalId = internalId;
+          }
           pageInfo.pageContext.annotations.push(options);
-          break;
+          return internalId;
       }
     };
 
@@ -10650,6 +10871,16 @@
           this.internal.pdfuaLinkCounter = 0;
         }
         annotation.internalId = ++this.internal.pdfuaLinkCounter;
+
+        // PDF/UA 7.18.5: Links MUST have Contents key for alternate description
+        // Use the linkText option if provided, otherwise use the URL as fallback
+        if (options.linkText) {
+          annotation.contentsText = options.linkText;
+        } else if (options.url) {
+          annotation.contentsText = options.url;
+        } else if (options.pageNumber) {
+          annotation.contentsText = "Go to page " + options.pageNumber;
+        }
       }
       pageInfo.pageContext.annotations.push(annotation);
 
@@ -10696,7 +10927,26 @@
       if (options.align === "right") {
         x = x - totalLineWidth;
       }
-      this.link(x, y - lineHeight, linkWidth, linkHeight, options);
+
+      // PDF/UA: Pass link text for Contents key (required for accessibility)
+      var linkOptions = Object.assign({}, options, {
+        linkText: text
+      });
+      var linkId = this.link(x, y - lineHeight, linkWidth, linkHeight, linkOptions);
+
+      // PDF/UA: If we're inside a Link structure element, add the annotation reference
+      if (this.isPDFUAEnabled && this.isPDFUAEnabled() && linkId) {
+        // Check if we're in a Link structure element
+        if (this.internal.structureTree && this.internal.structureTree.currentParent) {
+          var currentElem = this.internal.structureTree.currentParent;
+          if (currentElem.type === 'Link') {
+            // Add annotation reference to the Link structure element
+            if (this.addLinkAnnotationRef) {
+              this.addLinkAnnotationRef(linkId);
+            }
+          }
+        }
+      }
       return totalLineWidth;
     };
 
@@ -30911,7 +31161,18 @@
         parent = this.internal.structureTree.root;
       }
       var element = new StructElement(type, parent, this);
-      element.attributes = attributes || {};
+      attributes = attributes || {};
+
+      // Extract special attributes that are stored directly on the element
+      if (attributes.alt) {
+        element.alt = attributes.alt;
+      }
+      if (attributes.expansion) {
+        element.expansion = attributes.expansion;
+      }
+
+      // Store remaining attributes
+      element.attributes = attributes;
       element.id = this.internal.structureTree.nextStructId++;
       // Object number will be assigned later in reserveStructObjectNumbers
 
@@ -31064,6 +31325,42 @@
           }
         }
       }
+
+      // Add annotation StructParent entries to ParentTree
+      // Annotations (Text/FreeText) have StructParent indices starting at 2000
+      // Each must point to the Annot structure element that contains the OBJR
+      var annotParentMap = this.internal.structureTree.annotParentMap;
+      var annotStructParentMap = this.internal.pdfuaAnnotStructParentMap;
+      if (annotParentMap && annotStructParentMap) {
+        for (var annotId in annotParentMap) {
+          if (annotParentMap.hasOwnProperty(annotId)) {
+            var annotElement = annotParentMap[annotId];
+            var annotStructParentIndex = annotStructParentMap[annotId];
+            if (annotElement && annotElement.objectNumber && annotStructParentIndex !== undefined) {
+              // Add entry: StructParent index -> Annot element object number
+              this.internal.write(annotStructParentIndex + ' ' + annotElement.objectNumber + ' 0 R');
+            }
+          }
+        }
+      }
+
+      // Add link annotation StructParent entries to ParentTree
+      // Link annotations have StructParent indices starting at 3000
+      // Each must point to the Link structure element that contains the OBJR
+      var linkParentMap = this.internal.structureTree.linkParentMap;
+      var linkStructParentMap = this.internal.pdfuaLinkStructParentMap;
+      if (linkParentMap && linkStructParentMap) {
+        for (var linkId in linkParentMap) {
+          if (linkParentMap.hasOwnProperty(linkId)) {
+            var linkElement = linkParentMap[linkId];
+            var linkStructParentIndex = linkStructParentMap[linkId];
+            if (linkElement && linkElement.objectNumber && linkStructParentIndex !== undefined) {
+              // Add entry: StructParent index -> Link element object number
+              this.internal.write(linkStructParentIndex + ' ' + linkElement.objectNumber + ' 0 R');
+            }
+          }
+        }
+      }
       this.internal.write(']');
       this.internal.write('>>');
       this.internal.write('endobj');
@@ -31148,8 +31445,8 @@
           this.internal.write('/ID (' + escapedId + ')');
         }
 
-        // Attribute dictionary (for table headers, formula placement, etc.)
-        if (elem.attributes && (elem.attributes.scope || elem.attributes.placement)) {
+        // Attribute dictionary (for table headers, formula placement, form role, etc.)
+        if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role)) {
           var attrParts = [];
 
           // Table scope attribute
@@ -31160,6 +31457,12 @@
           // Placement attribute (for Formula, Figure, etc.)
           if (elem.attributes.placement) {
             attrParts.push('/O /Layout /Placement /' + elem.attributes.placement);
+          }
+
+          // Role attribute (for Form elements per ISO 32000-1:2008, Table 348)
+          // Rb = radio button, Cb = checkbox, Pb = push button, Tv = text value, Lb = list box
+          if (elem.attributes.role) {
+            attrParts.push('/O /PrintField /Role /' + elem.attributes.role);
           }
           if (attrParts.length === 1) {
             this.internal.write('/A << ' + attrParts[0] + ' >>');
@@ -31187,7 +31490,8 @@
         // An element can have MCIDs, child elements, OBJR references, or combinations
         var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
         var hasFormFieldRefs = elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
-        var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs;
+        var hasAnnotRefs = elem.annotRefs && elem.annotRefs.length > 0; // For Text/FreeText annotations
+        var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs || hasAnnotRefs;
         if (hasContent) {
           var kArray = [];
           var self = this;
@@ -31231,6 +31535,28 @@
             });
           }
 
+          // Add OBJR references for Text/FreeText annotations (PDF/UA requirement)
+          // Format: << /Type /OBJR /Obj <annotation-objId> 0 R /Pg <page-objId> 0 R >>
+          if (hasAnnotRefs) {
+            elem.annotRefs.forEach(function (internalId) {
+              // Resolve internal ID to actual object ID using the mapping
+              var objId = self.internal.pdfuaAnnotIdMap && self.internal.pdfuaAnnotIdMap[internalId];
+              if (objId) {
+                // Get page reference for this annotation
+                var annotPage = self.internal.pdfuaAnnotPageMap && self.internal.pdfuaAnnotPageMap[internalId];
+                var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+                if (annotPage) {
+                  var pageInfo = self.internal.getPageInfo(annotPage);
+                  if (pageInfo && pageInfo.objId) {
+                    objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                  }
+                }
+                objrStr += ' >>';
+                kArray.push(objrStr);
+              }
+            });
+          }
+
           // Add child structure elements
           elem.children.forEach(function (c) {
             kArray.push(c.objectNumber + ' 0 R');
@@ -31244,9 +31570,19 @@
       // Write ParentTree
       writeParentTree.call(this);
 
-      // Write RoleMap (empty but required for PDF/UA)
+      // Write RoleMap - map non-standard structure types to standard types
+      // Required for PDF/UA-1 compliance (ISO 14289-1, clause 7.1, test 5)
       var roleMapObj = this.internal.newObject();
-      this.internal.write('<< >>');
+      this.internal.write('<<');
+      // PDF 2.0 elements mapped to PDF 1.7 standard types
+      this.internal.write('/DocumentFragment /Sect'); // Document excerpt -> Section
+      this.internal.write('/Aside /Sect'); // Sidebar content -> Section (Note requires /ID)
+      // Semantic inline elements mapped to Span (closest standard equivalent)
+      this.internal.write('/Strong /Span'); // Bold/important text
+      this.internal.write('/Em /Span'); // Emphasized/italic text
+      // Ensure Em is also mapped (alternative name)
+      this.internal.write('/Emphasis /Span'); // Alternative emphasis name
+      this.internal.write('>>');
       this.internal.write('endobj');
 
       // Write StructTreeRoot (objectNumber was reserved earlier)
@@ -31576,18 +31912,66 @@
     /**
      * Begin a link structure element
      * Links must be wrapped in Link elements for PDF/UA accessibility
+     *
+     * @param {string|Object} [options] - URL string or options object
+     * @param {string} [options.url] - External URL
+     * @param {number} [options.pageNumber] - Internal page number (1-based)
      * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     *
+     * @example
+     * // External link
+     * doc.beginLink('https://example.com');
+     * doc.text('Click here', 20, 50);
+     * doc.endLink();
+     *
+     * @example
+     * // Internal link to page 3
+     * doc.beginLink({ pageNumber: 3 });
+     * doc.text('Go to page 3', 20, 50);
+     * doc.endLink();
      */
-    jsPDFAPI.beginLink = function () {
+    jsPDFAPI.beginLink = function (options) {
+      // Store link options for endLink to create the annotation
+      if (!this.internal.pdfuaLinkState) {
+        this.internal.pdfuaLinkState = [];
+      }
+      var linkData = {
+        startX: null,
+        startY: null,
+        options: null
+      };
+
+      // Parse options
+      if (typeof options === 'string') {
+        linkData.options = {
+          url: options
+        };
+      } else if (options && (options.url || options.pageNumber)) {
+        linkData.options = options;
+      }
+
+      // Store current position as link start
+      // We'll capture text position when text is rendered
+      this.internal.pdfuaLinkState.push(linkData);
       return this.beginStructureElement('Link');
     };
 
     /**
-     * End a link structure element
-     * Convenience method for doc.endStructureElement()
+     * End a link structure element and create the link annotation
      * @returns {jsPDF} - Returns jsPDF instance for method chaining
      */
     jsPDFAPI.endLink = function () {
+      // Get link data
+      var linkState = this.internal.pdfuaLinkState;
+      if (linkState && linkState.length > 0) {
+        var linkData = linkState.pop();
+
+        // Create link annotation if we have options and text bounds
+        if (linkData.options && linkData.textBounds) {
+          var bounds = linkData.textBounds;
+          this.link(bounds.x, bounds.y, bounds.width, bounds.height, linkData.options);
+        }
+      }
       return this.endStructureElement();
     };
 
@@ -31807,6 +32191,11 @@
       var attributes = {};
       if (options.lang) {
         attributes.lang = options.lang;
+      }
+
+      // PDF/UA requires Figure elements to have Alt or ActualText
+      if (options.alt) {
+        attributes.alt = options.alt;
       }
       return this.beginStructureElement('Figure', attributes);
     };
@@ -32045,27 +32434,35 @@
     jsPDFAPI.beginNote = function (options) {
       options = options || {};
       var attributes = {};
-      if (options.id) {
-        attributes.id = options.id;
 
-        // Register note destination for footnote links
-        if (!this.internal.pdfuaFootnotes) {
-          this.internal.pdfuaFootnotes = {
-            noteDestinations: {},
-            pendingReferences: [],
-            pendingBackLinks: []
-          };
+      // Auto-generate ID if not provided (required for PDF/UA compliance)
+      var noteId = options.id;
+      if (!noteId) {
+        if (!this.internal.pdfuaNoteCounter) {
+          this.internal.pdfuaNoteCounter = 0;
         }
-        var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-        this.internal.pdfuaFootnotes.noteDestinations[options.id] = {
-          page: pageNumber,
-          y: options.y || 0 // Y position for destination
-        };
-
-        // Store current note info for back-link generation
-        this.internal.pdfuaFootnotes.currentNoteId = options.id;
-        this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
+        this.internal.pdfuaNoteCounter++;
+        noteId = 'note-' + this.internal.pdfuaNoteCounter;
       }
+      attributes.id = noteId;
+
+      // Register note destination for footnote links
+      if (!this.internal.pdfuaFootnotes) {
+        this.internal.pdfuaFootnotes = {
+          noteDestinations: {},
+          pendingReferences: [],
+          pendingBackLinks: []
+        };
+      }
+      var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+      this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
+        page: pageNumber,
+        y: options.y || 0 // Y position for destination
+      };
+
+      // Store current note info for back-link generation
+      this.internal.pdfuaFootnotes.currentNoteId = noteId;
+      this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
       this.beginStructureElement('Note', attributes);
 
       // Add screen reader announcement (visually hidden)
@@ -32184,7 +32581,12 @@
           // Get the page where the reference is located (NOT current page)
           var refPageInfo = self.internal.getPageInfo(ref.page);
 
-          // Create annotation object
+          // Create annotation object with PDF/UA compliance
+          // Generate unique internal ID for this annotation
+          if (!self.internal.pdfuaLinkCounter) {
+            self.internal.pdfuaLinkCounter = 0;
+          }
+          var internalId = ++self.internal.pdfuaLinkCounter;
           var annotation = {
             finalBounds: {
               x: getHorizontalCoordinateString(ref.x),
@@ -32195,7 +32597,11 @@
             options: {
               pageNumber: dest.page
             },
-            type: "link"
+            type: "link",
+            // PDF/UA compliance properties
+            needsObjId: true,
+            internalId: internalId,
+            contentsText: "Zur Fußnote " + ref.label
           };
 
           // Add annotation to the REFERENCE's page, not the current page
@@ -32215,6 +32621,11 @@
           var notePageInfo = self.internal.getPageInfo(backLink.sourcePage);
 
           // Create annotation object for back-link with Y position for precise navigation
+          // Generate unique internal ID for this annotation
+          if (!self.internal.pdfuaLinkCounter) {
+            self.internal.pdfuaLinkCounter = 0;
+          }
+          var backLinkInternalId = ++self.internal.pdfuaLinkCounter;
           var annotation = {
             finalBounds: {
               x: getHorizontalCoordinateString(backLink.x),
@@ -32226,7 +32637,11 @@
               pageNumber: backLink.targetPage,
               top: backLink.targetY // Y position of reference for precise back-navigation
             },
-            type: "link"
+            type: "link",
+            // PDF/UA compliance properties
+            needsObjId: true,
+            internalId: backLinkInternalId,
+            contentsText: "Zurück zum Text"
           };
 
           // Add annotation to the NOTE's page
@@ -32272,6 +32687,14 @@
         currentElem.annotationInternalIds = [];
       }
       currentElem.annotationInternalIds.push(annotationInternalId);
+
+      // Track which Link structure element owns this link annotation's StructParent
+      // This is needed for the ParentTree to correctly reference the Link element
+      if (!this.internal.structureTree.linkParentMap) {
+        this.internal.structureTree.linkParentMap = {};
+      }
+      // Store reference: internalId -> Link element
+      this.internal.structureTree.linkParentMap[annotationInternalId] = currentElem;
       return this;
     };
 
@@ -32307,6 +32730,15 @@
       if (options.lang) {
         attributes.lang = options.lang;
       }
+
+      // PDF/UA requires either:
+      // 1. Form has exactly one child (OBJR to widget) - OR
+      // 2. Form has a Role attribute
+      // Since we may add label text as children, we add Role attribute
+      // Role can be: Rb (radio button), Cb (checkbox), Pb (push button),
+      //              Tv (text value), Lb (list box)
+      attributes.role = options.role || 'Tv'; // Default to text value
+
       return this.beginStructureElement('Form', attributes);
     };
 
@@ -33685,6 +34117,90 @@
     jsPDFAPI.endAside = function () {
       return this.endStructureElement();
     };
+
+    // ============================================================
+    // ANNOT API - For accessible annotations (PDF/UA BITi 02.3.2)
+    // Matterhorn Protocol Checkpoint 28-002, 28-004
+    // ============================================================
+
+    /**
+     * Begin an Annot structure element.
+     * Used to wrap annotations (except Link, Widget, Popup) for PDF/UA compliance.
+     *
+     * According to the Matterhorn Protocol:
+     * - 28-002: Annotations (except Widget, Popup, Link) must be nested in <Annot>
+     * - 28-004: Annotations need /Contents or /Alt for accessibility
+     *
+     * The Annot element can contain:
+     * - The marked-up content (for markup annotations like highlights)
+     * - An OBJR reference to the annotation object
+     *
+     * @param {Object} [options] - Optional attributes
+     * @param {string} [options.alt] - Alternative text for the annotation
+     * @param {string} [options.lang] - Language code for the annotation content
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     *
+     * @example
+     * // Text annotation (sticky note) with accessible structure
+     * doc.beginAnnot({ alt: 'Comment: Important note about this section' });
+     * doc.createAnnotation({
+     *   type: 'text',
+     *   title: 'Author',
+     *   contents: 'This is an important note',
+     *   bounds: { x: 10, y: 50, w: 20, h: 20 }
+     * });
+     * doc.endAnnot();
+     */
+    jsPDFAPI.beginAnnot = function (options) {
+      options = options || {};
+      var attributes = {};
+      if (options.lang) {
+        attributes.lang = options.lang;
+      }
+      var element = this.beginStructureElement('Annot', attributes);
+
+      // Store alt text for the annotation on the current structure element
+      if (options.alt && this.internal.structureTree && this.internal.structureTree.currentParent) {
+        this.internal.structureTree.currentParent.alt = options.alt;
+      }
+      return element;
+    };
+
+    /**
+     * End an Annot structure element.
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.endAnnot = function () {
+      return this.endStructureElement();
+    };
+
+    /**
+     * Add an annotation object reference (OBJR) to the current structure element.
+     * This links an annotation object to its structure element for PDF/UA compliance.
+     *
+     * @param {number} annotObjId - The object ID of the annotation
+     * @returns {jsPDF} - Returns jsPDF instance for method chaining
+     */
+    jsPDFAPI.addAnnotationRef = function (annotObjId) {
+      if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+        return this;
+      }
+      var currentElem = this.internal.structureTree.currentParent;
+
+      // Store the annotation object reference to be written later
+      if (!currentElem.annotRefs) {
+        currentElem.annotRefs = [];
+      }
+      currentElem.annotRefs.push(annotObjId);
+
+      // Store mapping from annotation internal ID to Annot structure element
+      // This is needed for ParentTree entries (similar to formFieldParentMap)
+      if (!this.internal.structureTree.annotParentMap) {
+        this.internal.structureTree.annotParentMap = {};
+      }
+      this.internal.structureTree.annotParentMap[annotObjId] = currentElem;
+      return this;
+    };
   })(jsPDF.API);
 
   /**
@@ -34286,9 +34802,14 @@
       }
       rdf_content += '<rdf:Description rdf:about="" ' + namespaces + '>';
 
-      // Add dc:title if provided
-      if (metadata.title) {
-        rdf_content += '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' + escapeXML(metadata.title) + '</rdf:li></rdf:Alt></dc:title>';
+      // Add dc:title - required for PDF/UA (ISO 14289-1, clause 7.1, test 9)
+      // Use provided title, or default to "Untitled Document" for PDF/UA compliance
+      var title = metadata.title;
+      if (!title && metadata.pdfUA) {
+        title = 'Untitled Document'; // Fallback for PDF/UA compliance
+      }
+      if (title) {
+        rdf_content += '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' + escapeXML(title) + '</rdf:li></rdf:Alt></dc:title>';
       }
 
       // Add PDF/UA identification if enabled

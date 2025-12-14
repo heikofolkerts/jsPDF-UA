@@ -23,6 +23,7 @@ function testSimpleTextField() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Einfaches Textfeld Test");
 
   // Title
   doc.beginStructureElement("H1");
@@ -55,6 +56,7 @@ function testRequiredTextField() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Pflichtfeld Test");
 
   // Title
   doc.beginStructureElement("H1");
@@ -88,6 +90,7 @@ function testCheckbox() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Checkbox Test");
 
   // Title
   doc.beginStructureElement("H1");
@@ -129,6 +132,7 @@ function testComboBox() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Dropdown Test");
 
   // Title
   doc.beginStructureElement("H1");
@@ -163,6 +167,7 @@ function testCompleteForm() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Kontaktformular");
 
   // Title
   doc.beginStructureElement("H1");
@@ -310,6 +315,7 @@ function testLowLevelAPIWithTU() {
 
   const doc = new jsPDF({ pdfUA: true });
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Low-Level API Test");
 
   // Title
   doc.beginStructureElement("H1");

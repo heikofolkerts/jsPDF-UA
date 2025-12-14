@@ -432,16 +432,13 @@ doc.beginSect();
     required: true
   });
 
-  // Checkbox
+  // Checkbox (uses Helvetica "X" instead of ZapfDingbats for PDF/UA compliance)
   doc.addAccessibleCheckBox({
     name: 'subscribe',
     label: 'Subscribe to newsletter',
     tooltip: 'Check to receive our newsletter',
     x: 20, y: 68, width: 10, height: 10
   });
-  doc.beginStructureElement('P');
-  doc.text('Subscribe to newsletter', 35, 76);
-  doc.endStructureElement();
 
   // Combobox
   doc.beginStructureElement('P');
@@ -647,23 +644,55 @@ doc.beginSect();
   doc.beginStructureElement('P');
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
-  doc.text('This paragraph has an annotation attached to it.', 20, 223);
+  doc.text('First annotation test:', 20, 225);
   doc.endStructureElement();
 
-  // Add a text annotation
-  doc.beginAnnot({ alt: 'Review comment: Please verify the accuracy of this information before publishing.' });
-  const annotId = doc.createAnnotation({
+  // First annotation - at x=150 (middle of page)
+  doc.beginAnnot({ alt: 'First comment' });
+  const annotId1 = doc.createAnnotation({
     type: 'text',
-    title: 'Reviewer',
-    contents: 'Please verify the accuracy of this information before publishing.',
-    bounds: { x: 175, y: 215, w: 20, h: 20 },
+    title: 'Reviewer 1',
+    contents: 'This is the first annotation.',
+    bounds: { x: 150, y: 220, w: 20, h: 20 },
     open: false
   });
-  if (annotId) doc.addAnnotationRef(annotId);
+  if (annotId1) doc.addAnnotationRef(annotId1);
   doc.endAnnot();
 
   doc.beginStructureElement('P');
-  doc.text('Click on the annotation icon to see the comment.', 20, 240);
+  doc.text('Second annotation test:', 20, 240);
+  doc.endStructureElement();
+
+  // Second annotation - at x=100 (left side)
+  doc.beginAnnot({ alt: 'Second comment' });
+  const annotId2 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer 2',
+    contents: 'This is the second annotation.',
+    bounds: { x: 100, y: 235, w: 20, h: 20 },
+    open: true
+  });
+  if (annotId2) doc.addAnnotationRef(annotId2);
+  doc.endAnnot();
+
+  doc.beginStructureElement('P');
+  doc.text('Third annotation (open by default):', 20, 255);
+  doc.endStructureElement();
+
+  // Third annotation - open and at x=50
+  doc.beginAnnot({ alt: 'Third comment - open' });
+  const annotId3 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer 3',
+    contents: 'This annotation should be open!',
+    bounds: { x: 50, y: 250, w: 20, h: 20 },
+    open: true
+  });
+  if (annotId3) doc.addAnnotationRef(annotId3);
+  doc.endAnnot();
+
+  doc.beginStructureElement('P');
+  doc.text('You should see three annotation icons above.', 20, 270);
   doc.endStructureElement();
 doc.endSect();
 

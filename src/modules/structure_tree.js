@@ -282,6 +282,46 @@ import { jsPDF } from "../jspdf.js";
       }
     }
 
+    // Add annotation StructParent entries to ParentTree
+    // Annotations (Text/FreeText) have StructParent indices starting at 2000
+    // Each must point to the Annot structure element that contains the OBJR
+    var annotParentMap = this.internal.structureTree.annotParentMap;
+    var annotStructParentMap = this.internal.pdfuaAnnotStructParentMap;
+
+    if (annotParentMap && annotStructParentMap) {
+      for (var annotId in annotParentMap) {
+        if (annotParentMap.hasOwnProperty(annotId)) {
+          var annotElement = annotParentMap[annotId];
+          var annotStructParentIndex = annotStructParentMap[annotId];
+
+          if (annotElement && annotElement.objectNumber && annotStructParentIndex !== undefined) {
+            // Add entry: StructParent index -> Annot element object number
+            this.internal.write(annotStructParentIndex + ' ' + annotElement.objectNumber + ' 0 R');
+          }
+        }
+      }
+    }
+
+    // Add link annotation StructParent entries to ParentTree
+    // Link annotations have StructParent indices starting at 3000
+    // Each must point to the Link structure element that contains the OBJR
+    var linkParentMap = this.internal.structureTree.linkParentMap;
+    var linkStructParentMap = this.internal.pdfuaLinkStructParentMap;
+
+    if (linkParentMap && linkStructParentMap) {
+      for (var linkId in linkParentMap) {
+        if (linkParentMap.hasOwnProperty(linkId)) {
+          var linkElement = linkParentMap[linkId];
+          var linkStructParentIndex = linkStructParentMap[linkId];
+
+          if (linkElement && linkElement.objectNumber && linkStructParentIndex !== undefined) {
+            // Add entry: StructParent index -> Link element object number
+            this.internal.write(linkStructParentIndex + ' ' + linkElement.objectNumber + ' 0 R');
+          }
+        }
+      }
+    }
+
     this.internal.write(']');
     this.internal.write('>>');
     this.internal.write('endobj');
@@ -1150,6 +1190,11 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
+    // PDF/UA requires Figure elements to have Alt or ActualText
+    if (options.alt) {
+      attributes.alt = options.alt;
+    }
+
     return this.beginStructureElement('Figure', attributes);
   };
 
@@ -1552,7 +1597,13 @@ import { jsPDF } from "../jspdf.js";
         // Get the page where the reference is located (NOT current page)
         var refPageInfo = self.internal.getPageInfo(ref.page);
 
-        // Create annotation object
+        // Create annotation object with PDF/UA compliance
+        // Generate unique internal ID for this annotation
+        if (!self.internal.pdfuaLinkCounter) {
+          self.internal.pdfuaLinkCounter = 0;
+        }
+        var internalId = ++self.internal.pdfuaLinkCounter;
+
         var annotation = {
           finalBounds: {
             x: getHorizontalCoordinateString(ref.x),
@@ -1563,7 +1614,11 @@ import { jsPDF } from "../jspdf.js";
           options: {
             pageNumber: dest.page
           },
-          type: "link"
+          type: "link",
+          // PDF/UA compliance properties
+          needsObjId: true,
+          internalId: internalId,
+          contentsText: "Zur Fußnote " + ref.label
         };
 
         // Add annotation to the REFERENCE's page, not the current page
@@ -1583,6 +1638,12 @@ import { jsPDF } from "../jspdf.js";
         var notePageInfo = self.internal.getPageInfo(backLink.sourcePage);
 
         // Create annotation object for back-link with Y position for precise navigation
+        // Generate unique internal ID for this annotation
+        if (!self.internal.pdfuaLinkCounter) {
+          self.internal.pdfuaLinkCounter = 0;
+        }
+        var backLinkInternalId = ++self.internal.pdfuaLinkCounter;
+
         var annotation = {
           finalBounds: {
             x: getHorizontalCoordinateString(backLink.x),
@@ -1594,7 +1655,11 @@ import { jsPDF } from "../jspdf.js";
             pageNumber: backLink.targetPage,
             top: backLink.targetY  // Y position of reference for precise back-navigation
           },
-          type: "link"
+          type: "link",
+          // PDF/UA compliance properties
+          needsObjId: true,
+          internalId: backLinkInternalId,
+          contentsText: "Zurück zum Text"
         };
 
         // Add annotation to the NOTE's page
@@ -1644,6 +1709,14 @@ import { jsPDF } from "../jspdf.js";
       currentElem.annotationInternalIds = [];
     }
     currentElem.annotationInternalIds.push(annotationInternalId);
+
+    // Track which Link structure element owns this link annotation's StructParent
+    // This is needed for the ParentTree to correctly reference the Link element
+    if (!this.internal.structureTree.linkParentMap) {
+      this.internal.structureTree.linkParentMap = {};
+    }
+    // Store reference: internalId -> Link element
+    this.internal.structureTree.linkParentMap[annotationInternalId] = currentElem;
 
     return this;
   };
@@ -3178,6 +3251,13 @@ import { jsPDF } from "../jspdf.js";
       currentElem.annotRefs = [];
     }
     currentElem.annotRefs.push(annotObjId);
+
+    // Store mapping from annotation internal ID to Annot structure element
+    // This is needed for ParentTree entries (similar to formFieldParentMap)
+    if (!this.internal.structureTree.annotParentMap) {
+      this.internal.structureTree.annotParentMap = {};
+    }
+    this.internal.structureTree.annotParentMap[annotObjId] = currentElem;
 
     return this;
   };

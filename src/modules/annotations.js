@@ -150,6 +150,20 @@ import { jsPDF } from "../jspdf.js";
             // PDF/UA: Add /F 4 flag (print flag) for proper annotation handling
             if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
               line += " /F 4";
+              // Add StructParent for PDF/UA compliance
+              // Use indices starting at 2000 to avoid conflicts with pages (0-n) and form fields (1000+)
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotStructParentCounter) {
+                  this.internal.pdfuaAnnotStructParentCounter = 2000;
+                }
+                var structParentIndex = this.internal.pdfuaAnnotStructParentCounter++;
+                line += " /StructParent " + structParentIndex;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaAnnotStructParentMap) {
+                  this.internal.pdfuaAnnotStructParentMap = {};
+                }
+                this.internal.pdfuaAnnotStructParentMap[anno.internalId] = structParentIndex;
+              }
             }
             line += " >>";
             objText.content = line;
@@ -177,6 +191,10 @@ import { jsPDF } from "../jspdf.js";
               parent;
             if (anno.open) {
               line += " /Open true";
+            }
+            // PDF/UA: Add hidden flag (F 2) to popup so it doesn't require structure
+            if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+              line += " /F 2";
             }
             line += " >>";
             objPopup.content = line;
@@ -229,6 +247,19 @@ import { jsPDF } from "../jspdf.js";
                 ")";
               line += " /Border [0 0 0]";
               line += " /F 4"; // Print flag for PDF/UA
+              // Add StructParent for PDF/UA compliance
+              if (anno.internalId) {
+                if (!this.internal.pdfuaAnnotStructParentCounter) {
+                  this.internal.pdfuaAnnotStructParentCounter = 2000;
+                }
+                var structParentIdx = this.internal.pdfuaAnnotStructParentCounter++;
+                line += " /StructParent " + structParentIdx;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaAnnotStructParentMap) {
+                  this.internal.pdfuaAnnotStructParentMap = {};
+                }
+                this.internal.pdfuaAnnotStructParentMap[anno.internalId] = structParentIdx;
+              }
               line += " >>";
               objFreeText.content = line;
               this.internal.write(objFreeText.objId + " 0 R");
@@ -336,10 +367,29 @@ import { jsPDF } from "../jspdf.js";
             }
 
             if (line != "") {
-              line += " >>";
               // For PDF/UA: Create link annotation as indirect object
               // so it can be referenced by the Link structure element via OBJR
               if (anno.needsObjId) {
+                // PDF/UA 7.18.5: Add /Contents key for alternate description
+                if (anno.contentsText) {
+                  line += " /Contents (" + escape(encryptor(anno.contentsText)) + ")";
+                }
+                // PDF/UA: Add /F 4 flag (print flag) for proper annotation handling
+                line += " /F 4";
+                // PDF/UA: Add /StructParent for structure tree connection
+                if (!this.internal.pdfuaLinkStructParentCounter) {
+                  this.internal.pdfuaLinkStructParentCounter = 3000; // Use 3000+ range to avoid conflicts
+                }
+                var linkStructParentIndex = this.internal.pdfuaLinkStructParentCounter++;
+                line += " /StructParent " + linkStructParentIndex;
+                // Store the mapping for ParentTree
+                if (!this.internal.pdfuaLinkStructParentMap) {
+                  this.internal.pdfuaLinkStructParentMap = {};
+                }
+                this.internal.pdfuaLinkStructParentMap[anno.internalId] = linkStructParentIndex;
+
+                line += " >>";
+
                 // Reserve object ID now (during putPage, after pages are created)
                 var linkObjId = this.internal.newObjectDeferred();
 
@@ -361,6 +411,7 @@ import { jsPDF } from "../jspdf.js";
                 this.internal.write(linkObjId + " 0 R");
               } else {
                 // Inline annotation (backwards compatible)
+                line += " >>";
                 this.internal.write(line);
               }
             }
@@ -480,6 +531,16 @@ import { jsPDF } from "../jspdf.js";
         this.internal.pdfuaLinkCounter = 0;
       }
       annotation.internalId = ++this.internal.pdfuaLinkCounter;
+
+      // PDF/UA 7.18.5: Links MUST have Contents key for alternate description
+      // Use the linkText option if provided, otherwise use the URL as fallback
+      if (options.linkText) {
+        annotation.contentsText = options.linkText;
+      } else if (options.url) {
+        annotation.contentsText = options.url;
+      } else if (options.pageNumber) {
+        annotation.contentsText = "Go to page " + options.pageNumber;
+      }
     }
 
     pageInfo.pageContext.annotations.push(annotation);
@@ -528,7 +589,25 @@ import { jsPDF } from "../jspdf.js";
     if (options.align === "right") {
       x = x - totalLineWidth;
     }
-    this.link(x, y - lineHeight, linkWidth, linkHeight, options);
+
+    // PDF/UA: Pass link text for Contents key (required for accessibility)
+    var linkOptions = Object.assign({}, options, { linkText: text });
+    var linkId = this.link(x, y - lineHeight, linkWidth, linkHeight, linkOptions);
+
+    // PDF/UA: If we're inside a Link structure element, add the annotation reference
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled() && linkId) {
+      // Check if we're in a Link structure element
+      if (this.internal.structureTree && this.internal.structureTree.currentParent) {
+        var currentElem = this.internal.structureTree.currentParent;
+        if (currentElem.type === 'Link') {
+          // Add annotation reference to the Link structure element
+          if (this.addLinkAnnotationRef) {
+            this.addLinkAnnotationRef(linkId);
+          }
+        }
+      }
+    }
+
     return totalLineWidth;
   };
 

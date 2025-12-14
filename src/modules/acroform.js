@@ -3345,6 +3345,19 @@ jsPDFAPI.addAccessibleTextField = function(options) {
     this.endStructureElement();
   }
 
+  // Draw visible field border as artifact (decorative, not part of content)
+  if (this.beginArtifact) {
+    this.beginArtifact({ type: 'Layout' });
+  }
+  var borderColor = options.borderColor || [0, 0, 0]; // Default: black
+  var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
+  this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+  this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+  this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+  if (this.endArtifact) {
+    this.endArtifact();
+  }
+
   // Create the AcroForm text field
   var field = new AcroFormTextField();
   field.x = options.x;
@@ -3450,6 +3463,15 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   field.height = boxHeight;
   field.fieldName = options.name;
 
+  // PDF/UA: Use standard font instead of ZapfDingbats to avoid font embedding issues
+  // ZapfDingbats is not embedded by default and lacks ToUnicode mapping
+  if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+    field.fontName = "helvetica";
+    field.caption = "X";  // Use "X" as checkbox symbol instead of ZapfDingbats checkmark
+    // Regenerate appearance stream with the new font
+    field.appearanceStreamContent = null; // Clear to regenerate
+  }
+
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
@@ -3533,6 +3555,19 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
     this.beginStructureElement('P');
     this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
     this.endStructureElement();
+  }
+
+  // Draw visible field border as artifact (decorative, not part of content)
+  if (this.beginArtifact) {
+    this.beginArtifact({ type: 'Layout' });
+  }
+  var borderColor = options.borderColor || [0, 0, 0]; // Default: black
+  var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
+  this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+  this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
+  this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+  if (this.endArtifact) {
+    this.endArtifact();
   }
 
   // Create the AcroForm combobox

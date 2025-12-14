@@ -33,7 +33,7 @@ try {
     doc.text('Dies ist ein wichtiger Satz', x, 40);
     x += doc.getTextWidth('Dies ist ein wichtiger Satz');
 
-    // Footnote reference (superscript) with link to note
+    // Footnote reference (superscript)
     doc.beginReference({ noteId: 'fn1' });
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
@@ -41,8 +41,6 @@ try {
     doc.text('1', refX, 37);
     doc.setFontSize(12);
     doc.endStructureElement();
-    // Add clickable link area for the reference (with label for back-link)
-    doc.addFootnoteLink(refX - 1, 34, 8, 10, '1');
     doc.endReference();
 
     x += 5;
@@ -50,7 +48,9 @@ try {
     doc.endStructureElement();
 
     // Footnote at bottom of page
+    doc.beginArtifact({ type: 'Layout' });
     doc.line(10, 265, 80, 265);  // Separator line
+    doc.endArtifact();
 
     const noteY = 272;
     doc.beginNote({ id: 'fn1', y: noteY });
@@ -62,11 +62,8 @@ try {
       doc.beginStructureElement('P');
       doc.setFontSize(10);
       doc.text('Hier steht die Erklärung zur Fußnote.', 15, noteY);
-      doc.endStructureElement();
-
-      // Add back-link to reference (at end of footnote text)
-      doc.addNoteBackLink(120, noteY);
       doc.setFontSize(12);
+      doc.endStructureElement();
     doc.endNote();
   doc.endStructureElement();
 
@@ -105,7 +102,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('1', x, 37);
-    doc.addFootnoteLink(x - 1, 34, 8, 10, '1');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -119,7 +116,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('2', x, 37);
-    doc.addFootnoteLink(x - 1, 34, 8, 10, '2');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -138,7 +135,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('3', x, 52);
-    doc.addFootnoteLink(x - 1, 49, 8, 10, '3');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -147,7 +144,9 @@ try {
     doc.endStructureElement();
 
     // Footnotes at bottom
+    doc.beginArtifact({ type: 'Layout' });
     doc.line(10, 250, 80, 250);
+    doc.endArtifact();
 
     doc.beginNote({ id: 'fn1', y: 257 });
       doc.beginStructureElement('Lbl');
@@ -158,7 +157,7 @@ try {
       doc.setFontSize(10);
       doc.text('Erklärung zum ersten Begriff.', 15, 257);
       doc.endStructureElement();
-      doc.addNoteBackLink(110, 257);
+      // Back-link removed for PDF/UA compliance
     doc.endNote();
 
     doc.beginNote({ id: 'fn2', y: 267 });
@@ -170,7 +169,7 @@ try {
       doc.setFontSize(10);
       doc.text('Erklärung zum zweiten Begriff.', 15, 267);
       doc.endStructureElement();
-      doc.addNoteBackLink(115, 267);
+      // Back-link removed for PDF/UA compliance
     doc.endNote();
 
     doc.beginNote({ id: 'fn3', y: 277 });
@@ -182,7 +181,7 @@ try {
       doc.setFontSize(10);
       doc.text('Erklärung zum dritten Punkt.', 15, 277);
       doc.endStructureElement();
-      doc.addNoteBackLink(108, 277);
+      // Back-link removed for PDF/UA compliance
       doc.setFontSize(12);
     doc.endNote();
   doc.endStructureElement();
@@ -220,7 +219,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('1', x, 37);
-    doc.addFootnoteLink(x - 1, 34, 8, 10, '1');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -229,7 +228,9 @@ try {
     doc.endStructureElement();
 
     // Long footnote
+    doc.beginArtifact({ type: 'Layout' });
     doc.line(10, 235, 80, 235);
+    doc.endArtifact();
 
     doc.beginNote({ id: 'fn1', y: 242 });
       doc.beginStructureElement('Lbl');
@@ -247,7 +248,7 @@ try {
       doc.endStructureElement();
 
       // Back-link at end of long footnote
-      doc.addNoteBackLink(155, 274);
+      // Back-link removed for PDF/UA compliance
       doc.setFontSize(12);
     doc.endNote();
   doc.endStructureElement();
@@ -286,7 +287,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('1', x, 37);
-    doc.addFootnoteLink(x - 1, 34, 8, 10, '1');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -303,7 +304,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('2', x, 52);
-    doc.addFootnoteLink(x - 1, 49, 8, 10, '2');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -327,7 +328,7 @@ try {
       doc.text('Historische Quelle: Archiv der Stadt Wien, Dokument 1850-A.', 18, 40);
       doc.endStructureElement();
       // Back-link to page 1
-      doc.addNoteBackLink(185, 40);
+      // Back-link removed for PDF/UA compliance
     doc.endNote();
 
     doc.beginNote({ id: 'en2', y: 55 });
@@ -340,7 +341,7 @@ try {
       doc.text('Verlag der Wissenschaften, S. 234-256.', 18, 63);
       doc.endStructureElement();
       // Back-link to page 1
-      doc.addNoteBackLink(135, 63);
+      // Back-link removed for PDF/UA compliance
       doc.setFontSize(12);
     doc.endNote();
   doc.endStructureElement();
@@ -380,7 +381,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('1', x, 45);
-    doc.addFootnoteLink(x - 1, 42, 8, 10, '1');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -397,7 +398,7 @@ try {
     doc.beginStructureElement('Lbl');
     doc.setFontSize(8);
     doc.text('2', x, 60);
-    doc.addFootnoteLink(x - 1, 57, 8, 10, '2');
+    // Footnote link removed for PDF/UA compliance
     doc.setFontSize(12);
     doc.endStructureElement();
     doc.endReference();
@@ -411,7 +412,9 @@ try {
     doc.endStructureElement();
 
     // Footnotes
+    doc.beginArtifact({ type: 'Layout' });
     doc.line(10, 245, 100, 245);
+    doc.endArtifact();
 
     doc.beginNote({ id: 'fn1', y: 252 });
       doc.beginStructureElement('Lbl');
@@ -423,7 +426,7 @@ try {
       doc.text('Vgl. Eco, Umberto: Wie man eine wissenschaftliche Abschlußarbeit', 15, 252);
       doc.text('schreibt. 13. Aufl. Wien: facultas 2010, S. 201-215.', 15, 259);
       doc.endStructureElement();
-      doc.addNoteBackLink(175, 259);
+      // Back-link removed for PDF/UA compliance
     doc.endNote();
 
     doc.beginNote({ id: 'fn2', y: 269 });
@@ -436,7 +439,7 @@ try {
       doc.text('Zur korrekten Zitierweise siehe die Richtlinien der jeweiligen', 15, 269);
       doc.text('Hochschule oder des Fachbereichs.', 15, 276);
       doc.endStructureElement();
-      doc.addNoteBackLink(120, 276);
+      // Back-link removed for PDF/UA compliance
       doc.setFontSize(12);
     doc.endNote();
   doc.endStructureElement();
@@ -464,29 +467,22 @@ console.log('  - test-note-3-long.pdf');
 console.log('  - test-note-4-endnotes.pdf');
 console.log('  - test-note-5-german.pdf');
 console.log('');
-console.log('New API Usage:');
-console.log('  // Reference with link to note');
+console.log('API Usage:');
+console.log('  // Reference to note');
 console.log('  doc.beginReference({ noteId: "fn1" });');
 console.log('  doc.beginStructureElement("Lbl");');
 console.log('  doc.text("1", x, y);');
-console.log('  doc.addFootnoteLink(x, y, width, height, "1");  // Creates clickable link with label');
 console.log('  doc.endStructureElement();');
 console.log('  doc.endReference();');
 console.log('');
-console.log('  // Note with destination and back-link');
-console.log('  doc.beginNote({ id: "fn1", y: noteY });  // y = destination position');
+console.log('  // Note content');
+console.log('  doc.beginNote({ id: "fn1", y: noteY });');
 console.log('  // ... footnote content ...');
-console.log('  doc.addNoteBackLink(x, y);  // Creates back-link to reference');
 console.log('  doc.endNote();');
 console.log('');
-console.log('  // Note without back-link (optional)');
-console.log('  doc.beginNote({ id: "fn1", y: noteY, noBackLink: true });');
-console.log('');
 console.log('Screenreader Testing:');
-console.log('  - Reference: Should be a clickable link');
-console.log('  - Press Enter on reference: Should jump to footnote');
-console.log('  - Note: Should have back-link to return to reference');
-console.log('  - Press Enter on back-link: Should jump back to text');
+console.log('  - Reference and Note should be semantically connected');
+console.log('  - Screen reader should announce note structure');
 console.log('');
 console.log('veraPDF Validation:');
 console.log('  docker run --rm -v $(pwd)/examples/temp:/data verapdf/verapdf:latest --flavour ua1 /data/test-note-1-simple.pdf');

@@ -4662,6 +4662,31 @@ function jsPDF(options) {
       throw new Error("Invalid arguments passed to jsPDF.lines");
     }
 
+    // PDF/UA: Check if we need to wrap graphics in Artifact markers
+    var needsArtifactMarking = false;
+    var artifactProps = null;
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      if (this.isInArtifact && this.isInArtifact()) {
+        needsArtifactMarking = true;
+        artifactProps = this.getArtifactProperties
+          ? this.getArtifactProperties()
+          : null;
+      }
+    }
+
+    // PDF/UA: Begin Artifact marking if needed
+    if (needsArtifactMarking) {
+      if (artifactProps && artifactProps.type) {
+        var artifactDict = "/Type/" + artifactProps.type;
+        if (artifactProps.subtype) {
+          artifactDict += "/Subtype/" + artifactProps.subtype;
+        }
+        out("/Artifact <<" + artifactDict + ">> BDC");
+      } else {
+        out("/Artifact BMC");
+      }
+    }
+
     // starting point
     moveTo(x, y);
 
@@ -4698,6 +4723,12 @@ function jsPDF(options) {
     }
 
     putStyle(style);
+
+    // PDF/UA: End Artifact marking if needed
+    if (needsArtifactMarking) {
+      out("EMC");
+    }
+
     return this;
   };
 
@@ -4763,6 +4794,29 @@ function jsPDF(options) {
       h = -h;
     }
 
+    // PDF/UA: Check if we need to wrap graphics in Artifact markers
+    var needsArtifactMarking = false;
+    var artifactProps = null;
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      if (this.isInArtifact && this.isInArtifact()) {
+        needsArtifactMarking = true;
+        artifactProps = this.getArtifactProperties ? this.getArtifactProperties() : null;
+      }
+    }
+
+    // PDF/UA: Begin Artifact marking if needed
+    if (needsArtifactMarking) {
+      if (artifactProps && artifactProps.type) {
+        var artifactDict = "/Type/" + artifactProps.type;
+        if (artifactProps.subtype) {
+          artifactDict += "/Subtype/" + artifactProps.subtype;
+        }
+        out("/Artifact <<" + artifactDict + ">> BDC");
+      } else {
+        out("/Artifact BMC");
+      }
+    }
+
     out(
       [
         hpf(scale(x)),
@@ -4774,6 +4828,12 @@ function jsPDF(options) {
     );
 
     putStyle(style);
+
+    // PDF/UA: End Artifact marking if needed
+    if (needsArtifactMarking) {
+      out("EMC");
+    }
+
     return this;
   };
 

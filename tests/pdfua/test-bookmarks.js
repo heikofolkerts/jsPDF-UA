@@ -22,6 +22,7 @@ function testBookmarksWithTOC() {
   });
 
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Test: Dokument mit Lesezeichen");
   doc.setDocumentProperties({
     title: "Test: Dokument mit Lesezeichen",
   });
@@ -153,6 +154,7 @@ function testNestedBookmarks() {
   });
 
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Test: Verschachtelte Lesezeichen");
   doc.setDocumentProperties({
     title: "Test: Verschachtelte Lesezeichen",
   });
@@ -236,6 +238,7 @@ function testMinimalBookmarks() {
   });
 
   doc.setLanguage("de-DE");
+  doc.setDocumentTitle("Test: Minimale Lesezeichen");
   doc.setDocumentProperties({
     title: "Test: Minimale Lesezeichen",
   });
