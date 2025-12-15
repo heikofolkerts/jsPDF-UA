@@ -283,6 +283,12 @@ function jsPDF(options) {
     pdfVersion = value;
   };
 
+  // PDF/UA requires PDF 1.7 (ISO 32000-1:2008) as minimum version
+  // PDF/UA-1 (ISO 14289-1:2014) is based on PDF 1.7
+  if (pdfUAOptions && pdfUAOptions.enabled) {
+    pdfVersion = "1.7";
+  }
+
   // Size in pt of various paper formats
   var pageFormats = {
     a0: [2383.94, 3370.39],

@@ -409,8 +409,8 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/ID (' + escapedId + ')');
       }
 
-      // Attribute dictionary (for table headers, formula placement, form role, etc.)
-      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role)) {
+      // Attribute dictionary (for table headers, formula placement, form role, bbox, etc.)
+      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role || elem.attributes.bbox)) {
         var attrParts = [];
 
         // Table scope attribute
@@ -418,9 +418,29 @@ import { jsPDF } from "../jspdf.js";
           attrParts.push('/O /Table /Scope /' + elem.attributes.scope);
         }
 
-        // Placement attribute (for Formula, Figure, etc.)
+        // Layout attributes (Placement and BBox can be combined in one dictionary)
+        var layoutParts = [];
         if (elem.attributes.placement) {
-          attrParts.push('/O /Layout /Placement /' + elem.attributes.placement);
+          layoutParts.push('/Placement /' + elem.attributes.placement);
+        }
+        if (elem.attributes.bbox) {
+          // BBox format: [x1 y1 x2 y2] in default user space units
+          // bbox can be array [x, y, width, height] or [x1, y1, x2, y2]
+          var bbox = elem.attributes.bbox;
+          var bboxArray;
+          if (bbox.x !== undefined) {
+            // Object format: {x, y, width, height}
+            bboxArray = [bbox.x, bbox.y, bbox.x + bbox.width, bbox.y + bbox.height];
+          } else if (bbox.length === 4) {
+            // Array format: [x, y, width, height] - convert to [x1, y1, x2, y2]
+            bboxArray = [bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]];
+          } else {
+            bboxArray = bbox;
+          }
+          layoutParts.push('/BBox [' + bboxArray.join(' ') + ']');
+        }
+        if (layoutParts.length > 0) {
+          attrParts.push('/O /Layout ' + layoutParts.join(' '));
         }
 
         // Role attribute (for Form elements per ISO 32000-1:2008, Table 348)
@@ -1171,15 +1191,23 @@ import { jsPDF } from "../jspdf.js";
    * For simple images without captions, use addImage() directly.
    *
    * Typical structure:
-   *   doc.beginFigure();
+   *   doc.beginFigure({
+   *     alt: 'Description of image',
+   *     bbox: [x, y, width, height]  // Bounding box in points
+   *   });
    *     doc.addImage({...});  // Image with alt text
    *     doc.beginCaption();
-   *       doc.text('Abbildung 1: Beschreibung', x, y);
+   *       doc.text('Figure 1: Description', x, y);
    *     doc.endCaption();
    *   doc.endFigure();
    *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.lang] - Language code for figure content
+   * @param {string} [options.alt] - Alternative text for the figure (required for PDF/UA)
+   * @param {Array|Object} [options.bbox] - Bounding box for the figure.
+   *        Can be array [x, y, width, height] or object {x, y, width, height}.
+   *        Coordinates are in points from bottom-left of page.
+   *        Recommended for accessibility (PAC checker).
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginFigure = function(options) {
@@ -1193,6 +1221,12 @@ import { jsPDF } from "../jspdf.js";
     // PDF/UA requires Figure elements to have Alt or ActualText
     if (options.alt) {
       attributes.alt = options.alt;
+    }
+
+    // BBox (Bounding Box) for figure positioning in alternate presentations
+    // Recommended by PAC (PDF Accessibility Checker) for better accessibility
+    if (options.bbox) {
+      attributes.bbox = options.bbox;
     }
 
     return this.beginStructureElement('Figure', attributes);

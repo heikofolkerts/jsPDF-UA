@@ -601,8 +601,11 @@ doc.beginSect();
   // Figure 1 - Placeholder representing an image
   // Note: Graphics (rect) are omitted because jsPDF doesn't yet support
   // marked content for graphical operations. Using text placeholder instead.
+  // BBox is recommended by PAC for better accessibility in alternate presentations
+  // BBox format: [x, y, width, height] in points (PDF coordinates from bottom-left)
   doc.beginStructureElement('Figure', {
-    alt: 'A placeholder representing a bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%'
+    alt: 'A placeholder representing a bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%',
+    bbox: [20, 640, 90, 70]  // x, y (from bottom), width, height
   });
 
   // Text placeholder for image (graphics can't be tagged yet)
@@ -619,7 +622,8 @@ doc.beginSect();
 
   // Figure 2
   doc.beginStructureElement('Figure', {
-    alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages'
+    alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages',
+    bbox: [120, 640, 80, 70]  // x, y (from bottom), width, height
   });
 
   // Text placeholder for image (graphics can't be tagged yet)
@@ -835,21 +839,22 @@ doc.beginSect();
   doc.text('Ruby (CJK Pronunciation)', 20, 256);
   doc.endStructureElement();
 
-  doc.beginRuby();
-    doc.beginRubyBaseText();
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text('Base', 25, 268);
-    doc.endRubyBaseText();
-    doc.beginRubyText();
-    doc.setFontSize(8);
-    doc.text('(ruby)', 25, 262);
-    doc.endRubyText();
-  doc.endRuby();
-
+  // Ruby is an inline element and MUST be inside a block-level element (P)
+  // per PDF/UA structure requirements
   doc.beginStructureElement('P');
-  doc.setFontSize(10);
-  doc.text('Ruby annotations provide pronunciation guides for CJK text.', 50, 268);
+    doc.beginRuby();
+      doc.beginRubyBaseText();
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'normal');
+      doc.text('Base', 25, 268);
+      doc.endRubyBaseText();
+      doc.beginRubyText();
+      doc.setFontSize(8);
+      doc.text('(ruby)', 25, 262);
+      doc.endRubyText();
+    doc.endRuby();
+    doc.setFontSize(10);
+    doc.text(' - Ruby annotations provide pronunciation guides for CJK text.', 42, 268);
   doc.endStructureElement();
 doc.endSect();
 
