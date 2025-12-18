@@ -270,7 +270,9 @@ describe("Module: PDF/UA", () => {
     it("should include StructTreeRoot in PDF output", () => {
       const doc = jsPDF({ pdfUA: true });
       doc.setDocumentTitle("Test");
+      doc.beginStructureElement("P");
       doc.text("Hello", 10, 10);
+      doc.endStructureElement();
 
       const pdfOutput = doc.output();
 
@@ -281,7 +283,9 @@ describe("Module: PDF/UA", () => {
     it("should create MarkInfo dictionary with Marked flag", () => {
       const doc = jsPDF({ pdfUA: true });
       doc.setDocumentTitle("Test");
+      doc.beginStructureElement("P");
       doc.text("Hello", 10, 10);
+      doc.endStructureElement();
 
       const pdfOutput = doc.output();
 
@@ -292,7 +296,9 @@ describe("Module: PDF/UA", () => {
     it("should reference StructTreeRoot in Catalog", () => {
       const doc = jsPDF({ pdfUA: true });
       doc.setDocumentTitle("Test");
+      doc.beginStructureElement("P");
       doc.text("Hello", 10, 10);
+      doc.endStructureElement();
 
       const pdfOutput = doc.output();
 
@@ -459,7 +465,9 @@ describe("Module: PDF/UA", () => {
     it("should maintain backward compatibility with Sprint 1", () => {
       const doc = jsPDF({ pdfUA: true });
       doc.setDocumentTitle("Backward Compatibility Test");
+      doc.beginStructureElement("P");
       doc.text("Content", 10, 10);
+      doc.endStructureElement();
 
       const pdfOutput = doc.output();
 

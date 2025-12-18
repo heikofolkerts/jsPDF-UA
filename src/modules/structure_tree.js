@@ -20,14 +20,14 @@ import { jsPDF } from "../jspdf.js";
    * StructElement class - represents a structure element in the PDF structure tree
    */
   function StructElement(type, parent, api) {
-    this.type = type;           // e.g. 'Document', 'P', 'H1', 'H2', etc.
-    this.parent = parent;       // Parent structure element
-    this.children = [];         // Child structure elements
-    this.attributes = {};       // Element attributes
-    this.mcids = [];            // Marked Content IDs (references to page content)
-    this.objectNumber = null;   // PDF object number (assigned during output)
-    this.id = null;             // Unique ID within the document
-    this.api = api;             // Reference to jsPDF API
+    this.type = type; // e.g. 'Document', 'P', 'H1', 'H2', etc.
+    this.parent = parent; // Parent structure element
+    this.children = []; // Child structure elements
+    this.attributes = {}; // Element attributes
+    this.mcids = []; // Marked Content IDs (references to page content)
+    this.objectNumber = null; // PDF object number (assigned during output)
+    this.id = null; // Unique ID within the document
+    this.api = api; // Reference to jsPDF API
   }
 
   /**
@@ -55,12 +55,12 @@ import { jsPDF } from "../jspdf.js";
   var initStructureTree = function() {
     if (!this.internal.structureTree) {
       this.internal.structureTree = {
-        root: null,              // StructTreeRoot
-        currentParent: null,     // Current parent for new elements
-        elements: [],            // All structure elements
-        mcidCounter: {},         // MCID counter per page
-        nextStructId: 0,         // Next unique structure ID
-        stack: []                // Stack for nested elements
+        root: null, // StructTreeRoot
+        currentParent: null, // Current parent for new elements
+        elements: [], // All structure elements
+        mcidCounter: {}, // MCID counter per page
+        nextStructId: 0, // Next unique structure ID
+        stack: [] // Stack for nested elements
       };
 
       // Create root if PDF/UA is enabled
@@ -80,10 +80,10 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var root = {
-      type: 'StructTreeRoot',
+      type: "StructTreeRoot",
       id: this.internal.structureTree.nextStructId++,
       children: [],
-      objectNumber: null,  // Will be assigned later
+      objectNumber: null, // Will be assigned later
       api: this
     };
 
@@ -142,7 +142,10 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endStructureElement = function() {
-    if (!this.internal.structureTree || this.internal.structureTree.stack.length === 0) {
+    if (
+      !this.internal.structureTree ||
+      this.internal.structureTree.stack.length === 0
+    ) {
       return this;
     }
 
@@ -182,11 +185,14 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} pageNumber - Page number
    */
   jsPDFAPI.addMCIDToCurrentStructure = function(mcid, pageNumber) {
-    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.currentParent
+    ) {
       return;
     }
     var currentElem = this.internal.structureTree.currentParent;
-    if (currentElem.type !== 'StructTreeRoot') {
+    if (currentElem.type !== "StructTreeRoot") {
       currentElem.addMCID(pageNumber, mcid);
     }
   };
@@ -222,7 +228,9 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // First, create indirect array objects for each page
-    var pageKeys = Object.keys(parentTree).sort(function(a, b) { return a - b; });
+    var pageKeys = Object.keys(parentTree).sort(function(a, b) {
+      return a - b;
+    });
     var pageArrayObjects = {};
 
     for (var k = 0; k < pageKeys.length; k++) {
@@ -239,27 +247,27 @@ import { jsPDF } from "../jspdf.js";
 
       for (var m = 0; m <= maxMcid; m++) {
         if (mcidMap[m]) {
-          pageArray.push(mcidMap[m] + ' 0 R');
+          pageArray.push(mcidMap[m] + " 0 R");
         } else {
-          pageArray.push('null');
+          pageArray.push("null");
         }
       }
 
       // Create an indirect object for this array
       var arrayObjNum = this.internal.newObject();
-      this.internal.write('[' + pageArray.join(' ') + ']');
-      this.internal.write('endobj');
+      this.internal.write("[" + pageArray.join(" ") + "]");
+      this.internal.write("endobj");
 
       pageArrayObjects[pageNum] = arrayObjNum;
     }
 
     // Now write ParentTree as NumberTree with references to the array objects
     var parentTreeObj = this.internal.newObject();
-    this.internal.write('<< /Nums [');
+    this.internal.write("<< /Nums [");
 
     for (var k = 0; k < pageKeys.length; k++) {
       var pageNum = pageKeys[k];
-      this.internal.write(pageNum + ' ' + pageArrayObjects[pageNum] + ' 0 R');
+      this.internal.write(pageNum + " " + pageArrayObjects[pageNum] + " 0 R");
     }
 
     // Add form field StructParent entries to ParentTree
@@ -274,9 +282,15 @@ import { jsPDF } from "../jspdf.js";
           var formElement = formFieldParentMap[internalId];
           var structParentIndex = structParentMap[internalId];
 
-          if (formElement && formElement.objectNumber && structParentIndex !== undefined) {
+          if (
+            formElement &&
+            formElement.objectNumber &&
+            structParentIndex !== undefined
+          ) {
             // Add entry: StructParent index -> Form element object number
-            this.internal.write(structParentIndex + ' ' + formElement.objectNumber + ' 0 R');
+            this.internal.write(
+              structParentIndex + " " + formElement.objectNumber + " 0 R"
+            );
           }
         }
       }
@@ -294,9 +308,15 @@ import { jsPDF } from "../jspdf.js";
           var annotElement = annotParentMap[annotId];
           var annotStructParentIndex = annotStructParentMap[annotId];
 
-          if (annotElement && annotElement.objectNumber && annotStructParentIndex !== undefined) {
+          if (
+            annotElement &&
+            annotElement.objectNumber &&
+            annotStructParentIndex !== undefined
+          ) {
             // Add entry: StructParent index -> Annot element object number
-            this.internal.write(annotStructParentIndex + ' ' + annotElement.objectNumber + ' 0 R');
+            this.internal.write(
+              annotStructParentIndex + " " + annotElement.objectNumber + " 0 R"
+            );
           }
         }
       }
@@ -314,17 +334,23 @@ import { jsPDF } from "../jspdf.js";
           var linkElement = linkParentMap[linkId];
           var linkStructParentIndex = linkStructParentMap[linkId];
 
-          if (linkElement && linkElement.objectNumber && linkStructParentIndex !== undefined) {
+          if (
+            linkElement &&
+            linkElement.objectNumber &&
+            linkStructParentIndex !== undefined
+          ) {
             // Add entry: StructParent index -> Link element object number
-            this.internal.write(linkStructParentIndex + ' ' + linkElement.objectNumber + ' 0 R');
+            this.internal.write(
+              linkStructParentIndex + " " + linkElement.objectNumber + " 0 R"
+            );
           }
         }
       }
     }
 
-    this.internal.write(']');
-    this.internal.write('>>');
-    this.internal.write('endobj');
+    this.internal.write("]");
+    this.internal.write(">>");
+    this.internal.write("endobj");
 
     // Store reference for StructTreeRoot
     this.internal.structureTree.parentTreeObj = parentTreeObj;
@@ -380,57 +406,79 @@ import { jsPDF } from "../jspdf.js";
     for (var i = 0; i < elements.length; i++) {
       var elem = elements[i];
       this.internal.newObjectDeferredBegin(elem.objectNumber, true);
-      this.internal.write('<< /Type /StructElem');
-      this.internal.write('/S /' + elem.type);
+      this.internal.write("<< /Type /StructElem");
+      this.internal.write("/S /" + elem.type);
 
       // Parent reference
       if (elem.parent && elem.parent.objectNumber) {
-        this.internal.write('/P ' + elem.parent.objectNumber + ' 0 R');
+        this.internal.write("/P " + elem.parent.objectNumber + " 0 R");
       }
 
       // Alternative text (for images and formulas, required for PDF/UA)
       if (elem.alt) {
         // Escape special characters in alt text
-        var escapedAlt = elem.alt.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-        this.internal.write('/Alt (' + escapedAlt + ')');
+        var escapedAlt = elem.alt
+          .replace(/\\/g, "\\\\")
+          .replace(/\(/g, "\\(")
+          .replace(/\)/g, "\\)");
+        this.internal.write("/Alt (" + escapedAlt + ")");
       }
 
       // Expansion text (for abbreviations - PDF 1.7, 14.9.5)
       if (elem.expansion) {
         // Escape special characters in expansion text
-        var escapedE = elem.expansion.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-        this.internal.write('/E (' + escapedE + ')');
+        var escapedE = elem.expansion
+          .replace(/\\/g, "\\\\")
+          .replace(/\(/g, "\\(")
+          .replace(/\)/g, "\\)");
+        this.internal.write("/E (" + escapedE + ")");
       }
 
       // ID attribute (required for Note elements per PDF/UA - MP 19-003)
       if (elem.attributes && elem.attributes.id) {
         // Escape special characters in ID
-        var escapedId = elem.attributes.id.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-        this.internal.write('/ID (' + escapedId + ')');
+        var escapedId = elem.attributes.id
+          .replace(/\\/g, "\\\\")
+          .replace(/\(/g, "\\(")
+          .replace(/\)/g, "\\)");
+        this.internal.write("/ID (" + escapedId + ")");
       }
 
       // Ref attribute (for Reference elements pointing to Note elements - PDF/UA requirement)
       // Per ISO 14289-1, Reference elements should have /Ref pointing to the referenced structure element
-      if (elem.type === 'Reference' && elem.refNoteId && this.internal.pdfuaFootnotes && this.internal.pdfuaFootnotes.noteElements) {
-        var noteElem = this.internal.pdfuaFootnotes.noteElements[elem.refNoteId];
+      if (
+        elem.type === "Reference" &&
+        elem.refNoteId &&
+        this.internal.pdfuaFootnotes &&
+        this.internal.pdfuaFootnotes.noteElements
+      ) {
+        var noteElem = this.internal.pdfuaFootnotes.noteElements[
+          elem.refNoteId
+        ];
         if (noteElem && noteElem.objectNumber) {
-          this.internal.write('/Ref [' + noteElem.objectNumber + ' 0 R]');
+          this.internal.write("/Ref [" + noteElem.objectNumber + " 0 R]");
         }
       }
 
       // Attribute dictionary (for table headers, formula placement, form role, bbox, etc.)
-      if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role || elem.attributes.bbox)) {
+      if (
+        elem.attributes &&
+        (elem.attributes.scope ||
+          elem.attributes.placement ||
+          elem.attributes.role ||
+          elem.attributes.bbox)
+      ) {
         var attrParts = [];
 
         // Table scope attribute
         if (elem.attributes.scope) {
-          attrParts.push('/O /Table /Scope /' + elem.attributes.scope);
+          attrParts.push("/O /Table /Scope /" + elem.attributes.scope);
         }
 
         // Layout attributes (Placement and BBox can be combined in one dictionary)
         var layoutParts = [];
         if (elem.attributes.placement) {
-          layoutParts.push('/Placement /' + elem.attributes.placement);
+          layoutParts.push("/Placement /" + elem.attributes.placement);
         }
         if (elem.attributes.bbox) {
           // BBox format: [x1 y1 x2 y2] in default user space units
@@ -439,34 +487,44 @@ import { jsPDF } from "../jspdf.js";
           var bboxArray;
           if (bbox.x !== undefined) {
             // Object format: {x, y, width, height}
-            bboxArray = [bbox.x, bbox.y, bbox.x + bbox.width, bbox.y + bbox.height];
+            bboxArray = [
+              bbox.x,
+              bbox.y,
+              bbox.x + bbox.width,
+              bbox.y + bbox.height
+            ];
           } else if (bbox.length === 4) {
             // Array format: [x, y, width, height] - convert to [x1, y1, x2, y2]
-            bboxArray = [bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]];
+            bboxArray = [
+              bbox[0],
+              bbox[1],
+              bbox[0] + bbox[2],
+              bbox[1] + bbox[3]
+            ];
           } else {
             bboxArray = bbox;
           }
-          layoutParts.push('/BBox [' + bboxArray.join(' ') + ']');
+          layoutParts.push("/BBox [" + bboxArray.join(" ") + "]");
         }
         if (layoutParts.length > 0) {
-          attrParts.push('/O /Layout ' + layoutParts.join(' '));
+          attrParts.push("/O /Layout " + layoutParts.join(" "));
         }
 
         // Role attribute (for Form elements per ISO 32000-1:2008, Table 348)
         // Rb = radio button, Cb = checkbox, Pb = push button, Tv = text value, Lb = list box
         if (elem.attributes.role) {
-          attrParts.push('/O /PrintField /Role /' + elem.attributes.role);
+          attrParts.push("/O /PrintField /Role /" + elem.attributes.role);
         }
 
         if (attrParts.length === 1) {
-          this.internal.write('/A << ' + attrParts[0] + ' >>');
+          this.internal.write("/A << " + attrParts[0] + " >>");
         } else if (attrParts.length > 1) {
           // Multiple attribute dictionaries
-          this.internal.write('/A [');
+          this.internal.write("/A [");
           for (var a = 0; a < attrParts.length; a++) {
-            this.internal.write('<< ' + attrParts[a] + ' >>');
+            this.internal.write("<< " + attrParts[a] + " >>");
           }
-          this.internal.write(']');
+          this.internal.write("]");
         }
       }
 
@@ -477,15 +535,22 @@ import { jsPDF } from "../jspdf.js";
         // The old calculation (2 + pageNum) assumed page objects start at obj 3,
         // but this is incorrect when fonts and other objects are added before pages.
         var pageInfo = this.getPageInfo(pageNum);
-        this.internal.write('/Pg ' + pageInfo.objId + ' 0 R');
+        this.internal.write("/Pg " + pageInfo.objId + " 0 R");
       }
 
       // Children (K entry)
       // An element can have MCIDs, child elements, OBJR references, or combinations
-      var hasAnnotationRefs = elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
-      var hasFormFieldRefs = elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
+      var hasAnnotationRefs =
+        elem.annotationInternalIds && elem.annotationInternalIds.length > 0;
+      var hasFormFieldRefs =
+        elem.formFieldInternalIds && elem.formFieldInternalIds.length > 0;
       var hasAnnotRefs = elem.annotRefs && elem.annotRefs.length > 0; // For Text/FreeText annotations
-      var hasContent = elem.children.length > 0 || elem.mcids.length > 0 || hasAnnotationRefs || hasFormFieldRefs || hasAnnotRefs;
+      var hasContent =
+        elem.children.length > 0 ||
+        elem.mcids.length > 0 ||
+        hasAnnotationRefs ||
+        hasFormFieldRefs ||
+        hasAnnotRefs;
 
       if (hasContent) {
         var kArray = [];
@@ -501,9 +566,11 @@ import { jsPDF } from "../jspdf.js";
         if (hasAnnotationRefs) {
           elem.annotationInternalIds.forEach(function(internalId) {
             // Resolve internal ID to actual object ID using the mapping
-            var objId = self.internal.pdfuaLinkIdMap && self.internal.pdfuaLinkIdMap[internalId];
+            var objId =
+              self.internal.pdfuaLinkIdMap &&
+              self.internal.pdfuaLinkIdMap[internalId];
             if (objId) {
-              kArray.push('<< /Type /OBJR /Obj ' + objId + ' 0 R >>');
+              kArray.push("<< /Type /OBJR /Obj " + objId + " 0 R >>");
             }
           });
         }
@@ -513,18 +580,22 @@ import { jsPDF } from "../jspdf.js";
         if (hasFormFieldRefs) {
           elem.formFieldInternalIds.forEach(function(internalId) {
             // Resolve internal ID to actual object ID using the mapping
-            var objId = self.internal.pdfuaFormFieldIdMap && self.internal.pdfuaFormFieldIdMap[internalId];
+            var objId =
+              self.internal.pdfuaFormFieldIdMap &&
+              self.internal.pdfuaFormFieldIdMap[internalId];
             if (objId) {
               // Get page reference for this form field
-              var fieldPage = self.internal.pdfuaFormFieldPageMap && self.internal.pdfuaFormFieldPageMap[internalId];
-              var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+              var fieldPage =
+                self.internal.pdfuaFormFieldPageMap &&
+                self.internal.pdfuaFormFieldPageMap[internalId];
+              var objrStr = "<< /Type /OBJR /Obj " + objId + " 0 R";
               if (fieldPage) {
                 var pageInfo = self.internal.getPageInfo(fieldPage);
                 if (pageInfo && pageInfo.objId) {
-                  objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                  objrStr += " /Pg " + pageInfo.objId + " 0 R";
                 }
               }
-              objrStr += ' >>';
+              objrStr += " >>";
               kArray.push(objrStr);
             }
           });
@@ -535,18 +606,22 @@ import { jsPDF } from "../jspdf.js";
         if (hasAnnotRefs) {
           elem.annotRefs.forEach(function(internalId) {
             // Resolve internal ID to actual object ID using the mapping
-            var objId = self.internal.pdfuaAnnotIdMap && self.internal.pdfuaAnnotIdMap[internalId];
+            var objId =
+              self.internal.pdfuaAnnotIdMap &&
+              self.internal.pdfuaAnnotIdMap[internalId];
             if (objId) {
               // Get page reference for this annotation
-              var annotPage = self.internal.pdfuaAnnotPageMap && self.internal.pdfuaAnnotPageMap[internalId];
-              var objrStr = '<< /Type /OBJR /Obj ' + objId + ' 0 R';
+              var annotPage =
+                self.internal.pdfuaAnnotPageMap &&
+                self.internal.pdfuaAnnotPageMap[internalId];
+              var objrStr = "<< /Type /OBJR /Obj " + objId + " 0 R";
               if (annotPage) {
                 var pageInfo = self.internal.getPageInfo(annotPage);
                 if (pageInfo && pageInfo.objId) {
-                  objrStr += ' /Pg ' + pageInfo.objId + ' 0 R';
+                  objrStr += " /Pg " + pageInfo.objId + " 0 R";
                 }
               }
-              objrStr += ' >>';
+              objrStr += " >>";
               kArray.push(objrStr);
             }
           });
@@ -554,14 +629,14 @@ import { jsPDF } from "../jspdf.js";
 
         // Add child structure elements
         elem.children.forEach(function(c) {
-          kArray.push(c.objectNumber + ' 0 R');
+          kArray.push(c.objectNumber + " 0 R");
         });
 
-        this.internal.write('/K [' + kArray.join(' ') + ']');
+        this.internal.write("/K [" + kArray.join(" ") + "]");
       }
 
-      this.internal.write('>>');
-      this.internal.write('endobj');
+      this.internal.write(">>");
+      this.internal.write("endobj");
     }
 
     // Write ParentTree
@@ -570,40 +645,44 @@ import { jsPDF } from "../jspdf.js";
     // Write RoleMap - map non-standard structure types to standard types
     // Required for PDF/UA-1 compliance (ISO 14289-1, clause 7.1, test 5)
     var roleMapObj = this.internal.newObject();
-    this.internal.write('<<');
+    this.internal.write("<<");
     // PDF 2.0 elements mapped to PDF 1.7 standard types
-    this.internal.write('/DocumentFragment /Sect');  // Document excerpt -> Section
-    this.internal.write('/Aside /Sect');             // Sidebar content -> Section (Note requires /ID)
+    this.internal.write("/DocumentFragment /Sect"); // Document excerpt -> Section
+    this.internal.write("/Aside /Sect"); // Sidebar content -> Section (Note requires /ID)
     // Semantic inline elements mapped to Span (closest standard equivalent)
-    this.internal.write('/Strong /Span');            // Bold/important text
-    this.internal.write('/Em /Span');                // Emphasized/italic text
+    this.internal.write("/Strong /Span"); // Bold/important text
+    this.internal.write("/Em /Span"); // Emphasized/italic text
     // Ensure Em is also mapped (alternative name)
-    this.internal.write('/Emphasis /Span');          // Alternative emphasis name
-    this.internal.write('>>');
-    this.internal.write('endobj');
+    this.internal.write("/Emphasis /Span"); // Alternative emphasis name
+    this.internal.write(">>");
+    this.internal.write("endobj");
 
     // Write StructTreeRoot (objectNumber was reserved earlier)
     // CRITICAL FIX: Use newObjectDeferredBegin instead of out() for deferred objects
     this.internal.newObjectDeferredBegin(root.objectNumber, true);
-    this.internal.write('<< /Type /StructTreeRoot');
+    this.internal.write("<< /Type /StructTreeRoot");
 
     if (root.children.length > 0) {
-      var rootKids = root.children.map(function(c) {
-        return c.objectNumber + ' 0 R';
-      }).join(' ');
-      this.internal.write('/K [' + rootKids + ']');
+      var rootKids = root.children
+        .map(function(c) {
+          return c.objectNumber + " 0 R";
+        })
+        .join(" ");
+      this.internal.write("/K [" + rootKids + "]");
     }
 
     // Add ParentTree reference
     if (this.internal.structureTree.parentTreeObj) {
-      this.internal.write('/ParentTree ' + this.internal.structureTree.parentTreeObj + ' 0 R');
+      this.internal.write(
+        "/ParentTree " + this.internal.structureTree.parentTreeObj + " 0 R"
+      );
     }
 
     // Add RoleMap reference
-    this.internal.write('/RoleMap ' + roleMapObj + ' 0 R');
+    this.internal.write("/RoleMap " + roleMapObj + " 0 R");
 
-    this.internal.write('>>');
-    this.internal.write('endobj');
+    this.internal.write(">>");
+    this.internal.write("endobj");
   };
 
   /**
@@ -613,7 +692,7 @@ import { jsPDF } from "../jspdf.js";
     if (this.internal.structureTree && this.internal.structureTree.root) {
       var root = this.internal.structureTree.root;
       if (root.objectNumber) {
-        this.internal.write('/StructTreeRoot ' + root.objectNumber + ' 0 R');
+        this.internal.write("/StructTreeRoot " + root.objectNumber + " 0 R");
       }
     }
   };
@@ -629,8 +708,11 @@ import { jsPDF } from "../jspdf.js";
 
     // CRITICAL FIX: Only write MarkInfo if there are actual structure elements
     // Marked=true without tagged content causes Acrobat to treat everything as artifacts
-    if (!this.internal.structureTree || !this.internal.structureTree.root ||
-        this.internal.structureTree.root.children.length === 0) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.root ||
+      this.internal.structureTree.root.children.length === 0
+    ) {
       return;
     }
 
@@ -640,9 +722,9 @@ import { jsPDF } from "../jspdf.js";
 
     // Create MarkInfo dictionary
     var markInfoObjId = this.internal.newObject();
-    this.internal.write('<< /Marked true');
-    this.internal.write('>>');
-    this.internal.write('endobj');
+    this.internal.write("<< /Marked true");
+    this.internal.write(">>");
+    this.internal.write("endobj");
 
     // Store reference for Catalog
     this.internal.markInfo.objectNumber = markInfoObjId;
@@ -654,7 +736,9 @@ import { jsPDF } from "../jspdf.js";
   var putCatalogMarkInfo = function() {
     if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
       if (this.internal.markInfo && this.internal.markInfo.objectNumber) {
-        this.internal.write('/MarkInfo ' + this.internal.markInfo.objectNumber + ' 0 R');
+        this.internal.write(
+          "/MarkInfo " + this.internal.markInfo.objectNumber + " 0 R"
+        );
       }
     }
   };
@@ -675,45 +759,41 @@ import { jsPDF } from "../jspdf.js";
   /**
    * Write MarkInfo dictionary before structure tree
    */
-  jsPDFAPI.events.push([
-    "postPutResources",
-    writeMarkInfo
-  ]);
+  jsPDFAPI.events.push(["postPutResources", writeMarkInfo]);
 
   /**
    * Write structure tree before finalizing PDF
    */
-  jsPDFAPI.events.push([
-    "postPutResources",
-    writeStructTree
-  ]);
+  jsPDFAPI.events.push(["postPutResources", writeStructTree]);
 
   /**
    * Add MarkInfo reference to Catalog
    */
-  jsPDFAPI.events.push([
-    "putCatalog",
-    putCatalogMarkInfo
-  ]);
+  jsPDFAPI.events.push(["putCatalog", putCatalogMarkInfo]);
 
   /**
    * Add StructTreeRoot to Catalog
    */
-  jsPDFAPI.events.push([
-    "putCatalog",
-    putCatalog
-  ]);
+  jsPDFAPI.events.push(["putCatalog", putCatalog]);
 
   /**
    * Set document language for PDF/UA
+   * Note: This extends the setlanguage.js module to also store language for PDF/UA
    * @param {string} lang - Language code (e.g., 'en-US', 'de-DE')
    * @returns {jsPDF}
    */
+  var originalSetLanguage = jsPDFAPI.setLanguage;
   jsPDFAPI.setLanguage = function(lang) {
+    // Store for PDF/UA usage
     if (!this.internal.pdfUA) {
       this.internal.pdfUA = {};
     }
     this.internal.pdfUA.language = lang;
+
+    // Call original setLanguage if it exists (for non-PDF/UA documents)
+    if (originalSetLanguage) {
+      originalSetLanguage.call(this, lang);
+    }
     return this;
   };
 
@@ -725,7 +805,7 @@ import { jsPDF } from "../jspdf.js";
     if (this.internal.pdfUA && this.internal.pdfUA.language) {
       return this.internal.pdfUA.language;
     }
-    return 'en-US'; // Default language
+    return "en-US"; // Default language
   };
 
   /**
@@ -734,14 +814,11 @@ import { jsPDF } from "../jspdf.js";
   var putCatalogLang = function() {
     if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
       var lang = this.getLanguage();
-      this.internal.write('/Lang (' + lang + ')');
+      this.internal.write("/Lang (" + lang + ")");
     }
   };
 
-  jsPDFAPI.events.push([
-    "putCatalog",
-    putCatalogLang
-  ]);
+  jsPDFAPI.events.push(["putCatalog", putCatalogLang]);
 
   /**
    * Add StructParents to each page
@@ -754,8 +831,11 @@ import { jsPDF } from "../jspdf.js";
 
     // CRITICAL FIX: Only add page structure properties if there are actual structure elements
     // These properties signal to Acrobat that content should be tagged
-    if (!this.internal.structureTree || !this.internal.structureTree.root ||
-        this.internal.structureTree.root.children.length === 0) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.root ||
+      this.internal.structureTree.root.children.length === 0
+    ) {
       return;
     }
 
@@ -763,13 +843,15 @@ import { jsPDF } from "../jspdf.js";
     // When putPage is called during PDF generation, currentPage may not match
     // the page actually being written. The event data contains the correct page number.
     var pageNumber = putPageData.pageNumber;
-    this.internal.write('/StructParents ' + (pageNumber - 1));
+    this.internal.write("/StructParents " + (pageNumber - 1));
 
     // Add Tabs entry for proper reading order
-    this.internal.write('/Tabs /S');
+    this.internal.write("/Tabs /S");
 
     // Add transparency group for proper color space handling
-    this.internal.write('/Group << /Type /Group /S /Transparency /CS /DeviceRGB >>');
+    this.internal.write(
+      "/Group << /Type /Group /S /Transparency /CS /DeviceRGB >>"
+    );
   };
 
   jsPDFAPI.events.push(["putPage", putStructParentsInPage]);
@@ -779,7 +861,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableHead = function() {
-    return this.beginStructureElement('THead');
+    return this.beginStructureElement("THead");
   };
 
   /**
@@ -787,7 +869,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableBody = function() {
-    return this.beginStructureElement('TBody');
+    return this.beginStructureElement("TBody");
   };
 
   /**
@@ -795,7 +877,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableFoot = function() {
-    return this.beginStructureElement('TFoot');
+    return this.beginStructureElement("TFoot");
   };
 
   /**
@@ -831,7 +913,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableRow = function() {
-    return this.beginStructureElement('TR');
+    return this.beginStructureElement("TR");
   };
 
   /**
@@ -840,12 +922,12 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableHeaderCell = function(scope) {
-    if (!scope || !['Row', 'Column', 'Both'].includes(scope)) {
+    if (!scope || !["Row", "Column", "Both"].includes(scope)) {
       throw new Error('Table header scope must be "Row", "Column", or "Both"');
     }
 
     // Begin TH element with scope attribute
-    this.beginStructureElement('TH', { scope: scope });
+    this.beginStructureElement("TH", { scope: scope });
 
     return this;
   };
@@ -856,7 +938,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginTableDataCell = function() {
-    return this.beginStructureElement('TD');
+    return this.beginStructureElement("TD");
   };
 
   /**
@@ -865,7 +947,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginList = function(numbered) {
-    return this.beginStructureElement('L', { numbered: numbered || false });
+    return this.beginStructureElement("L", { numbered: numbered || false });
   };
 
   /**
@@ -883,7 +965,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginListItem = function() {
-    return this.beginStructureElement('LI');
+    return this.beginStructureElement("LI");
   };
 
   /**
@@ -895,7 +977,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addListLabel = function(label, x, y) {
-    this.beginStructureElement('Lbl');
+    this.beginStructureElement("Lbl");
     this.text(label, x, y);
     this.endStructureElement();
     return this;
@@ -907,7 +989,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginListBody = function() {
-    return this.beginStructureElement('LBody');
+    return this.beginStructureElement("LBody");
   };
 
   /**
@@ -970,9 +1052,12 @@ import { jsPDF } from "../jspdf.js";
     var attributes = {};
 
     // Parse options
-    if (typeof options === 'string') {
+    if (typeof options === "string") {
       linkData.options = { url: options };
-    } else if (options && (options.url || options.pageNumber || options.placement)) {
+    } else if (
+      options &&
+      (options.url || options.pageNumber || options.placement)
+    ) {
       linkData.options = options;
       // Placement attribute for standalone (block-level) links
       if (options.placement) {
@@ -984,7 +1069,7 @@ import { jsPDF } from "../jspdf.js";
     // We'll capture text position when text is rendered
     this.internal.pdfuaLinkState.push(linkData);
 
-    return this.beginStructureElement('Link', attributes);
+    return this.beginStructureElement("Link", attributes);
   };
 
   /**
@@ -1000,7 +1085,13 @@ import { jsPDF } from "../jspdf.js";
       // Create link annotation if we have options and text bounds
       if (linkData.options && linkData.textBounds) {
         var bounds = linkData.textBounds;
-        this.link(bounds.x, bounds.y, bounds.width, bounds.height, linkData.options);
+        this.link(
+          bounds.x,
+          bounds.y,
+          bounds.width,
+          bounds.height,
+          linkData.options
+        );
       }
     }
 
@@ -1014,7 +1105,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginStrong = function() {
-    return this.beginStructureElement('Strong');
+    return this.beginStructureElement("Strong");
   };
 
   /**
@@ -1033,7 +1124,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginEmphasis = function() {
-    return this.beginStructureElement('Em');
+    return this.beginStructureElement("Em");
   };
 
   /**
@@ -1069,7 +1160,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Span', attributes);
+    return this.beginStructureElement("Span", attributes);
   };
 
   /**
@@ -1103,7 +1194,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Quote', attributes);
+    return this.beginStructureElement("Quote", attributes);
   };
 
   /**
@@ -1140,7 +1231,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('BlockQuote', attributes);
+    return this.beginStructureElement("BlockQuote", attributes);
   };
 
   /**
@@ -1187,7 +1278,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Caption', attributes);
+    return this.beginStructureElement("Caption", attributes);
   };
 
   /**
@@ -1254,9 +1345,10 @@ import { jsPDF } from "../jspdf.js";
 
     // Placement attribute - Figure is typically a block-level element.
     // Default to 'Block' for PAC compliance in alternate presentations.
-    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
+    attributes.placement =
+      options.placement !== undefined ? options.placement : "Block";
 
-    return this.beginStructureElement('Figure', attributes);
+    return this.beginStructureElement("Figure", attributes);
   };
 
   /**
@@ -1299,7 +1391,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('TOC', attributes);
+    return this.beginStructureElement("TOC", attributes);
   };
 
   /**
@@ -1345,7 +1437,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('TOCI', attributes);
+    return this.beginStructureElement("TOCI", attributes);
   };
 
   /**
@@ -1387,7 +1479,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.placement = options.placement;
     }
 
-    return this.beginStructureElement('Code', attributes);
+    return this.beginStructureElement("Code", attributes);
   };
 
   /**
@@ -1430,27 +1522,36 @@ import { jsPDF } from "../jspdf.js";
     if (options.noteId) {
       if (!this.internal.pdfuaFootnotes) {
         this.internal.pdfuaFootnotes = {
-          noteDestinations: {},  // Maps noteId -> { page, y }
-          pendingReferences: []  // References waiting for link creation
+          noteDestinations: {}, // Maps noteId -> { page, y }
+          pendingReferences: [] // References waiting for link creation
         };
       }
       this.internal.pdfuaFootnotes.currentReferenceNoteId = options.noteId;
     }
 
-    this.beginStructureElement('Reference', attributes);
+    this.beginStructureElement("Reference", attributes);
 
     // Store noteId on the Reference element for /Ref attribute (PDF/UA requirement)
-    if (options.noteId && this.internal.structureTree && this.internal.structureTree.currentParent) {
+    if (
+      options.noteId &&
+      this.internal.structureTree &&
+      this.internal.structureTree.currentParent
+    ) {
       this.internal.structureTree.currentParent.refNoteId = options.noteId;
     }
 
     // Automatic Lbl element if label is provided with position
-    if (options.label && options.labelX !== undefined && options.labelY !== undefined) {
+    if (
+      options.label &&
+      options.labelX !== undefined &&
+      options.labelY !== undefined
+    ) {
       var originalFontSize = this.getFontSize();
-      var labelFontSize = options.labelFontSize || (originalFontSize * 0.7);
-      var labelYOffset = options.labelYOffset !== undefined ? options.labelYOffset : -2;
+      var labelFontSize = options.labelFontSize || originalFontSize * 0.7;
+      var labelYOffset =
+        options.labelYOffset !== undefined ? options.labelYOffset : -2;
 
-      this.beginStructureElement('Lbl');
+      this.beginStructureElement("Lbl");
       this.setFontSize(labelFontSize);
       this.text(options.label, options.labelX, options.labelY + labelYOffset);
       this.setFontSize(originalFontSize);
@@ -1497,12 +1598,12 @@ import { jsPDF } from "../jspdf.js";
     options = options || {};
 
     var originalFontSize = this.getFontSize();
-    var labelFontSize = options.fontSize || (originalFontSize * 0.7);
+    var labelFontSize = options.fontSize || originalFontSize * 0.7;
     var yOffset = options.yOffset !== undefined ? options.yOffset : -2;
 
     this.beginReference({ noteId: options.noteId });
 
-    this.beginStructureElement('Lbl');
+    this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
     this.text(label, x, y + yOffset);
     this.setFontSize(originalFontSize);
@@ -1524,7 +1625,10 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addFootnoteLink = function(x, y, width, height, label) {
-    if (!this.internal.pdfuaFootnotes || !this.internal.pdfuaFootnotes.currentReferenceNoteId) {
+    if (
+      !this.internal.pdfuaFootnotes ||
+      !this.internal.pdfuaFootnotes.currentReferenceNoteId
+    ) {
       return this;
     }
 
@@ -1539,7 +1643,7 @@ import { jsPDF } from "../jspdf.js";
       y: y,
       width: width,
       height: height,
-      label: label || noteId  // Use label for back-link text, fallback to noteId
+      label: label || noteId // Use label for back-link text, fallback to noteId
     });
 
     // Clear current reference
@@ -1600,7 +1704,7 @@ import { jsPDF } from "../jspdf.js";
         this.internal.pdfuaNoteCounter = 0;
       }
       this.internal.pdfuaNoteCounter++;
-      noteId = 'note-' + this.internal.pdfuaNoteCounter;
+      noteId = "note-" + this.internal.pdfuaNoteCounter;
     }
     attributes.id = noteId;
 
@@ -1623,59 +1727,70 @@ import { jsPDF } from "../jspdf.js";
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
     this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
       page: pageNumber,
-      y: options.y || 0  // Y position for destination
+      y: options.y || 0 // Y position for destination
     };
 
     // Store current note info for back-link generation
     this.internal.pdfuaFootnotes.currentNoteId = noteId;
-    this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
+    this.internal.pdfuaFootnotes.currentNoteNoBackLink =
+      options.noBackLink || false;
 
-    this.beginStructureElement('Note', attributes);
+    this.beginStructureElement("Note", attributes);
 
     // Store Note structure element reference for /Ref attribute in Reference elements (PDF/UA requirement)
     if (!this.internal.pdfuaFootnotes.noteElements) {
       this.internal.pdfuaFootnotes.noteElements = {};
     }
-    this.internal.pdfuaFootnotes.noteElements[noteId] = this.internal.structureTree.currentParent;
+    this.internal.pdfuaFootnotes.noteElements[
+      noteId
+    ] = this.internal.structureTree.currentParent;
 
     // Add screen reader announcement (visually hidden)
     // Determine announcement text based on document language or option
     var announceText = options.announceText;
     if (announceText === undefined) {
       // Auto-detect based on document language
-      var lang = this.getLanguage ? this.getLanguage() : 'en';
-      if (lang && lang.toLowerCase().startsWith('de')) {
-        announceText = 'Fußnote: ';
+      var lang = this.getLanguage ? this.getLanguage() : "en";
+      if (lang && lang.toLowerCase().startsWith("de")) {
+        announceText = "Fußnote: ";
       } else {
-        announceText = 'Footnote: ';
+        announceText = "Footnote: ";
       }
     }
 
-    if (announceText !== null && announceText !== false && announceText !== '') {
+    if (
+      announceText !== null &&
+      announceText !== false &&
+      announceText !== ""
+    ) {
       // Render announcement text with minimal font size (visually hidden but readable by screen reader)
       var originalFontSize = this.getFontSize();
-      this.setFontSize(0.5);  // Very small but still readable by screen readers
+      this.setFontSize(0.5); // Very small but still readable by screen readers
 
       this.beginSpan();
-      this.text(announceText, -1000, -1000);  // Position off-page (invisible)
+      this.text(announceText, -1000, -1000); // Position off-page (invisible)
       this.endSpan();
 
       this.setFontSize(originalFontSize);
     }
 
     // Automatic Lbl element and P opening if label is provided with position
-    if (options.label && options.labelX !== undefined && options.labelY !== undefined) {
+    if (
+      options.label &&
+      options.labelX !== undefined &&
+      options.labelY !== undefined
+    ) {
       var originalFontSize = this.getFontSize();
-      var labelFontSize = options.labelFontSize || (originalFontSize * 0.8);
+      var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
-      this.beginStructureElement('Lbl');
+      this.beginStructureElement("Lbl");
       this.setFontSize(labelFontSize);
       this.text(options.label, options.labelX, options.labelY);
       this.setFontSize(originalFontSize);
       this.endStructureElement(); // /Lbl
 
       // Open P element for note content - will be closed in endNote()
-      this.beginStructureElement('P');
+      this.beginStructureElement("P");
       this.internal.pdfuaNoteAutoP = true;
     }
 
@@ -1739,29 +1854,29 @@ import { jsPDF } from "../jspdf.js";
   jsPDFAPI.addFootnote = function(options) {
     options = options || {};
 
-    var labelX = options.labelX !== undefined ? options.labelX : (options.x - 5);
+    var labelX = options.labelX !== undefined ? options.labelX : options.x - 5;
     var textArray = Array.isArray(options.text) ? options.text : [options.text];
     var lineHeight = options.lineHeight || 8;
 
     this.beginNote({
       id: options.id,
       y: options.y,
-      placement: options.placement !== undefined ? options.placement : 'Block',  // Footnotes are block-level by default
+      placement: options.placement !== undefined ? options.placement : "Block", // Footnotes are block-level by default
       announceText: options.announceText
     });
 
     // Lbl element
     var originalFontSize = this.getFontSize();
-    var labelFontSize = options.labelFontSize || (originalFontSize * 0.8);
+    var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
-    this.beginStructureElement('Lbl');
+    this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
     this.text(options.label, labelX, options.y);
     this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
     // P element with text
-    this.beginStructureElement('P');
+    this.beginStructureElement("P");
     var currentY = options.y;
     for (var i = 0; i < textArray.length; i++) {
       this.text(textArray[i], options.x, currentY);
@@ -1783,7 +1898,10 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addNoteBackLink = function(x, y) {
-    if (!this.internal.pdfuaFootnotes || !this.internal.pdfuaFootnotes.currentNoteId) {
+    if (
+      !this.internal.pdfuaFootnotes ||
+      !this.internal.pdfuaFootnotes.currentNoteId
+    ) {
       return this;
     }
 
@@ -1791,7 +1909,11 @@ import { jsPDF } from "../jspdf.js";
 
     // Find the reference that points to this note
     var ref = null;
-    for (var i = 0; i < this.internal.pdfuaFootnotes.pendingReferences.length; i++) {
+    for (
+      var i = 0;
+      i < this.internal.pdfuaFootnotes.pendingReferences.length;
+      i++
+    ) {
       if (this.internal.pdfuaFootnotes.pendingReferences[i].noteId === noteId) {
         ref = this.internal.pdfuaFootnotes.pendingReferences[i];
         break;
@@ -1799,14 +1921,14 @@ import { jsPDF } from "../jspdf.js";
     }
 
     if (!ref) {
-      return this;  // No reference found for this note
+      return this; // No reference found for this note
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
 
     // Only create back-links for cross-page references (same page has no effect)
     if (pageNumber === ref.page) {
-      return this;  // Skip same-page back-links entirely (no text, no link)
+      return this; // Skip same-page back-links entirely (no text, no link)
     }
 
     var label = ref.label;
@@ -1825,10 +1947,11 @@ import { jsPDF } from "../jspdf.js";
     var linkHeight = 10;
 
     // Store pending back-link info (includes target Y for precise navigation)
-    this.internal.pdfuaFootnotes.pendingBackLinks = this.internal.pdfuaFootnotes.pendingBackLinks || [];
+    this.internal.pdfuaFootnotes.pendingBackLinks =
+      this.internal.pdfuaFootnotes.pendingBackLinks || [];
     this.internal.pdfuaFootnotes.pendingBackLinks.push({
       targetPage: ref.page,
-      targetY: ref.y,  // Y position of the reference for precise back-navigation
+      targetY: ref.y, // Y position of the reference for precise back-navigation
       sourcePage: pageNumber,
       x: x - 1,
       y: y - 3,
@@ -1896,7 +2019,7 @@ import { jsPDF } from "../jspdf.js";
       footnotes.pendingBackLinks.forEach(function(backLink) {
         // Only create back-links for cross-page references (same page has no effect)
         if (backLink.sourcePage === backLink.targetPage) {
-          return;  // Skip same-page back-links
+          return; // Skip same-page back-links
         }
 
         // Get the page where the back-link is located (the note's page)
@@ -1918,7 +2041,7 @@ import { jsPDF } from "../jspdf.js";
           },
           options: {
             pageNumber: backLink.targetPage,
-            top: backLink.targetY  // Y position of reference for precise back-navigation
+            top: backLink.targetY // Y position of reference for precise back-navigation
           },
           type: "link",
           // PDF/UA compliance properties
@@ -1943,10 +2066,7 @@ import { jsPDF } from "../jspdf.js";
    * Hook into PDF output to create footnote links
    * Use 'buildDocument' event which fires before pages are written
    */
-  jsPDFAPI.events.push([
-    "buildDocument",
-    createFootnoteLinks
-  ]);
+  jsPDFAPI.events.push(["buildDocument", createFootnoteLinks]);
 
   /**
    * Add a link annotation reference (OBJR) to the current Link structure element
@@ -1956,15 +2076,18 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addLinkAnnotationRef = function(annotationInternalId) {
-    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.currentParent
+    ) {
       return this;
     }
 
     var currentElem = this.internal.structureTree.currentParent;
 
     // Only add to Link elements
-    if (currentElem.type !== 'Link') {
-      console.warn('addLinkAnnotationRef called outside of Link element');
+    if (currentElem.type !== "Link") {
+      console.warn("addLinkAnnotationRef called outside of Link element");
       return this;
     }
 
@@ -1981,7 +2104,9 @@ import { jsPDF } from "../jspdf.js";
       this.internal.structureTree.linkParentMap = {};
     }
     // Store reference: internalId -> Link element
-    this.internal.structureTree.linkParentMap[annotationInternalId] = currentElem;
+    this.internal.structureTree.linkParentMap[
+      annotationInternalId
+    ] = currentElem;
 
     return this;
   };
@@ -2024,7 +2149,8 @@ import { jsPDF } from "../jspdf.js";
 
     // Placement attribute - Form fields are typically block-level elements.
     // Default to 'Block' for PAC compliance in alternate presentations.
-    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
+    attributes.placement =
+      options.placement !== undefined ? options.placement : "Block";
 
     // PDF/UA requires either:
     // 1. Form has exactly one child (OBJR to widget) - OR
@@ -2032,9 +2158,9 @@ import { jsPDF } from "../jspdf.js";
     // Since we may add label text as children, we add Role attribute
     // Role can be: Rb (radio button), Cb (checkbox), Pb (push button),
     //              Tv (text value), Lb (list box)
-    attributes.role = options.role || 'Tv';  // Default to text value
+    attributes.role = options.role || "Tv"; // Default to text value
 
-    return this.beginStructureElement('Form', attributes);
+    return this.beginStructureElement("Form", attributes);
   };
 
   /**
@@ -2054,15 +2180,18 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addFormFieldRef = function(fieldInternalId) {
-    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.currentParent
+    ) {
       return this;
     }
 
     var currentElem = this.internal.structureTree.currentParent;
 
     // Only add to Form elements
-    if (currentElem.type !== 'Form') {
-      console.warn('addFormFieldRef called outside of Form element');
+    if (currentElem.type !== "Form") {
+      console.warn("addFormFieldRef called outside of Form element");
       return this;
     }
 
@@ -2079,7 +2208,9 @@ import { jsPDF } from "../jspdf.js";
       this.internal.structureTree.formFieldParentMap = {};
     }
     // Store reference: internalId -> Form element
-    this.internal.structureTree.formFieldParentMap[fieldInternalId] = currentElem;
+    this.internal.structureTree.formFieldParentMap[
+      fieldInternalId
+    ] = currentElem;
 
     return this;
   };
@@ -2191,7 +2322,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginHeader = function() {
-    return this.beginArtifact({ type: 'Pagination', subtype: 'Header' });
+    return this.beginArtifact({ type: "Pagination", subtype: "Header" });
   };
 
   /**
@@ -2207,7 +2338,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginFooter = function() {
-    return this.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
+    return this.beginArtifact({ type: "Pagination", subtype: "Footer" });
   };
 
   /**
@@ -2268,8 +2399,8 @@ import { jsPDF } from "../jspdf.js";
    * doc.endAbbreviation();
    */
   jsPDFAPI.beginAbbreviation = function(expansion, options) {
-    if (!expansion || typeof expansion !== 'string') {
-      throw new Error('Abbreviation requires expansion text');
+    if (!expansion || typeof expansion !== "string") {
+      throw new Error("Abbreviation requires expansion text");
     }
 
     options = options || {};
@@ -2280,7 +2411,7 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // Begin Span element (abbreviations use Span with /E attribute)
-    this.beginStructureElement('Span', attributes);
+    this.beginStructureElement("Span", attributes);
 
     // Store expansion text on the current element
     var currentElem = this.internal.structureTree.currentParent;
@@ -2362,8 +2493,10 @@ import { jsPDF } from "../jspdf.js";
    * doc.endFormula();
    */
   jsPDFAPI.beginFormula = function(alt, options) {
-    if (!alt || typeof alt !== 'string') {
-      throw new Error('Formula requires alternative text (alt) for PDF/UA compliance');
+    if (!alt || typeof alt !== "string") {
+      throw new Error(
+        "Formula requires alternative text (alt) for PDF/UA compliance"
+      );
     }
 
     options = options || {};
@@ -2374,12 +2507,12 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // Add placement attribute for block-level formulas
-    if (options.placement === 'Block') {
-      attributes.placement = 'Block';
+    if (options.placement === "Block") {
+      attributes.placement = "Block";
     }
 
     // Begin Formula element
-    this.beginStructureElement('Formula', attributes);
+    this.beginStructureElement("Formula", attributes);
 
     // Store alt text on the current element
     var currentElem = this.internal.structureTree.currentParent;
@@ -2472,9 +2605,10 @@ import { jsPDF } from "../jspdf.js";
     // Placement attribute - BibEntry is inline by default per PDF spec,
     // but bibliography entries are typically block-level elements.
     // Default to 'Block' for PAC compliance in alternate presentations.
-    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
+    attributes.placement =
+      options.placement !== undefined ? options.placement : "Block";
 
-    return this.beginStructureElement('BibEntry', attributes);
+    return this.beginStructureElement("BibEntry", attributes);
   };
 
   /**
@@ -2557,7 +2691,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Index', attributes);
+    return this.beginStructureElement("Index", attributes);
   };
 
   /**
@@ -2592,10 +2726,10 @@ import { jsPDF } from "../jspdf.js";
     options = options || {};
 
     this.beginListItem();
-      this.beginListBody();
-        var text = term + ', ' + pageRefs;
-        this.text(text, x, y);
-      this.endListBody();
+    this.beginListBody();
+    var text = term + ", " + pageRefs;
+    this.text(text, x, y);
+    this.endListBody();
     this.endStructureElement(); // end LI
 
     return this;
@@ -2658,7 +2792,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('NonStruct', attributes);
+    return this.beginStructureElement("NonStruct", attributes);
   };
 
   /**
@@ -2730,11 +2864,11 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // Create proper /S /Private structure element for PDF/UA compliance
-    this.beginStructureElement('Private', attributes);
+    this.beginStructureElement("Private", attributes);
 
     // Also start Artifact mode so content is ignored by screen readers
     // This is needed because screen readers don't always respect Private
-    this.beginArtifact({ type: 'Layout' });
+    this.beginArtifact({ type: "Layout" });
 
     return this;
   };
@@ -2806,7 +2940,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Art', attributes);
+    return this.beginStructureElement("Art", attributes);
   };
 
   /**
@@ -2875,7 +3009,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Sect', attributes);
+    return this.beginStructureElement("Sect", attributes);
   };
 
   /**
@@ -2932,7 +3066,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Div', attributes);
+    return this.beginStructureElement("Div", attributes);
   };
 
   /**
@@ -2996,7 +3130,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Part', attributes);
+    return this.beginStructureElement("Part", attributes);
   };
 
   /**
@@ -3080,7 +3214,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Ruby', attributes);
+    return this.beginStructureElement("Ruby", attributes);
   };
 
   /**
@@ -3112,7 +3246,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.RubyAlign = options.rubyAlign;
     }
 
-    return this.beginStructureElement('RB', attributes);
+    return this.beginStructureElement("RB", attributes);
   };
 
   /**
@@ -3157,7 +3291,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.placement = options.placement;
     }
 
-    return this.beginStructureElement('RT', attributes);
+    return this.beginStructureElement("RT", attributes);
   };
 
   /**
@@ -3180,7 +3314,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginRubyPunctuation = function() {
-    return this.beginStructureElement('RP');
+    return this.beginStructureElement("RP");
   };
 
   /**
@@ -3244,7 +3378,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Warichu', attributes);
+    return this.beginStructureElement("Warichu", attributes);
   };
 
   /**
@@ -3263,7 +3397,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginWarichuText = function() {
-    return this.beginStructureElement('WT');
+    return this.beginStructureElement("WT");
   };
 
   /**
@@ -3286,7 +3420,7 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginWarichuPunctuation = function() {
-    return this.beginStructureElement('WP');
+    return this.beginStructureElement("WP");
   };
 
   /**
@@ -3360,7 +3494,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('DocumentFragment', attributes);
+    return this.beginStructureElement("DocumentFragment", attributes);
   };
 
   /**
@@ -3449,7 +3583,7 @@ import { jsPDF } from "../jspdf.js";
       attributes.lang = options.lang;
     }
 
-    return this.beginStructureElement('Aside', attributes);
+    return this.beginStructureElement("Aside", attributes);
   };
 
   /**
@@ -3506,12 +3640,17 @@ import { jsPDF } from "../jspdf.js";
     // Placement attribute - Annot is inline by default per PDF spec,
     // but annotations are typically standalone block-level elements.
     // Default to 'Block' for PAC compliance in alternate presentations.
-    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
+    attributes.placement =
+      options.placement !== undefined ? options.placement : "Block";
 
-    var element = this.beginStructureElement('Annot', attributes);
+    var element = this.beginStructureElement("Annot", attributes);
 
     // Store alt text for the annotation on the current structure element
-    if (options.alt && this.internal.structureTree && this.internal.structureTree.currentParent) {
+    if (
+      options.alt &&
+      this.internal.structureTree &&
+      this.internal.structureTree.currentParent
+    ) {
       this.internal.structureTree.currentParent.alt = options.alt;
     }
 
@@ -3534,7 +3673,10 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.addAnnotationRef = function(annotObjId) {
-    if (!this.internal.structureTree || !this.internal.structureTree.currentParent) {
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.currentParent
+    ) {
       return this;
     }
 
@@ -3555,7 +3697,6 @@ import { jsPDF } from "../jspdf.js";
 
     return this;
   };
-
 })(jsPDF.API);
 
 export default jsPDF;

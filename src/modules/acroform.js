@@ -579,35 +579,44 @@ var createFieldCallback = function(fieldArray, scope) {
       }
 
       // PDF/UA: Add StructParent for widget annotation connection to structure tree
-      if (scope.isPDFUAEnabled && scope.isPDFUAEnabled() && fieldObject._pdfuaInternalId) {
+      if (
+        scope.isPDFUAEnabled &&
+        scope.isPDFUAEnabled() &&
+        fieldObject._pdfuaInternalId
+      ) {
         // Get the next StructParent index
         if (!scope.internal.pdfuaFormFieldStructParentCounter) {
           // Start after page StructParents (use a high offset to avoid conflicts)
           // Pages use 0, 1, 2, ... so we start form fields at a higher range
           scope.internal.pdfuaFormFieldStructParentCounter = 1000;
         }
-        var structParentIndex = scope.internal.pdfuaFormFieldStructParentCounter++;
+        var structParentIndex = scope.internal
+          .pdfuaFormFieldStructParentCounter++;
         keyValueList.push({ key: "StructParent", value: structParentIndex });
 
         // Store the mapping from internal ID to actual object ID for OBJR resolution
         if (!scope.internal.pdfuaFormFieldIdMap) {
           scope.internal.pdfuaFormFieldIdMap = {};
         }
-        scope.internal.pdfuaFormFieldIdMap[fieldObject._pdfuaInternalId] = fieldObject.objId;
+        scope.internal.pdfuaFormFieldIdMap[fieldObject._pdfuaInternalId] =
+          fieldObject.objId;
 
         // Store the StructParent index for ParentTree entry
         // This mapping is used by structure_tree.js to add form fields to ParentTree
         if (!scope.internal.pdfuaFormFieldStructParentMap) {
           scope.internal.pdfuaFormFieldStructParentMap = {};
         }
-        scope.internal.pdfuaFormFieldStructParentMap[fieldObject._pdfuaInternalId] = structParentIndex;
+        scope.internal.pdfuaFormFieldStructParentMap[
+          fieldObject._pdfuaInternalId
+        ] = structParentIndex;
 
         // Store the page number for OBJR /Pg reference
         // This is required by PDF/UA for proper structure tree linkage
         if (!scope.internal.pdfuaFormFieldPageMap) {
           scope.internal.pdfuaFormFieldPageMap = {};
         }
-        scope.internal.pdfuaFormFieldPageMap[fieldObject._pdfuaInternalId] = fieldObject.page;
+        scope.internal.pdfuaFormFieldPageMap[fieldObject._pdfuaInternalId] =
+          fieldObject.page;
 
         // PDF/UA: Add/Replace DA (Default Appearance) for text and choice fields
         // This is required for screen readers to recognize form fields
@@ -1015,10 +1024,21 @@ var AcroFormDictionary = function() {
 
   // NeedAppearances - tells the PDF reader to generate appearance streams
   // This is important for form fields to be interactive and accessible
+  // Only set for PDF/UA documents to maintain backward compatibility
   Object.defineProperty(this, "NeedAppearances", {
     enumerable: false,
     configurable: false,
-    value: true
+    get: function() {
+      // Only return true for PDF/UA documents
+      if (
+        this.scope &&
+        this.scope.isPDFUAEnabled &&
+        this.scope.isPDFUAEnabled()
+      ) {
+        return true;
+      }
+      return undefined;
+    }
   });
 
   // Default Appearance
@@ -3323,8 +3343,10 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   // Strict validation for PDF/UA
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' +
-        'Provide a tooltip that describes the field for screen reader users.');
+      throw new Error(
+        "PDF/UA: tooltip is required for accessible form fields. " +
+          "Provide a tooltip that describes the field for screen reader users."
+      );
     }
   }
 
@@ -3335,25 +3357,25 @@ jsPDFAPI.addAccessibleTextField = function(options) {
 
   // Begin Form structure element with Tv (text value) role
   if (this.beginFormField) {
-    this.beginFormField({ role: 'Tv' });  // Tv = text value
+    this.beginFormField({ role: "Tv" }); // Tv = text value
   }
 
   // Add visible label as P element within Form
   if (labelText && this.beginStructureElement) {
-    this.beginStructureElement('P');
-    this.text(labelText + (options.required ? ' *' : ''), labelX, labelY);
+    this.beginStructureElement("P");
+    this.text(labelText + (options.required ? " *" : ""), labelX, labelY);
     this.endStructureElement();
   }
 
   // Draw visible field border as artifact (decorative, not part of content)
   if (this.beginArtifact) {
-    this.beginArtifact({ type: 'Layout' });
+    this.beginArtifact({ type: "Layout" });
   }
   var borderColor = options.borderColor || [0, 0, 0]; // Default: black
   var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
   this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
   this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
-  this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+  this.rect(options.x, options.y, options.width, options.height, "FD"); // Fill and Draw
   if (this.endArtifact) {
     this.endArtifact();
   }
@@ -3365,12 +3387,12 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   field.width = options.width;
   field.height = options.height;
   field.fieldName = options.name;
-  field.V = options.value || '';
+  field.V = options.value || "";
 
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += ' (Pflichtfeld)';
+    tooltipText += " (Pflichtfeld)";
   }
   field.TU = tooltipText;
 
@@ -3434,8 +3456,10 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   // Strict validation for PDF/UA
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' +
-        'Provide a tooltip that describes the checkbox for screen reader users.');
+      throw new Error(
+        "PDF/UA: tooltip is required for accessible form fields. " +
+          "Provide a tooltip that describes the checkbox for screen reader users."
+      );
     }
   }
 
@@ -3444,14 +3468,18 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField({ role: 'Cb' });  // Cb = checkbox
+    this.beginFormField({ role: "Cb" }); // Cb = checkbox
   }
 
   // Render visible label next to checkbox
   var labelText = options.label || options.tooltip;
   if (labelText && this.beginStructureElement) {
-    this.beginStructureElement('P');
-    this.text(labelText + (options.required ? ' *' : ''), options.x + boxWidth + 5, options.y + boxHeight - 3);
+    this.beginStructureElement("P");
+    this.text(
+      labelText + (options.required ? " *" : ""),
+      options.x + boxWidth + 5,
+      options.y + boxHeight - 3
+    );
     this.endStructureElement();
   }
 
@@ -3467,7 +3495,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   // ZapfDingbats is not embedded by default and lacks ToUnicode mapping
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     field.fontName = "helvetica";
-    field.caption = "X";  // Use "X" as checkbox symbol instead of ZapfDingbats checkmark
+    field.caption = "X"; // Use "X" as checkbox symbol instead of ZapfDingbats checkmark
     // Regenerate appearance stream with the new font
     field.appearanceStreamContent = null; // Clear to regenerate
   }
@@ -3475,14 +3503,14 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += ' (Pflichtfeld)';
+    tooltipText += " (Pflichtfeld)";
   }
   field.TU = tooltipText;
 
   // Initial state
   if (options.checked) {
-    field.AS = '/Yes';
-    field.V = '/Yes';
+    field.AS = "/Yes";
+    field.V = "/Yes";
   }
 
   // Add the field
@@ -3537,8 +3565,10 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
   // Strict validation for PDF/UA
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' +
-        'Provide a tooltip that describes the dropdown for screen reader users.');
+      throw new Error(
+        "PDF/UA: tooltip is required for accessible form fields. " +
+          "Provide a tooltip that describes the dropdown for screen reader users."
+      );
     }
   }
 
@@ -3548,24 +3578,24 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField({ role: 'Lb' });  // Lb = listbox/combobox
+    this.beginFormField({ role: "Lb" }); // Lb = listbox/combobox
   }
 
   if (labelText && this.beginStructureElement) {
-    this.beginStructureElement('P');
-    this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
+    this.beginStructureElement("P");
+    this.text(labelText + (options.required ? " *" : ""), options.x, labelY);
     this.endStructureElement();
   }
 
   // Draw visible field border as artifact (decorative, not part of content)
   if (this.beginArtifact) {
-    this.beginArtifact({ type: 'Layout' });
+    this.beginArtifact({ type: "Layout" });
   }
   var borderColor = options.borderColor || [0, 0, 0]; // Default: black
   var bgColor = options.backgroundColor || [255, 255, 255]; // Default: white
   this.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
   this.setFillColor(bgColor[0], bgColor[1], bgColor[2]);
-  this.rect(options.x, options.y, options.width, options.height, 'FD'); // Fill and Draw
+  this.rect(options.x, options.y, options.width, options.height, "FD"); // Fill and Draw
   if (this.endArtifact) {
     this.endArtifact();
   }
@@ -3586,7 +3616,7 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += ' (Pflichtfeld)';
+    tooltipText += " (Pflichtfeld)";
   }
   field.TU = tooltipText;
 
@@ -3642,8 +3672,10 @@ jsPDFAPI.addAccessibleListBox = function(options) {
   // Strict validation for PDF/UA
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' +
-        'Provide a tooltip that describes the list for screen reader users.');
+      throw new Error(
+        "PDF/UA: tooltip is required for accessible form fields. " +
+          "Provide a tooltip that describes the list for screen reader users."
+      );
     }
   }
 
@@ -3653,12 +3685,12 @@ jsPDFAPI.addAccessibleListBox = function(options) {
 
   // Begin Form structure element
   if (this.beginFormField) {
-    this.beginFormField({ role: 'Lb' });  // Lb = listbox
+    this.beginFormField({ role: "Lb" }); // Lb = listbox
   }
 
   if (labelText && this.beginStructureElement) {
-    this.beginStructureElement('P');
-    this.text(labelText + (options.required ? ' *' : ''), options.x, labelY);
+    this.beginStructureElement("P");
+    this.text(labelText + (options.required ? " *" : ""), options.x, labelY);
     this.endStructureElement();
   }
 
@@ -3678,7 +3710,7 @@ jsPDFAPI.addAccessibleListBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += ' (Pflichtfeld)';
+    tooltipText += " (Pflichtfeld)";
   }
   field.TU = tooltipText;
 
@@ -3745,8 +3777,10 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
   // Strict validation for PDF/UA
   if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for accessible form fields. ' +
-        'Provide a tooltip that describes the radio group for screen reader users.');
+      throw new Error(
+        "PDF/UA: tooltip is required for accessible form fields. " +
+          "Provide a tooltip that describes the radio group for screen reader users."
+      );
     }
   }
 
@@ -3760,13 +3794,13 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += ' (Pflichtfeld)';
+    tooltipText += " (Pflichtfeld)";
   }
   radioGroup.TU = tooltipText;
 
   // Default value
   if (options.value) {
-    radioGroup.V = '/' + options.value;
+    radioGroup.V = "/" + options.value;
   }
 
   // Add each button as a child
@@ -3775,12 +3809,12 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
 
     // Begin Form structure element for each button
     if (this.beginFormField) {
-      this.beginFormField({ role: 'Rb' });  // Rb = radio button
+      this.beginFormField({ role: "Rb" }); // Rb = radio button
     }
 
     // Render visible label
     if (btn.label && this.beginStructureElement) {
-      this.beginStructureElement('P');
+      this.beginStructureElement("P");
       this.text(btn.label, btn.x + buttonSize + 5, btn.y + buttonSize - 3);
       this.endStructureElement();
     }
@@ -3788,7 +3822,7 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
     // Create radio button option
     var radioOption = radioGroup.createOption(btn.value);
     radioOption.Rect = [btn.x, btn.y, buttonSize, buttonSize];
-    radioOption.AS = options.value === btn.value ? '/' + btn.value : '/Off';
+    radioOption.AS = options.value === btn.value ? "/" + btn.value : "/Off";
 
     // End Form structure element
     if (this.endFormField) {
