@@ -409,6 +409,15 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write('/ID (' + escapedId + ')');
       }
 
+      // Ref attribute (for Reference elements pointing to Note elements - PDF/UA requirement)
+      // Per ISO 14289-1, Reference elements should have /Ref pointing to the referenced structure element
+      if (elem.type === 'Reference' && elem.refNoteId && this.internal.pdfuaFootnotes && this.internal.pdfuaFootnotes.noteElements) {
+        var noteElem = this.internal.pdfuaFootnotes.noteElements[elem.refNoteId];
+        if (noteElem && noteElem.objectNumber) {
+          this.internal.write('/Ref [' + noteElem.objectNumber + ' 0 R]');
+        }
+      }
+
       // Attribute dictionary (for table headers, formula placement, form role, bbox, etc.)
       if (elem.attributes && (elem.attributes.scope || elem.attributes.placement || elem.attributes.role || elem.attributes.bbox)) {
         var attrParts = [];
@@ -926,18 +935,24 @@ import { jsPDF } from "../jspdf.js";
    * @param {string|Object} [options] - URL string or options object
    * @param {string} [options.url] - External URL
    * @param {number} [options.pageNumber] - Internal page number (1-based)
+   * @param {string} [options.placement] - 'Block' for standalone links, omit for inline.
+   *        Use 'Block' when link is not inside a paragraph (P) element.
+   *        Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
-   * // External link
+   * // External link (inline in paragraph)
+   * doc.beginStructureElement('P');
+   * doc.text('Visit ', 20, 50);
    * doc.beginLink('https://example.com');
-   * doc.text('Click here', 20, 50);
+   * doc.text('our website', 35, 50);
    * doc.endLink();
+   * doc.endStructureElement();
    *
    * @example
-   * // Internal link to page 3
-   * doc.beginLink({ pageNumber: 3 });
-   * doc.text('Go to page 3', 20, 50);
+   * // Standalone link (block-level)
+   * doc.beginLink({ url: 'https://example.com', placement: 'Block' });
+   * doc.text('Click here', 20, 50);
    * doc.endLink();
    */
   jsPDFAPI.beginLink = function(options) {
@@ -952,18 +967,24 @@ import { jsPDF } from "../jspdf.js";
       options: null
     };
 
+    var attributes = {};
+
     // Parse options
     if (typeof options === 'string') {
       linkData.options = { url: options };
-    } else if (options && (options.url || options.pageNumber)) {
+    } else if (options && (options.url || options.pageNumber || options.placement)) {
       linkData.options = options;
+      // Placement attribute for standalone (block-level) links
+      if (options.placement) {
+        attributes.placement = options.placement;
+      }
     }
 
     // Store current position as link start
     // We'll capture text position when text is rendered
     this.internal.pdfuaLinkState.push(linkData);
 
-    return this.beginStructureElement('Link');
+    return this.beginStructureElement('Link', attributes);
   };
 
   /**
@@ -1208,6 +1229,8 @@ import { jsPDF } from "../jspdf.js";
    *        Can be array [x, y, width, height] or object {x, y, width, height}.
    *        Coordinates are in points from bottom-left of page.
    *        Recommended for accessibility (PAC checker).
+   * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Figures are
+   *        typically block-level. Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginFigure = function(options) {
@@ -1228,6 +1251,10 @@ import { jsPDF } from "../jspdf.js";
     if (options.bbox) {
       attributes.bbox = options.bbox;
     }
+
+    // Placement attribute - Figure is typically a block-level element.
+    // Default to 'Block' for PAC compliance in alternate presentations.
+    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
 
     return this.beginStructureElement('Figure', attributes);
   };
@@ -1342,6 +1369,8 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.lang] - Language code (e.g., 'en-US', 'de-DE') for code comments
+   * @param {string} [options.placement] - 'Block' for block-level code, omit for inline.
+   *        Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginCode = function(options) {
@@ -1351,6 +1380,11 @@ import { jsPDF } from "../jspdf.js";
     // If language is specified, store it for BDC operator
     if (options.lang) {
       attributes.lang = options.lang;
+    }
+
+    // Placement attribute for block-level code sections
+    if (options.placement) {
+      attributes.placement = options.placement;
     }
 
     return this.beginStructureElement('Code', attributes);
@@ -1375,8 +1409,17 @@ import { jsPDF } from "../jspdf.js";
    * - Endnote references
    * - Cross-references to notes
    *
+   * If label, labelX, and labelY are provided, an Lbl element is automatically
+   * created with the label text rendered as superscript.
+   *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.noteId] - ID of the Note to link to (creates clickable link)
+   * @param {string} [options.label] - Label text (e.g., '¹', '²', '*'). If provided with
+   *                                   labelX and labelY, automatically creates Lbl element.
+   * @param {number} [options.labelX] - X position for the label
+   * @param {number} [options.labelY] - Y position for the label (baseline)
+   * @param {number} [options.labelFontSize] - Font size for label (default: 70% of current)
+   * @param {number} [options.labelYOffset] - Y offset for superscript (default: -2)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginReference = function(options) {
@@ -1394,7 +1437,27 @@ import { jsPDF } from "../jspdf.js";
       this.internal.pdfuaFootnotes.currentReferenceNoteId = options.noteId;
     }
 
-    return this.beginStructureElement('Reference', attributes);
+    this.beginStructureElement('Reference', attributes);
+
+    // Store noteId on the Reference element for /Ref attribute (PDF/UA requirement)
+    if (options.noteId && this.internal.structureTree && this.internal.structureTree.currentParent) {
+      this.internal.structureTree.currentParent.refNoteId = options.noteId;
+    }
+
+    // Automatic Lbl element if label is provided with position
+    if (options.label && options.labelX !== undefined && options.labelY !== undefined) {
+      var originalFontSize = this.getFontSize();
+      var labelFontSize = options.labelFontSize || (originalFontSize * 0.7);
+      var labelYOffset = options.labelYOffset !== undefined ? options.labelYOffset : -2;
+
+      this.beginStructureElement('Lbl');
+      this.setFontSize(labelFontSize);
+      this.text(options.label, options.labelX, options.labelY + labelYOffset);
+      this.setFontSize(originalFontSize);
+      this.endStructureElement(); // /Lbl
+    }
+
+    return this;
   };
 
   /**
@@ -1404,6 +1467,50 @@ import { jsPDF } from "../jspdf.js";
    */
   jsPDFAPI.endReference = function() {
     return this.endStructureElement();
+  };
+
+  /**
+   * Add a complete footnote reference (superscript number) in one call
+   * Creates the structure: Reference > Lbl > text
+   *
+   * This is a convenience method that combines beginReference, Lbl element,
+   * text rendering, and endReference into a single call.
+   *
+   * @param {string} label - The label text (e.g., '¹', '²', '*', '†')
+   * @param {number} x - X position for the label
+   * @param {number} y - Y position (baseline) for the label
+   * @param {Object} [options] - Optional settings
+   * @param {string} [options.noteId] - ID of the associated Note for linking
+   * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
+   * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple footnote reference
+   * doc.text('Some important text', 20, 40);
+   * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1' });
+   *
+   * // With custom formatting
+   * doc.addFootnoteRef('*', 100, 50, { noteId: 'fn2', fontSize: 8, yOffset: -3 });
+   */
+  jsPDFAPI.addFootnoteRef = function(label, x, y, options) {
+    options = options || {};
+
+    var originalFontSize = this.getFontSize();
+    var labelFontSize = options.fontSize || (originalFontSize * 0.7);
+    var yOffset = options.yOffset !== undefined ? options.yOffset : -2;
+
+    this.beginReference({ noteId: options.noteId });
+
+    this.beginStructureElement('Lbl');
+    this.setFontSize(labelFontSize);
+    this.text(label, x, y + yOffset);
+    this.setFontSize(originalFontSize);
+    this.endStructureElement(); // /Lbl
+
+    this.endReference();
+
+    return this;
   };
 
   /**
@@ -1461,13 +1568,25 @@ import { jsPDF } from "../jspdf.js";
    * automatically added for screen readers. This text is positioned off-page
    * and invisible to sighted users but readable by assistive technology.
    *
+   * If label is provided with labelX and labelY, an Lbl element is automatically
+   * created and a P element is opened for the note content. The P element will
+   * be automatically closed when endNote() is called.
+   *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.id] - Unique ID (required for PDF/UA compliance)
+   * @param {string} [options.placement] - 'Block' for block-level notes (footnotes/endnotes).
+   *        Note is inline by default. Use 'Block' for footnotes at page bottom.
+   *        Required by PAC for correct presentation in alternate formats.
    * @param {number} [options.y] - Y position of the note (for link destination)
    * @param {boolean} [options.noBackLink] - Set to true to disable automatic back-link
    * @param {string|null|false} [options.announceText] - Custom announcement text for screen readers.
    *        Defaults to "Fußnote: " (German) or "Footnote: " (other languages).
    *        Set to null or false to disable announcement.
+   * @param {string} [options.label] - Label text (e.g., '¹'). If provided with labelX and labelY,
+   *                                   automatically creates Lbl element and opens P element.
+   * @param {number} [options.labelX] - X position for the label
+   * @param {number} [options.labelY] - Y position for the label
+   * @param {number} [options.labelFontSize] - Font size for label (default: 80% of current)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginNote = function(options) {
@@ -1484,6 +1603,13 @@ import { jsPDF } from "../jspdf.js";
       noteId = 'note-' + this.internal.pdfuaNoteCounter;
     }
     attributes.id = noteId;
+
+    // Placement attribute - Note is inline by default, but footnotes/endnotes
+    // are typically block-level elements and need /Placement /Block
+    // This is required by PAC for correct presentation in alternate formats
+    if (options.placement) {
+      attributes.placement = options.placement;
+    }
 
     // Register note destination for footnote links
     if (!this.internal.pdfuaFootnotes) {
@@ -1505,6 +1631,12 @@ import { jsPDF } from "../jspdf.js";
     this.internal.pdfuaFootnotes.currentNoteNoBackLink = options.noBackLink || false;
 
     this.beginStructureElement('Note', attributes);
+
+    // Store Note structure element reference for /Ref attribute in Reference elements (PDF/UA requirement)
+    if (!this.internal.pdfuaFootnotes.noteElements) {
+      this.internal.pdfuaFootnotes.noteElements = {};
+    }
+    this.internal.pdfuaFootnotes.noteElements[noteId] = this.internal.structureTree.currentParent;
 
     // Add screen reader announcement (visually hidden)
     // Determine announcement text based on document language or option
@@ -1531,16 +1663,115 @@ import { jsPDF } from "../jspdf.js";
       this.setFontSize(originalFontSize);
     }
 
+    // Automatic Lbl element and P opening if label is provided with position
+    if (options.label && options.labelX !== undefined && options.labelY !== undefined) {
+      var originalFontSize = this.getFontSize();
+      var labelFontSize = options.labelFontSize || (originalFontSize * 0.8);
+
+      this.beginStructureElement('Lbl');
+      this.setFontSize(labelFontSize);
+      this.text(options.label, options.labelX, options.labelY);
+      this.setFontSize(originalFontSize);
+      this.endStructureElement(); // /Lbl
+
+      // Open P element for note content - will be closed in endNote()
+      this.beginStructureElement('P');
+      this.internal.pdfuaNoteAutoP = true;
+    }
+
     return this;
   };
 
   /**
    * End a Note element
-   * Convenience method for doc.endStructureElement()
+   * Automatically closes P element if it was opened by beginNote({ label }).
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.endNote = function() {
-    return this.endStructureElement();
+    // Automatically close P if it was opened by beginNote({ label })
+    if (this.internal.pdfuaNoteAutoP) {
+      this.endStructureElement(); // /P
+      this.internal.pdfuaNoteAutoP = false;
+    }
+    return this.endStructureElement(); // /Note
+  };
+
+  /**
+   * Add a complete footnote in one call
+   * Creates the structure: Note > [SR-announcement] > Lbl > P > text
+   *
+   * This is a convenience method that creates a complete footnote with
+   * proper PDF/UA structure in a single call.
+   *
+   * @param {Object} options - Footnote configuration
+   * @param {string} options.id - Unique ID for the Note (required for PDF/UA)
+   * @param {string} options.label - The label text (e.g., '¹', '²', '*')
+   * @param {string|string[]} options.text - The footnote text (string or array for multiline)
+   * @param {number} options.x - X position for the text
+   * @param {number} options.y - Y position for the first line
+   * @param {number} [options.labelX] - X position for the label (default: x - 5)
+   * @param {number} [options.lineHeight] - Line spacing for multiline text (default: 8)
+   * @param {number} [options.labelFontSize] - Font size for label (default: 80% of current)
+   * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Footnotes are block-level by default.
+   * @param {string|null|false} [options.announceText] - Custom SR announcement (default: auto)
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Simple footnote
+   * doc.addFootnote({
+   *   id: 'fn1',
+   *   label: '¹',
+   *   text: 'ISO 14289-1:2014, Document management',
+   *   x: 25,
+   *   y: 260
+   * });
+   *
+   * // Multiline footnote
+   * doc.addFootnote({
+   *   id: 'fn2',
+   *   label: '²',
+   *   text: ['First line of the footnote.', 'Second line continues here.'],
+   *   x: 25,
+   *   y: 275,
+   *   lineHeight: 10
+   * });
+   */
+  jsPDFAPI.addFootnote = function(options) {
+    options = options || {};
+
+    var labelX = options.labelX !== undefined ? options.labelX : (options.x - 5);
+    var textArray = Array.isArray(options.text) ? options.text : [options.text];
+    var lineHeight = options.lineHeight || 8;
+
+    this.beginNote({
+      id: options.id,
+      y: options.y,
+      placement: options.placement !== undefined ? options.placement : 'Block',  // Footnotes are block-level by default
+      announceText: options.announceText
+    });
+
+    // Lbl element
+    var originalFontSize = this.getFontSize();
+    var labelFontSize = options.labelFontSize || (originalFontSize * 0.8);
+
+    this.beginStructureElement('Lbl');
+    this.setFontSize(labelFontSize);
+    this.text(options.label, labelX, options.y);
+    this.setFontSize(originalFontSize);
+    this.endStructureElement(); // /Lbl
+
+    // P element with text
+    this.beginStructureElement('P');
+    var currentY = options.y;
+    for (var i = 0; i < textArray.length; i++) {
+      this.text(textArray[i], options.x, currentY);
+      currentY += lineHeight;
+    }
+    this.endStructureElement(); // /P
+
+    this.endNote();
+
+    return this;
   };
 
   /**
@@ -1771,6 +2002,8 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {Object} [options] - Options for the form element
    * @param {string} [options.lang] - Language code for form field labels
+   * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Form fields are
+   *        typically block-level. Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
@@ -1788,6 +2021,10 @@ import { jsPDF } from "../jspdf.js";
     if (options.lang) {
       attributes.lang = options.lang;
     }
+
+    // Placement attribute - Form fields are typically block-level elements.
+    // Default to 'Block' for PAC compliance in alternate presentations.
+    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
 
     // PDF/UA requires either:
     // 1. Form has exactly one child (OBJR to widget) - OR
@@ -2177,6 +2414,7 @@ import { jsPDF } from "../jspdf.js";
    *
    * Note: BibEntry is an inline-level element in PDF/UA-1.
    * In PDF 2.0, BibEntry is no longer encouraged but still valid.
+   * When used as block-level (standalone entries), set placement: 'Block'.
    *
    * Use BibEntry for:
    * - Academic paper references
@@ -2186,6 +2424,8 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.lang] - Language code for the entry
+   * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Bibliography entries
+   *        are typically block-level. Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
@@ -2228,6 +2468,11 @@ import { jsPDF } from "../jspdf.js";
     if (options.lang) {
       attributes.lang = options.lang;
     }
+
+    // Placement attribute - BibEntry is inline by default per PDF spec,
+    // but bibliography entries are typically block-level elements.
+    // Default to 'Block' for PAC compliance in alternate presentations.
+    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
 
     return this.beginStructureElement('BibEntry', attributes);
   };
@@ -2891,6 +3136,8 @@ import { jsPDF } from "../jspdf.js";
    *                                       'Justify', 'Distribute' (default: 'Distribute')
    * @param {string} [options.rubyPosition] - Position: 'Before', 'After', 'Warichu',
    *                                          'Inline' (default: 'Before')
+   * @param {string} [options.placement] - 'Block' or 'Inline' (default: 'Inline').
+   *        RT is inline by default. Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
   jsPDFAPI.beginRubyText = function(options) {
@@ -2902,6 +3149,12 @@ import { jsPDF } from "../jspdf.js";
     }
     if (options.rubyPosition) {
       attributes.RubyPosition = options.rubyPosition;
+    }
+
+    // Placement attribute - RT is inline by default per PDF spec.
+    // Required by PAC for correct presentation in alternate formats.
+    if (options.placement) {
+      attributes.placement = options.placement;
     }
 
     return this.beginStructureElement('RT', attributes);
@@ -3227,6 +3480,8 @@ import { jsPDF } from "../jspdf.js";
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.alt] - Alternative text for the annotation
    * @param {string} [options.lang] - Language code for the annotation content
+   * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Annotations are
+   *        typically block-level. Required by PAC for correct alternate presentations.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
@@ -3247,6 +3502,11 @@ import { jsPDF } from "../jspdf.js";
     if (options.lang) {
       attributes.lang = options.lang;
     }
+
+    // Placement attribute - Annot is inline by default per PDF spec,
+    // but annotations are typically standalone block-level elements.
+    // Default to 'Block' for PAC compliance in alternate presentations.
+    attributes.placement = options.placement !== undefined ? options.placement : 'Block';
 
     var element = this.beginStructureElement('Annot', attributes);
 

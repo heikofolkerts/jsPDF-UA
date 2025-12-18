@@ -55,7 +55,7 @@ doc.setLanguage('en-US');
 // ============================================================================
 doc.outline.add(null, '1. Introduction', { pageNumber: 1 });
 doc.outline.add(null, '2. Text Elements', { pageNumber: 1 });
-doc.outline.add(null, '3. Lists', { pageNumber: 1 });
+doc.outline.add(null, '3. Lists', { pageNumber: 2 });
 doc.outline.add(null, '4. Tables', { pageNumber: 2 });
 doc.outline.add(null, '5. Links', { pageNumber: 2 });
 doc.outline.add(null, '6. Forms', { pageNumber: 3 });
@@ -87,25 +87,34 @@ doc.setFont(undefined, 'bold');
 doc.text('PDF/UA Complete Feature Showcase', 20, 25);
 doc.endStructureElement();
 
-doc.beginStructureElement('P');
-doc.setFontSize(11);
-doc.setFont(undefined, 'normal');
-doc.text('This document demonstrates all PDF/UA accessibility features implemented in jsPDF.', 20, 38);
-doc.text('It serves as a comprehensive test case for accessibility validation tools.', 20, 45);
-doc.endStructureElement();
+// --- Section 1: Introduction ---
+doc.beginSect();
+  doc.beginStructureElement('H2');
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('1. Introduction', 20, 40);
+  doc.endStructureElement();
+
+  doc.beginStructureElement('P');
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'normal');
+  doc.text('This document demonstrates all PDF/UA accessibility features implemented in jsPDF.', 20, 52);
+  doc.text('It serves as a comprehensive test case for accessibility validation tools.', 20, 59);
+  doc.endStructureElement();
+doc.endSect();
 
 // --- Table of Contents ---
 doc.beginStructureElement('H2');
 doc.setFontSize(14);
 doc.setFont(undefined, 'bold');
-doc.text('Table of Contents', 20, 62);
+doc.text('Table of Contents', 20, 75);
 doc.endStructureElement();
 
 doc.beginTOC();
   const tocItems = [
     { title: '1. Introduction', page: 1 },
     { title: '2. Text Elements', page: 1 },
-    { title: '3. Lists', page: 1 },
+    { title: '3. Lists', page: 2 },
     { title: '4. Tables', page: 2 },
     { title: '5. Links', page: 2 },
     { title: '6. Forms', page: 3 },
@@ -117,16 +126,16 @@ doc.beginTOC();
     { title: '12. Bibliography', page: 6 }
   ];
 
-  let tocY = 75;
+  let tocY = 88;
   doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
   tocItems.forEach(item => {
     doc.beginTOCI();
-      doc.beginReference();
-      doc.beginLink({ pageNumber: item.page });
-      doc.text(item.title + ' ' + '.'.repeat(50 - item.title.length) + ' ' + item.page, 25, tocY);
+      // TOC links don't need Reference wrapper - Reference is for footnotes with /Ref to Note elements
+      // Simple structure: TOCI > Link with OBJR
+      doc.beginLink();
+      doc.textWithLink(item.title + ' ' + '.'.repeat(50 - item.title.length) + ' ' + item.page, 25, tocY, { pageNumber: item.page });
       doc.endLink();
-      doc.endReference();
     doc.endTOCI();
     tocY += 8;
   });
@@ -365,7 +374,7 @@ doc.beginSect();
   doc.endStructureElement();
 
   // External link using textWithLink for proper link annotation
-  doc.beginLink();
+  doc.beginLink({ placement: 'Block' });
   doc.setTextColor(0, 0, 255);
   doc.textWithLink('jsPDF on GitHub', 52, 253, { url: 'https://github.com/parallax/jsPDF' });
   doc.setTextColor(0, 0, 0);
@@ -376,7 +385,7 @@ doc.beginSect();
   doc.endStructureElement();
 
   // Internal link to page 6
-  doc.beginLink();
+  doc.beginLink({ placement: 'Block' });
   doc.setTextColor(0, 0, 255);
   doc.textWithLink('Jump to Bibliography (Page 6)', 51, 265, { pageNumber: 6 });
   doc.setTextColor(0, 0, 0);
@@ -551,37 +560,66 @@ doc.beginSect();
   doc.text('8. Footnotes and References', 20, 25);
   doc.endStructureElement();
 
+  // Single paragraph with inline footnote references (correct PDF/UA structure)
   doc.beginStructureElement('P');
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
-  doc.text('PDF/UA (Universal Accessibility) is an ISO standard', 20, 40);
-  doc.beginReference();
-  doc.text('¹', 150, 38);
-  doc.endReference();
-  doc.text(' that ensures PDFs', 152, 40);
+
+  // First part of text
+  let fnX = 20;
+  doc.text('PDF/UA (Universal Accessibility) is an ISO standard', fnX, 40);
+  fnX += doc.getTextWidth('PDF/UA (Universal Accessibility) is an ISO standard');
+
+  // Footnote reference ¹ - directly attached to word (no space)
+  doc.addFootnoteRef('¹', fnX, 40, { noteId: 'fn1' });
+  fnX += doc.getTextWidth('¹') * 0.7 + 1;
+
+  // Continue text
+  doc.text(' that ensures PDFs can be read by', fnX, 40);
+
+  // Second line
+  fnX = 20;
+  doc.text('assistive technologies. The Matterhorn Protocol', fnX, 50);
+  fnX += doc.getTextWidth('assistive technologies. The Matterhorn Protocol');
+
+  // Footnote reference ² - directly attached to word
+  doc.addFootnoteRef('²', fnX, 50, { noteId: 'fn2' });
+  fnX += doc.getTextWidth('²') * 0.7 + 1;
+
+  // Continue text
+  doc.text(' provides validation checkpoints', fnX, 50);
+
+  // Third line
+  doc.text('for PDF/UA compliance.', 20, 60);
   doc.endStructureElement();
 
-  doc.beginStructureElement('P');
-  doc.text('can be read by assistive technologies. The Matterhorn Protocol', 20, 50);
-  doc.beginReference();
-  doc.text('²', 168, 48);
-  doc.endReference();
-  doc.text(' provides', 170, 50);
-  doc.endStructureElement();
+  // Separator line as artifact (at page bottom)
+  doc.beginArtifact({ type: 'Layout' });
+  doc.line(20, 68, 100, 68);
+  doc.endArtifact();
 
-  doc.beginStructureElement('P');
-  doc.text('validation checkpoints for PDF/UA compliance.', 20, 60);
-  doc.endStructureElement();
-
-  // Footnotes at bottom
-  doc.beginNote();
+  // Footnotes using the new convenience API
   doc.setFontSize(9);
-  doc.text('¹ ISO 14289-1:2014, Document management — PDF — Accessibility', 20, 80);
-  doc.endNote();
 
-  doc.beginNote();
-  doc.text('² PDF Association, Matterhorn Protocol 1.1', 20, 88);
-  doc.endNote();
+  doc.addFootnote({
+    id: 'fn1',
+    label: '¹',
+    text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
+    x: 25,
+    y: 75,
+    labelX: 20
+  });
+
+  doc.addFootnote({
+    id: 'fn2',
+    label: '²',
+    text: 'PDF Association, Matterhorn Protocol 1.1',
+    x: 25,
+    y: 85,
+    labelX: 20
+  });
+
+  doc.setFontSize(11);
 doc.endSect();
 
 // --- Section 9: Figures ---
@@ -603,7 +641,7 @@ doc.beginSect();
   // marked content for graphical operations. Using text placeholder instead.
   // BBox is recommended by PAC for better accessibility in alternate presentations
   // BBox format: [x, y, width, height] in points (PDF coordinates from bottom-left)
-  doc.beginStructureElement('Figure', {
+  doc.beginFigure({
     alt: 'A placeholder representing a bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%',
     bbox: [20, 640, 90, 70]  // x, y (from bottom), width, height
   });
@@ -618,10 +656,10 @@ doc.beginSect();
   doc.setFontSize(10);
   doc.text('Figure 1: Quarterly Sales Distribution', 20, 188);
   doc.endCaption();
-  doc.endStructureElement();
+  doc.endFigure();
 
   // Figure 2
-  doc.beginStructureElement('Figure', {
+  doc.beginFigure({
     alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages',
     bbox: [120, 640, 80, 70]  // x, y (from bottom), width, height
   });
@@ -634,7 +672,7 @@ doc.beginSect();
   doc.beginCaption();
   doc.text('Figure 2: Process Flow Diagram', 120, 188);
   doc.endCaption();
-  doc.endStructureElement();
+  doc.endFigure();
 doc.endSect();
 
 // --- Annotations Section ---
@@ -832,30 +870,8 @@ doc.beginSect();
     doc.endStructureElement();
   doc.endAside();
 
-  // CJK: Ruby
-  doc.beginStructureElement('H3');
-  doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
-  doc.text('Ruby (CJK Pronunciation)', 20, 256);
-  doc.endStructureElement();
-
-  // Ruby is an inline element and MUST be inside a block-level element (P)
-  // per PDF/UA structure requirements
-  doc.beginStructureElement('P');
-    doc.beginRuby();
-      doc.beginRubyBaseText();
-      doc.setFontSize(11);
-      doc.setFont(undefined, 'normal');
-      doc.text('Base', 25, 268);
-      doc.endRubyBaseText();
-      doc.beginRubyText();
-      doc.setFontSize(8);
-      doc.text('(ruby)', 25, 262);
-      doc.endRubyText();
-    doc.endRuby();
-    doc.setFontSize(10);
-    doc.text(' - Ruby annotations provide pronunciation guides for CJK text.', 42, 268);
-  doc.endStructureElement();
+  // Note: Ruby/Warichu (CJK annotations) require CJK fonts and are demonstrated
+  // in the separate test-suite-ruby-warichu.js test file.
 doc.endSect();
 
 // --- Footer Artifact ---
@@ -944,12 +960,12 @@ doc.beginSect();
       'Text Elements .......................... 1'
     ];
 
-    let indexY = 145;
+    let indexY = 140;
     indexEntries.forEach(entry => {
       doc.beginStructureElement('P');
       doc.text(entry, 25, indexY);
       doc.endStructureElement();
-      indexY += 8;
+      indexY += 7;  // Reduced spacing to fit better
     });
   doc.endIndex();
 doc.endSect();
@@ -958,7 +974,7 @@ doc.endSect();
 doc.beginStructureElement('P');
 doc.setFontSize(11);
 doc.setFont(undefined, 'italic');
-doc.text('End of PDF/UA Complete Showcase Document', 50, 275);
+doc.text('End of PDF/UA Complete Showcase Document', 50, 262);
 doc.endStructureElement();
 
 // Close Document structure

@@ -171,6 +171,9 @@ For API documentation and usage examples, see [docs/pdfua/](./docs/pdfua/README.
 | 26 | DocumentFragment + Aside (PDF 2.0) + Language Inheritance | ✅ |
 | 27 | Accessible Annotations (Text/FreeText with Annot element) | ✅ |
 | 28 | veraPDF Validation Fixes + Comprehensive Showcase | ✅ |
+| 29 | veraPDF validation for all test suites | ✅ |
+| 30 | PDF 1.7 + Figure BBox + Ruby structure fix | ✅ |
+| 31 | PAC Validation Fixes (Placement attributes) | ✅ |
 
 ### Critical Requirements
 
@@ -185,6 +188,37 @@ When working on PDF/UA features, verify:
 2. Structure tree exists
 3. Content is tagged with BDC/EMC operators
 4. Screen reader can navigate and read the content
+
+### Validation Tools
+
+**veraPDF** (Technical PDF/UA-1 validation):
+```bash
+docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf
+```
+
+**PAC (PDF Accessibility Checker)** - https://pac.pdf-accessibility.org/
+- More strict than veraPDF, checks semantic correctness
+- Validates Placement attributes for inline/block elements
+- Download and run manually on Windows
+
+### Placement Attributes (PAC Requirement)
+
+PAC requires `/Placement /Block` for elements used as block-level when they are inline by default:
+
+| Element | Default | When to use `/Placement /Block` |
+|---------|---------|--------------------------------|
+| Note | Inline | Footnotes at page bottom |
+| BibEntry | Inline | Standalone bibliography entries |
+| Code | Inline | Block-level code sections |
+| Link | Inline | Standalone links (not in paragraph) |
+| Annot | Inline | Standalone annotations |
+| Figure | Block | Default is Block |
+| Form | Inline | Form fields (default is Block in our API) |
+| RT | Inline | Ruby text annotations |
+
+The jsPDF-UA API sets sensible defaults:
+- `addFootnote()`, `beginBibEntry()`, `beginAnnot()`, `beginFigure()`, `beginFormField()` default to `placement: 'Block'`
+- `beginCode()`, `beginLink()`, `beginRubyText()` require explicit `placement` when used as block-level
 
 ## BITi Prüfschritte (PDF/UA Accessibility Testing)
 
