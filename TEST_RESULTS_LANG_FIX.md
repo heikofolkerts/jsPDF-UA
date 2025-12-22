@@ -12,6 +12,7 @@
 All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 
 ### Test 1: Ultra-minimal (1 word)
+
 - **File:** `examples/temp/test1-minimal.pdf`
 - **Content:** Single word "Test"
 - **Structure:** Document → P
@@ -19,6 +20,7 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 - **Expected:** Text "Test" visible in Acrobat Reader
 
 ### Test 2: Multiple Paragraphs
+
 - **File:** `examples/temp/test2-paragraphs.pdf`
 - **Content:** 3 paragraphs
 - **Structure:** Document → 3x P
@@ -31,6 +33,7 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 - **Expected:** All 3 paragraphs visible
 
 ### Test 3: Headings (H1, H2)
+
 - **File:** `examples/temp/test3-headings.pdf`
 - **Content:** H1 + P + H2 + P
 - **Structure:** Document → H1, P, H2, P
@@ -45,6 +48,7 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 - **Note:** Structure types (H1, H2, P) correctly used in BDC
 
 ### Test 4: Complex Structure (German)
+
 - **File:** `examples/temp/test4-complex.pdf`
 - **Content:** Complex German document (7 elements)
 - **Structure:** Document → H1, P, H2, P, H2, P, P
@@ -59,6 +63,7 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 - **Note:** Language setting correctly propagated to BDC
 
 ### Test 5: Multi-page Document
+
 - **File:** `examples/temp/test5-multipage.pdf`
 - **Content:** 2 pages with H1 + P each
 - **Structure:** Document → (Page 1: H1, P) + (Page 2: H1, P)
@@ -78,15 +83,18 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 ### ✅ What's Working:
 
 1. **`/Lang` attribute present in ALL BDC operators**
+
    - Format: `/StructType <</Lang (language-code)/MCID n>> BDC`
    - Matches reference PDF format
 
 2. **Correct structure types used**
+
    - `/P` for paragraphs
    - `/H1`, `/H2` for headings
    - **Not** hardcoded `/Span`
 
 3. **Language propagation works**
+
    - Default: `en-US`
    - Custom: `de-DE` (Test 4)
    - Correctly inherited by all BDC operators
@@ -101,16 +109,19 @@ All 5 test PDFs were generated successfully with the `/Lang` fix applied.
 ## 📊 Comparison: Before vs After
 
 ### Before (BROKEN - caused AVPageView issue):
+
 ```pdf
 /P <</MCID 0>> BDC
 ```
 
 ### After (FIXED):
+
 ```pdf
 /P <</Lang (en-US)/MCID 0>> BDC
 ```
 
 ### Reference PDF (working):
+
 ```pdf
 /Span <</Lang (de-DE)/MCID 0 >>BDC
 ```
@@ -128,6 +139,7 @@ Please test ALL 5 PDFs in Acrobat Reader with a screen reader:
 3. Navigate through the document
 
 ### Expected Behavior:
+
 - ✅ All text content is **visible** (not "AVPageView Textrahmen")
 - ✅ Screen reader can **read all text**
 - ✅ Headings are announced as headings (H1, H2)
@@ -135,6 +147,7 @@ Please test ALL 5 PDFs in Acrobat Reader with a screen reader:
 - ✅ Language is correctly identified (en-US or de-DE)
 
 ### If You Still See "AVPageView Textrahmen":
+
 - ⚠️ The `/Lang` fix alone may not be sufficient
 - ⚠️ Font embedding (Sprint 5) may be required
 - ⚠️ Check veraPDF validation for additional issues
@@ -145,13 +158,13 @@ Please test ALL 5 PDFs in Acrobat Reader with a screen reader:
 
 All test files are in: `examples/temp/`
 
-| File | Description | Size |
-|------|-------------|------|
-| `test1-minimal.pdf` | 1 word | ~4 KB |
-| `test2-paragraphs.pdf` | 3 paragraphs | ~4 KB |
-| `test3-headings.pdf` | H1+H2 with paragraphs | ~5 KB |
-| `test4-complex.pdf` | Complex German doc | ~5 KB |
-| `test5-multipage.pdf` | 2 pages | ~5 KB |
+| File                   | Description           | Size  |
+| ---------------------- | --------------------- | ----- |
+| `test1-minimal.pdf`    | 1 word                | ~4 KB |
+| `test2-paragraphs.pdf` | 3 paragraphs          | ~4 KB |
+| `test3-headings.pdf`   | H1+H2 with paragraphs | ~5 KB |
+| `test4-complex.pdf`    | Complex German doc    | ~5 KB |
+| `test5-multipage.pdf`  | 2 pages               | ~5 KB |
 
 **Decompressed versions:** `*_decompressed.pdf` (for inspection)
 
@@ -184,6 +197,7 @@ All test files are in: `examples/temp/`
 ```
 
 **Commit Message:**
+
 ```
 Fix AVPageView Textrahmen issue by re-adding /Lang to BDC operators
 

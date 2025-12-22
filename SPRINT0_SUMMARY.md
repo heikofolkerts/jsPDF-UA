@@ -22,6 +22,7 @@
 ### 1. Entwicklungsumgebung ✅
 
 **Setup:**
+
 - Node.js v20.12.2
 - npm v10.5.0
 - 903 Dependencies installiert
@@ -30,6 +31,7 @@
 - Dev-Server funktional (localhost:8000)
 
 **Kommandos:**
+
 ```bash
 npm install          # Dependencies installieren
 npm run build        # Build erstellen (~25s)
@@ -44,10 +46,12 @@ npm start            # Dev-Server starten
 ### 2. veraPDF Validator ✅
 
 **Installation:**
+
 - Docker Image: `verapdf/cli:latest` (v1.28.2)
 - Funktional getestet mit Baseline-PDF
 
 **Verwendung:**
+
 ```bash
 # PDF validieren
 docker run --rm -v $(pwd):/data verapdf/cli:latest \
@@ -58,6 +62,7 @@ alias verapdf="docker run --rm -v \$(pwd):/data verapdf/cli:latest"
 ```
 
 **Baseline-Test:**
+
 - Test-PDF erstellt: `test-simple.pdf`
 - veraPDF-Validierung: ❌ 7 Fehler (erwartet)
   1. Natural language nicht definiert (Lang)
@@ -71,6 +76,7 @@ alias verapdf="docker run --rm -v \$(pwd):/data verapdf/cli:latest"
 **Status:** ✅ Validator funktioniert, Baseline etabliert
 
 **Dokumentation:**
+
 - `docs/verapdf-setup.md` - Installations- und Verwendungsanleitung
 
 ---
@@ -78,6 +84,7 @@ alias verapdf="docker run --rm -v \$(pwd):/data verapdf/cli:latest"
 ### 3. Test-Anwendung ✅
 
 **Dateien erstellt:**
+
 ```
 examples/pdfua/
 ├── test-app.html        # Web-UI mit Bootstrap
@@ -86,6 +93,7 @@ examples/pdfua/
 ```
 
 **Features:**
+
 - ✅ Professionelle Web-UI (Bootstrap 5)
 - ✅ Test-Case Auswahl (Sidebar)
 - ✅ Code-Anzeige
@@ -95,17 +103,20 @@ examples/pdfua/
 - ✅ Baseline-Test implementiert
 
 **Test-Cases (Sprint 0):**
+
 1. **Baseline** - Aktueller Stand ohne PDF/UA
    - Status: ❌ 7 Fehler
    - Zweck: Baseline für Vergleiche
 
 **Zugriff:**
+
 ```bash
 npm start
 # Browser: http://localhost:8000/examples/pdfua/test-app.html
 ```
 
 **Erweiterbarkeit:**
+
 - Vorbereitet für Sprint 1-6 Test-Cases
 - Einfaches Hinzufügen neuer Tests in `test-app.js`
 - Buttons für zukünftige Tests bereits vorhanden (disabled)
@@ -118,18 +129,19 @@ npm start
 
 **Erstellte Dokumente:**
 
-| Datei | Beschreibung | Zeilen |
-|-------|--------------|--------|
-| `CLAUDE.md` | Claude Code Guidance | ~200 |
-| `PDFUA_BACKLOG.md` | Produkt-Backlog mit 43 User Stories | ~800 |
-| `PDFUA_SPRINT_PLAN.md` | Detaillierte Sprint-Planung | ~900 |
-| `docs/verapdf-setup.md` | veraPDF Installation & Verwendung | ~230 |
-| `docs/pdfua-requirements.md` | PDF/UA Anforderungen Quick-Reference | ~380 |
-| `examples/pdfua/README.md` | Test-App Dokumentation | ~180 |
+| Datei                        | Beschreibung                         | Zeilen |
+| ---------------------------- | ------------------------------------ | ------ |
+| `CLAUDE.md`                  | Claude Code Guidance                 | ~200   |
+| `PDFUA_BACKLOG.md`           | Produkt-Backlog mit 43 User Stories  | ~800   |
+| `PDFUA_SPRINT_PLAN.md`       | Detaillierte Sprint-Planung          | ~900   |
+| `docs/verapdf-setup.md`      | veraPDF Installation & Verwendung    | ~230   |
+| `docs/pdfua-requirements.md` | PDF/UA Anforderungen Quick-Reference | ~380   |
+| `examples/pdfua/README.md`   | Test-App Dokumentation               | ~180   |
 
 **Gesamt:** ~2.690 Zeilen Dokumentation
 
 **Inhalte:**
+
 - ✅ PDF/UA-1 Anforderungen (ISO 14289-1)
 - ✅ 10 Epics, 43 User Stories
 - ✅ Technische Spezifikationen
@@ -146,12 +158,14 @@ npm start
 ### Technisch
 
 1. **jsPDF Architektur:**
+
    - Modulares Plugin-System
    - Rollup-basierter Build
    - Mehrere Output-Formate (UMD, ES, CJS)
    - Events-System (PubSub) für Inter-Modul-Kommunikation
 
 2. **PDF/UA Komplexität:**
+
    - 7 kritische Kern-Anforderungen für MVP
    - Strukturbaum ist zentral
    - Content-Marking komplex (MCID, ParentTree)
@@ -165,6 +179,7 @@ npm start
 ### Organisatorisch
 
 1. **Scope Management:**
+
    - MVP sinnvoll definiert (13 Wochen)
    - Klare Phasen-Aufteilung
    - Prioritäten gesetzt
@@ -181,9 +196,11 @@ npm start
 ### Identifizierte Risiken:
 
 1. **PDF-Spec-Komplexität** 🟡 Mittel
+
    - Mitigation: Schrittweise Implementierung, viel Dokumentation
 
 2. **Bestehender Code** 🟡 Mittel
+
    - Mitigation: Sorgfältiges Refactoring, viele Tests
 
 3. **Browser-Einschränkungen** 🟢 Niedrig
@@ -203,6 +220,7 @@ npm start
 ## Metriken
 
 **Zeitaufwand:**
+
 - Setup & Testing: ~30 min
 - veraPDF Setup: ~20 min
 - Test-App: ~40 min
@@ -210,15 +228,18 @@ npm start
 - **Gesamt:** ~2 Stunden
 
 **Code:**
+
 - Test-App HTML: ~150 Zeilen
 - Test-App JS: ~150 Zeilen
 - Test-Script Node: ~10 Zeilen
 
 **Dokumentation:**
+
 - Markdown: ~2.690 Zeilen
 - Code-Beispiele: ~50 Snippets
 
 **Tests:**
+
 - Bestehende jsPDF-Tests: 417 specs ✅
 - Neue PDF/UA-Tests: 0 (folgen in Sprint 1+)
 
@@ -227,16 +248,19 @@ npm start
 ## Nächste Schritte (Sprint 1)
 
 ### Vorbereitung:
+
 - [ ] Sprint 1 Backlog Review
 - [ ] Entwicklungsumgebung final setup
 - [ ] Git Branch erstellen: `feature/pdfua-sprint1`
 
 ### Hauptaufgaben:
+
 1. **US-1.1:** PDF/UA-Modus implementieren
 2. **US-1.2:** XMP-Metadaten mit PDF/UA-Kennzeichnung
 3. **US-1.3:** ViewerPreferences DisplayDocTitle
 
 ### Erwartete Ergebnisse:
+
 - PDF mit PDF/UA-Kennzeichnung
 - veraPDF-Fehler reduziert: 7 → ~4
 - Test-Case "Simple PDF/UA" funktional
@@ -248,12 +272,14 @@ npm start
 ## Team-Feedback
 
 **Positiv:**
+
 - ✅ Klare Struktur durch Backlog & Sprint-Plan
 - ✅ Gute Dokumentation ermöglicht schnellen Einstieg
 - ✅ veraPDF gibt sofortiges Feedback
 - ✅ Test-App macht Entwicklung interaktiv
 
 **Verbesserungspotenzial:**
+
 - 📝 Mehr Code-Beispiele in Backlog (wird in Sprints ergänzt)
 - 📝 Performance-Testing-Strategie (für später)
 
@@ -262,18 +288,21 @@ npm start
 ## Ressourcen & Links
 
 ### Projekt-Dokumente:
+
 - [PDF/UA Backlog](PDFUA_BACKLOG.md)
 - [Sprint Plan](PDFUA_SPRINT_PLAN.md)
 - [veraPDF Setup](docs/verapdf-setup.md)
 - [PDF/UA Requirements](docs/pdfua-requirements.md)
 
 ### Externe Ressourcen:
+
 - [veraPDF](https://verapdf.org/)
 - [PDF/UA Standard](https://pdfa.org/resource/iso-14289-pdfua/)
 - [Matterhorn Protocol](https://www.pdfa.org/publication/the-matterhorn-protocol-1-02/)
 - [PDF 1.7 Spec](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf)
 
 ### Tools:
+
 - Docker: `verapdf/cli:latest`
 - Browser DevTools
 - Node.js v20+
@@ -285,6 +314,7 @@ npm start
 **Sprint 0 Status:** ✅ **ABGESCHLOSSEN**
 
 **Alle Deliverables erreicht:**
+
 - ✅ Entwicklungsumgebung funktional
 - ✅ veraPDF installiert und getestet
 - ✅ Test-Anwendung erstellt und funktional
@@ -299,6 +329,7 @@ npm start
 **Nächstes Meeting:** Sprint 1 Planning
 **Datum:** Nach Freigabe
 **Agenda:**
+
 - Sprint 1 Backlog finalisieren
 - Aufgaben verteilen
 - Technische Spike-Decisions (falls nötig)

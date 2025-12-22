@@ -9,6 +9,7 @@
 ## Überblick
 
 Links sind essentiell für die Navigation in PDF-Dokumenten. Für PDF/UA müssen sie:
+
 - Als strukturierte Links markiert sein (Link-Element)
 - Für Screenreader erkennbar sein
 - Ein Ziel haben (intern oder extern)
@@ -21,11 +22,13 @@ Links sind essentiell für die Navigation in PDF-Dokumenten. Für PDF/UA müssen
 ### Struktur-Elemente
 
 **Link-Element:**
+
 - `Link` - Container für den verlinkten Text
 - Muss in der Struktur-Tree eingebunden sein
 - Muss ein Ziel (Annotation) haben
 
 **Annotations:**
+
 - Link-Annotations für klickbare Bereiche
 - Verknüpfung zwischen Struktur und Annotation über `/StructParent`
 
@@ -37,10 +40,12 @@ Links sind essentiell für die Navigation in PDF-Dokumenten. Für PDF/UA müssen
 
 ```javascript
 doc.addLink({
-  x: 10, y: 20,
-  width: 50, height: 10,
-  url: 'https://example.com',
-  text: 'Visit Website'
+  x: 10,
+  y: 20,
+  width: 50,
+  height: 10,
+  url: "https://example.com",
+  text: "Visit Website"
 });
 ```
 
@@ -48,10 +53,12 @@ doc.addLink({
 
 ```javascript
 doc.addLink({
-  x: 10, y: 20,
-  width: 50, height: 10,
+  x: 10,
+  y: 20,
+  width: 50,
+  height: 10,
   pageNumber: 3,
-  text: 'Go to page 3'
+  text: "Go to page 3"
 });
 ```
 
@@ -59,14 +66,16 @@ doc.addLink({
 
 ```javascript
 // Ziel definieren
-doc.addDestination('chapter1', 1, 0, 100);
+doc.addDestination("chapter1", 1, 0, 100);
 
 // Link zum Ziel
 doc.addLink({
-  x: 10, y: 20,
-  width: 50, height: 10,
-  destination: 'chapter1',
-  text: 'Jump to Chapter 1'
+  x: 10,
+  y: 20,
+  width: 50,
+  height: 10,
+  destination: "chapter1",
+  text: "Jump to Chapter 1"
 });
 ```
 
@@ -111,7 +120,7 @@ doc.endLink();
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
 jsPDFAPI.beginLink = function() {
-  return this.beginStructureElement('Link');
+  return this.beginStructureElement("Link");
 };
 
 /**
@@ -126,10 +135,12 @@ jsPDFAPI.endLink = function() {
 ### Schritt 2: Link-Annotation mit Struktur-Verknüpfung
 
 Links in PDF bestehen aus zwei Teilen:
+
 1. **Struktur-Element** (`Link`) - für Screenreader
 2. **Annotation** (`/Link`) - für Klick-Interaktion
 
 Die Verknüpfung erfolgt über:
+
 - `/StructParent` in der Annotation
 - Eintrag im ParentTree der Struktur
 
@@ -174,28 +185,28 @@ jsPDFAPI.addInternalLink = function(text, x, y, width, height, pageNumber) {
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 
-doc.setDocumentTitle('External Links Test');
-doc.setLanguage('en-US');
+doc.setDocumentTitle("External Links Test");
+doc.setLanguage("en-US");
 
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('External Links', 10, 10);
-  doc.endStructureElement();
-
-  doc.beginStructureElement('P');
-  doc.text('Visit our website: ', 10, 30);
-
-  doc.beginLink();
-  doc.text('example.com', 52, 30);
-  doc.endLink();
-
-  // Add clickable annotation
-  doc.link(52, 25, 30, 10, { url: 'https://example.com' });
-
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("External Links", 10, 10);
 doc.endStructureElement();
 
-doc.save('test-link-1-external.pdf');
+doc.beginStructureElement("P");
+doc.text("Visit our website: ", 10, 30);
+
+doc.beginLink();
+doc.text("example.com", 52, 30);
+doc.endLink();
+
+// Add clickable annotation
+doc.link(52, 25, 30, 10, { url: "https://example.com" });
+
+doc.endStructureElement();
+doc.endStructureElement();
+
+doc.save("test-link-1-external.pdf");
 ```
 
 ### Test 2: Interne Links
@@ -203,111 +214,111 @@ doc.save('test-link-1-external.pdf');
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 
-doc.setDocumentTitle('Internal Links Test');
-doc.setLanguage('en-US');
+doc.setDocumentTitle("Internal Links Test");
+doc.setLanguage("en-US");
 
 // Page 1
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('Table of Contents', 10, 10);
-  doc.endStructureElement();
-
-  doc.beginStructureElement('P');
-  doc.beginLink();
-  doc.text('Go to Chapter 1 (Page 2)', 10, 30);
-  doc.endLink();
-  doc.link(10, 25, 80, 10, { pageNumber: 2 });
-  doc.endStructureElement();
-
-  doc.addPage();
-
-  // Page 2
-  doc.beginStructureElement('H1');
-  doc.text('Chapter 1', 10, 10);
-  doc.endStructureElement();
-
-  doc.beginStructureElement('P');
-  doc.text('This is chapter 1.', 10, 30);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("Table of Contents", 10, 10);
 doc.endStructureElement();
 
-doc.save('test-link-2-internal.pdf');
+doc.beginStructureElement("P");
+doc.beginLink();
+doc.text("Go to Chapter 1 (Page 2)", 10, 30);
+doc.endLink();
+doc.link(10, 25, 80, 10, { pageNumber: 2 });
+doc.endStructureElement();
+
+doc.addPage();
+
+// Page 2
+doc.beginStructureElement("H1");
+doc.text("Chapter 1", 10, 10);
+doc.endStructureElement();
+
+doc.beginStructureElement("P");
+doc.text("This is chapter 1.", 10, 30);
+doc.endStructureElement();
+doc.endStructureElement();
+
+doc.save("test-link-2-internal.pdf");
 ```
 
 ### Test 3: Links in Listen
 
 ```javascript
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 25);
-    doc.beginListBody();
-      doc.text('Visit ', 20, 25);
-      doc.beginLink();
-      doc.text('Google', 35, 25);
-      doc.endLink();
-      doc.link(35, 20, 20, 10, { url: 'https://google.com' });
-    doc.endListBody();
-  doc.endStructureElement();
+doc.beginListItem();
+doc.addListLabel("•", 15, 25);
+doc.beginListBody();
+doc.text("Visit ", 20, 25);
+doc.beginLink();
+doc.text("Google", 35, 25);
+doc.endLink();
+doc.link(35, 20, 20, 10, { url: "https://google.com" });
+doc.endListBody();
+doc.endStructureElement();
 
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 35);
-    doc.beginListBody();
-      doc.text('Visit ', 20, 35);
-      doc.beginLink();
-      doc.text('GitHub', 35, 35);
-      doc.endLink();
-      doc.link(35, 30, 20, 10, { url: 'https://github.com' });
-    doc.endListBody();
-  doc.endStructureElement();
+doc.beginListItem();
+doc.addListLabel("•", 15, 35);
+doc.beginListBody();
+doc.text("Visit ", 20, 35);
+doc.beginLink();
+doc.text("GitHub", 35, 35);
+doc.endLink();
+doc.link(35, 30, 20, 10, { url: "https://github.com" });
+doc.endListBody();
+doc.endStructureElement();
 doc.endList();
 ```
 
 ### Test 4: Links in Tabellen
 
 ```javascript
-doc.beginStructureElement('Table');
-  doc.beginTableHead();
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Column');
-      doc.text('Website', 20, 25);
-      doc.endStructureElement();
+doc.beginStructureElement("Table");
+doc.beginTableHead();
+doc.beginTableRow();
+doc.beginTableHeaderCell("Column");
+doc.text("Website", 20, 25);
+doc.endStructureElement();
 
-      doc.beginTableHeaderCell('Column');
-      doc.text('Link', 80, 25);
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Link", 80, 25);
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endStructureElement();
 
-  doc.beginTableBody();
-    doc.beginTableRow();
-      doc.beginTableDataCell();
-      doc.text('Google', 20, 35);
-      doc.endStructureElement();
+doc.beginTableBody();
+doc.beginTableRow();
+doc.beginTableDataCell();
+doc.text("Google", 20, 35);
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.beginLink();
-      doc.text('Visit', 80, 35);
-      doc.endLink();
-      doc.link(80, 30, 15, 10, { url: 'https://google.com' });
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endTableBody();
+doc.beginTableDataCell();
+doc.beginLink();
+doc.text("Visit", 80, 35);
+doc.endLink();
+doc.link(80, 30, 15, 10, { url: "https://google.com" });
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endTableBody();
 doc.endStructureElement();
 ```
 
 ### Test 5: Deutsche Sprache
 
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('P');
-doc.text('Besuchen Sie unsere ', 10, 30);
+doc.beginStructureElement("P");
+doc.text("Besuchen Sie unsere ", 10, 30);
 
 doc.beginLink();
-doc.text('Webseite', 60, 30);
+doc.text("Webseite", 60, 30);
 doc.endLink();
 
-doc.link(60, 25, 25, 10, { url: 'https://beispiel.de' });
+doc.link(60, 25, 25, 10, { url: "https://beispiel.de" });
 
 doc.endStructureElement();
 ```
@@ -344,6 +355,7 @@ endobj
 ```
 
 Die Annotation muss in der Page's `/Annots` Array erscheinen:
+
 ```pdf
 3 0 obj
 << /Type /Page
@@ -404,12 +416,14 @@ Die Annotation muss in der Page's `/Annots` Array erscheinen:
 ### Implementation Summary:
 
 **Files Modified:**
+
 1. `src/modules/structure_tree.js`:
    - Added `beginLink()` method
    - Added `endLink()` method
    - Added `endTableHead()`, `endTableBody()`, `endTableFoot()` convenience methods
 
 **What's Working:**
+
 - ✅ Link structure elements (Link) in structure tree
 - ✅ Links can be wrapped around text content
 - ✅ Links work in paragraphs, lists, and tables
@@ -418,6 +432,7 @@ Die Annotation muss in der Page's `/Annots` Array erscheinen:
 - ✅ Test suite with 5 test cases created
 
 **What's NOT Working (Known Limitation):**
+
 - ❌ Annotations missing `/StructParent` attribute
 - ❌ veraPDF validation fails due to missing annotation-structure linkage
 - ❌ Links not fully accessible per PDF/UA-1 requirements
@@ -426,6 +441,7 @@ Die Annotation muss in der Page's `/Annots` Array erscheinen:
 The existing `annotations.js` module (which provides the `link()` method) does not support `/StructParent` attributes. This attribute is required to link the clickable annotation to the Link structure element.
 
 **Current Annotation Output:**
+
 ```pdf
 <</Type /Annot
   /Subtype /Link
@@ -435,6 +451,7 @@ The existing `annotations.js` module (which provides the `link()` method) does n
 ```
 
 **Required for PDF/UA:**
+
 ```pdf
 <</Type /Annot
   /Subtype /Link
@@ -447,12 +464,14 @@ The existing `annotations.js` module (which provides the `link()` method) does n
 The `/StructParent` entry would reference an index in the StructTreeRoot's ParentTree, which maps back to the Link structure element.
 
 **Test Results:**
+
 - ✅ All 5 test PDFs generate successfully
 - ✅ Link structure elements present in PDF
 - ✅ Link text appears in correct positions
 - ❌ All 5 PDFs fail veraPDF PDF/UA-1 validation (annotations not linked)
 
 **Generated Test PDFs:**
+
 1. `test-link-1-external.pdf` - Simple external link
 2. `test-link-2-internal.pdf` - Internal page links
 3. `test-link-3-in-list.pdf` - Links in lists
@@ -463,6 +482,7 @@ The `/StructParent` entry would reference an index in the StructTreeRoot's Paren
 Links should still be somewhat functional for screen readers (structure is present), but full keyboard navigation and PDF/UA compliance requires the annotation linkage.
 
 **Next Steps to Complete Sprint 9:**
+
 1. Modify `src/modules/annotations.js` to support `/StructParent`
 2. Track which structure element is active when `link()` is called
 3. Add StructParent index to annotation
@@ -471,6 +491,7 @@ Links should still be somewhat functional for screen readers (structure is prese
 
 **Decision:**
 This is a significant undertaking that requires careful modification of the annotations module. Given the complexity and the risk of breaking existing functionality, we should discuss with the user whether to:
+
 - **Option A:** Continue with full annotation linkage implementation (Sprint 9.1)
 - **Option B:** Mark links as "partial" and move to next sprint (fonts/subsetting)
 - **Option C:** Defer complete link implementation until after other features

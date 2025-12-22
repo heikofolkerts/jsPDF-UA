@@ -1,12 +1,14 @@
 # Sprint 21: Accessible Form Fields (AcroForm + PDF/UA)
 
 ## Ziel
+
 Implementierung barrierefreier Formularfelder gemäß PDF/UA (BITi 02.4.2).
 
 ## Wichtigkeit für Nutzer
 
 Formulare sind für Screenreader-Nutzer oft die einzige Möglichkeit, selbstständig Anträge auszufüllen.
 Fehlerhafte oder nicht barrierefreie Formulare führen zu:
+
 - Unmöglichkeit, Felder zu identifizieren
 - Falsche Lesereihenfolge
 - Fehlende Beschriftungen
@@ -15,7 +17,9 @@ Fehlerhafte oder nicht barrierefreie Formulare führen zu:
 ## PDF/UA Anforderungen für Formulare
 
 ### 1. Strukturbaum-Integration (kritisch)
+
 Jedes Formularfeld MUSS im Strukturbaum enthalten sein:
+
 ```
 Document
 └── Form (Structure Element)
@@ -23,27 +27,32 @@ Document
 ```
 
 ### 2. TU-Attribut (Tooltip/Alternative Description)
+
 - **TU** (Text String): Kurzbeschreibung für Screenreader
 - MUSS gesetzt sein, wenn kein sichtbares Label vorhanden
 - Format: `/TU (Vorname (Pflichtfeld))`
 
 ### 3. StructParent
+
 - Jede Widget-Annotation MUSS `/StructParent n` haben
 - Verknüpft Annotation mit ParentTree im Strukturbaum
 
 ### 4. OBJR-Referenz
+
 - Formular-Strukturelement muss OBJR-Kind haben
 - Format: `<< /Type /OBJR /Obj <annotation-objId> 0 R >>`
 
 ## Aktuelle Situation in jsPDF
 
 ### Vorhanden:
+
 - AcroForm-Modul mit allen Feldtypen (TextField, CheckBox, RadioButton, ComboBox, etc.)
 - Widget-Annotationen werden korrekt erstellt
 - Appearance Streams
 - Felder werden in /AcroForm Dictionary registriert
 
 ### Fehlt für PDF/UA:
+
 - ❌ Keine Form-Strukturelemente
 - ❌ Kein TU-Attribut (Tooltip)
 - ❌ Kein StructParent in Widget-Annotationen
@@ -53,9 +62,11 @@ Document
 ## Implementierungsplan
 
 ### Phase 1: TU-Attribut (Tooltip) hinzufügen
+
 **Datei:** `src/modules/acroform.js`
 
 Erweiterung von `AcroFormField`:
+
 ```javascript
 // Neues Property für Tooltip (TU = Text User)
 var _TU = null;
@@ -74,20 +85,26 @@ Object.defineProperty(this, "TU", {
 Object.defineProperty(this, "tooltip", {
   enumerable: true,
   configurable: true,
-  get: function() { return _TU; },
-  set: function(value) { _TU = value; }
+  get: function() {
+    return _TU;
+  },
+  set: function(value) {
+    _TU = value;
+  }
 });
 ```
 
 ### Phase 2: StructParent für Widget-Annotationen
+
 **Datei:** `src/modules/acroform.js`
 
 In `createFieldCallback`:
+
 ```javascript
 // Bei PDF/UA: StructParent hinzufügen
 if (scope.internal.pdfUA && scope.internal.pdfUA.enabled) {
   var structParentIndex = getNextStructParentIndex(scope);
-  keyValueList.push({ key: 'StructParent', value: structParentIndex });
+  keyValueList.push({ key: "StructParent", value: structParentIndex });
 
   // Für spätere OBJR-Erstellung speichern
   fieldObject._structParentIndex = structParentIndex;
@@ -96,6 +113,7 @@ if (scope.internal.pdfUA && scope.internal.pdfUA.enabled) {
 ```
 
 ### Phase 3: Form-Strukturelement
+
 **Datei:** `src/modules/structure_tree.js`
 
 ```javascript
@@ -106,7 +124,7 @@ if (scope.internal.pdfUA && scope.internal.pdfUA.enabled) {
  */
 jsPDFAPI.beginFormField = function(options) {
   options = options || {};
-  return this.beginStructureElement('Form', {
+  return this.beginStructureElement("Form", {
     alt: options.tooltip
   });
 };
@@ -125,9 +143,11 @@ jsPDFAPI.addFormFieldRef = function(fieldInternalId) {
 ```
 
 ### Phase 4: Integration in AcroForm-API
+
 **Datei:** `src/modules/acroform.js`
 
 Neue High-Level API:
+
 ```javascript
 /**
  * Add accessible text field
@@ -145,7 +165,7 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   // Validierung
   if (this.internal.pdfUA && this.internal.pdfUA.enabled) {
     if (!options.tooltip) {
-      throw new Error('PDF/UA: tooltip is required for form fields');
+      throw new Error("PDF/UA: tooltip is required for form fields");
     }
   }
 
@@ -160,12 +180,12 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   field.height = options.height;
   field.fieldName = options.name;
   field.TU = options.tooltip;
-  field.V = options.value || '';
+  field.V = options.value || "";
 
   if (options.required) {
     field.required = true;
     // Tooltip erweitern
-    field.TU = options.tooltip + ' (Pflichtfeld)';
+    field.TU = options.tooltip + " (Pflichtfeld)";
   }
 
   this.addField(field);
@@ -181,6 +201,7 @@ jsPDFAPI.addAccessibleTextField = function(options) {
 ```
 
 ### Phase 5: Validierung für PDF/UA
+
 **Datei:** `src/modules/acroform.js`
 
 ```javascript
@@ -188,8 +209,12 @@ jsPDFAPI.addAccessibleTextField = function(options) {
 if (scope.internal.pdfUA && scope.internal.pdfUA.enabled) {
   // Warnung/Fehler wenn TU fehlt
   if (!formObject.TU) {
-    console.warn('PDF/UA: Form field "' + formObject.T + '" has no tooltip (TU). ' +
-                 'Screen readers may not be able to identify this field.');
+    console.warn(
+      'PDF/UA: Form field "' +
+        formObject.T +
+        '" has no tooltip (TU). ' +
+        "Screen readers may not be able to identify this field."
+    );
   }
 }
 ```
@@ -197,6 +222,7 @@ if (scope.internal.pdfUA && scope.internal.pdfUA.enabled) {
 ## API-Design für Benutzerfreundlichkeit
 
 ### Option A: Erweiterte bestehende API
+
 ```javascript
 var field = new jsPDF.AcroForm.TextField();
 field.x = 10;
@@ -209,17 +235,24 @@ doc.addField(field);
 ```
 
 ### Option B: Neue High-Level API (empfohlen für PDF/UA)
+
 ```javascript
 // Einfache, sichere API für barrierefreie Formulare
 doc.addAccessibleTextField({
-  x: 10, y: 50, width: 100, height: 20,
+  x: 10,
+  y: 50,
+  width: 100,
+  height: 20,
   name: "vorname",
   tooltip: "Vorname eingeben",
   required: true
 });
 
 doc.addAccessibleCheckBox({
-  x: 10, y: 80, width: 15, height: 15,
+  x: 10,
+  y: 80,
+  width: 15,
+  height: 15,
   name: "agb",
   tooltip: "Ich akzeptiere die AGB",
   required: true
@@ -239,22 +272,27 @@ doc.addAccessibleRadioGroup({
 ## Test-Szenarien
 
 1. **Einfaches Textfeld**
+
    - TextField mit tooltip
    - Prüfung: TU vorhanden, Form-Element im Strukturbaum
 
 2. **Pflichtfeld**
+
    - TextField mit required=true
    - Prüfung: Tooltip enthält "Pflichtfeld"
 
 3. **Checkbox**
+
    - CheckBox mit tooltip
    - Prüfung: Korrekte OBJR-Verbindung
 
 4. **RadioButton-Gruppe**
+
    - Mehrere RadioButtons in einer Gruppe
    - Prüfung: Jeder Button hat Form-Element
 
 5. **ComboBox/Dropdown**
+
    - Auswahlliste mit Optionen
    - Prüfung: Tooltip beschreibt Auswahlmöglichkeiten
 
@@ -265,11 +303,13 @@ doc.addAccessibleRadioGroup({
 ## Entscheidungen (2025-12-11)
 
 1. **API-Design**: **Option B (High-Level API)**
+
    - Einfacher für Anwender
    - Sicherer durch eingebaute Validierung
    - `doc.addAccessibleTextField({...})` statt manuelle Feld-Konfiguration
 
 2. **Sichtbare Labels**: **JA**
+
    - Alle Felder bekommen sichtbare Text-Labels
    - Unterstützt Nutzer mit hohem Zoom-Faktor
    - Label wird als P-Element vor dem Form-Element platziert
@@ -284,21 +324,25 @@ doc.addAccessibleRadioGroup({
 ### Implementierte Features:
 
 1. **TU-Attribut (Tooltip)**
+
    - ✅ `AcroFormField.TU` Property für Tooltip-Text
    - ✅ `AcroFormField.tooltip` Alias für bessere API
    - ✅ Automatisch in PDF-Output geschrieben
 
 2. **Form-Strukturelement**
+
    - ✅ `beginFormField()` / `endFormField()` in structure_tree.js
    - ✅ `addFormFieldRef(fieldInternalId)` für OBJR-Verbindung
    - ✅ OBJR im K-Array des Form-Elements
 
 3. **StructParent für Widget-Annotationen**
+
    - ✅ Automatische StructParent-Zuweisung ab Index 1000
    - ✅ `_pdfuaInternalId` für Feldverfolgung
    - ✅ `pdfuaFormFieldIdMap` für OBJR-Auflösung
 
 4. **High-Level API**
+
    - ✅ `addAccessibleTextField(options)` - Textfelder
    - ✅ `addAccessibleCheckBox(options)` - Kontrollkästchen
    - ✅ `addAccessibleComboBox(options)` - Dropdown-Listen
@@ -310,10 +354,12 @@ doc.addAccessibleRadioGroup({
    - ✅ Automatisches Suffix "(Pflichtfeld)" für required-Felder
 
 ### Test-Suite:
+
 - `tests/pdfua/test-forms.js` - 7 Test-Szenarien
 - Alle Tests bestanden
 
 ### Generierte Test-PDFs:
+
 - `test-form-1-textfield.pdf` - Einfaches Textfeld
 - `test-form-2-required.pdf` - Pflichtfeld mit Markierung
 - `test-form-3-checkbox.pdf` - Kontrollkästchen
@@ -324,6 +370,7 @@ doc.addAccessibleRadioGroup({
 ## Screenreader-Tests (VERIFIZIERT 2025-12-11)
 
 ### NVDA + Adobe Acrobat - Ergebnisse:
+
 - ✅ TextField: Eingabe und Lesen funktioniert
 - ✅ CheckBox: Aktivierung und Status erkennbar
 - ✅ ComboBox: Wert ändern und lesen funktioniert
@@ -331,11 +378,14 @@ doc.addAccessibleRadioGroup({
 - ✅ Komplettes Formular: Alle Felder funktionieren
 
 ### Kritische Fixes während der Verifizierung:
+
 1. **ParentTree-Einträge für Formularfelder**
+
    - Problem: StructParent 1000+ war nicht im ParentTree
    - Lösung: `writeParentTree()` erweitert für Form-Feld-Einträge
 
 2. **OBJR mit Page-Referenz**
+
    - Problem: OBJR hatte kein `/Pg` Attribut
    - Lösung: `/Pg <page-objId> 0 R` in OBJR hinzugefügt
 
@@ -344,10 +394,12 @@ doc.addAccessibleRadioGroup({
    - Lösung: DA wird für PDF/UA auf `/Helv 12 Tf 0 g` gesetzt
 
 ### Referenz-Dokument:
+
 - `examples/temp/reference-pdfua-form.pdf` (PDF Association)
 - Verwendet für Struktur-Vergleich und Verifizierung
 
 ### Technische Verifikation
+
 - [ ] veraPDF-Validierung
 - [ ] PAC 2021 Check
 

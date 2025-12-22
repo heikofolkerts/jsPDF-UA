@@ -35,6 +35,7 @@ The build configuration is in `rollup.config.js` which creates multiple output f
 - **Generate reference PDFs**: `npm run test-training` (runs reference server in background)
 
 Tests are in `test/` with two main categories:
+
 - `test/specs/` - Feature-specific unit tests
 - `test/deployment/` - Module format integration tests
 
@@ -54,10 +55,12 @@ Always run prettier before committing. The project uses Prettier with config in 
 The library uses a plugin-based architecture defined in `modules.conf.js` which specifies dependencies between modules:
 
 **Core Files:**
+
 - `src/jspdf.js` (~6130 lines) - Main jsPDF class with core PDF generation logic
 - `src/index.js` - Entry point that imports core + all plugins
 
 **Plugin Modules** (in `src/modules/`):
+
 - `addimage.js` - Image embedding (JPEG, PNG, GIF, BMP, WebP support via separate plugins)
 - `acroform.js` - PDF form fields
 - `annotations.js` - Comments, links, etc.
@@ -75,6 +78,7 @@ The library uses a plugin-based architecture defined in `modules.conf.js` which 
 - `autoprint.js`, `javascript.js`, `outline.js`, `total_pages.js`, `viewerpreferences.js`, etc.
 
 **Library Files** (in `src/libs/`):
+
 - `rgbcolor.js` - Color parsing
 - `ttffont.js` - TTF font parsing
 - `bidiEngine.js` - Bidirectional text processing
@@ -86,18 +90,25 @@ The library uses a plugin-based architecture defined in `modules.conf.js` which 
 ### API Modes
 
 jsPDF has two API modes that can be switched:
+
 - **"compat" mode** (default) - Original API, compatible with old plugins
 - **"advanced" mode** - Extended API with transformation matrices, patterns, FormObjects
 
 Switch modes using:
+
 ```javascript
-doc.advancedAPI(doc => { /* your code */ });
-doc.compatAPI(doc => { /* your code */ });
+doc.advancedAPI(doc => {
+  /* your code */
+});
+doc.compatAPI(doc => {
+  /* your code */
+});
 ```
 
 ### Optional Dependencies
 
 Some features require optional dependencies loaded dynamically:
+
 - `html2canvas` - For HTML rendering
 - `dompurify` - For HTML sanitization
 - `canvg` - For SVG rendering
@@ -120,6 +131,7 @@ The build uses preprocessor directives (`// @if MODULE_FORMAT!='cjs'`) to condit
 ## Custom Font Integration
 
 To use custom TrueType fonts:
+
 1. Load .ttf file as binary string
 2. Use `doc.addFileToVFS("FontName.ttf", binaryString)`
 3. Use `doc.addFont("FontName.ttf", "FontName", "normal")`
@@ -143,37 +155,37 @@ For API documentation and usage examples, see [docs/pdfua/](./docs/pdfua/README.
 
 ### Completed Sprints Summary
 
-| Sprint | Feature | Status |
-|--------|---------|--------|
-| 1 | Basic PDF/UA mode, XMP metadata, DisplayDocTitle | ✅ |
-| 2+3 | Structure Tree + Marked Content system | ✅ |
-| 4/5 | Font Embedding (Atkinson Hyperlegible) | ✅ |
-| 6 | Images with Alternative Text | ✅ |
-| 7 | Table Structures with Header Scope | ✅ |
-| 8 | List Structures (ol/ul) | ✅ |
-| 9 | Link Structures | ✅ |
-| 10 | Additional Font Styles (Bold, Italic, BoldItalic) | ✅ |
-| 11 | Font-Subsetting | ⏭️ Skipped (already implemented) |
-| 12 | Comprehensive Test Document | ✅ |
-| 13 | Semantic Text Highlights (Strong/Em) + Font Detection | ✅ |
-| 14 | Span Element for Inline Containers | ✅ |
-| 15 | Quote and BlockQuote Elements | ✅ |
-| 16 | Code Element for Programming Code | ✅ |
-| 17 | Note and Reference for Footnotes/Endnotes | ✅ |
-| 18 | Caption Element for Figure/Table Descriptions | ✅ |
-| 19 | TOC Structure + Bookmarks Navigation | ✅ |
-| 20 | Artifacts for Headers, Footers, Decorative Content | ✅ |
-| 21 | Accessible Form Fields (AcroForm + PDF/UA) | ✅ |
-| 22 | Abbreviations + Formula Elements | ✅ |
-| 23 | BibEntry + Index Elements | ✅ |
-| 24 | NonStruct/Private + Art/Sect/Div/Part Grouping | ✅ |
-| 25 | Ruby/Warichu CJK Annotations | ✅ |
-| 26 | DocumentFragment + Aside (PDF 2.0) + Language Inheritance | ✅ |
-| 27 | Accessible Annotations (Text/FreeText with Annot element) | ✅ |
-| 28 | veraPDF Validation Fixes + Comprehensive Showcase | ✅ |
-| 29 | veraPDF validation for all test suites | ✅ |
-| 30 | PDF 1.7 + Figure BBox + Ruby structure fix | ✅ |
-| 31 | PAC Validation Fixes (Placement attributes) | ✅ |
+| Sprint | Feature                                                   | Status                           |
+| ------ | --------------------------------------------------------- | -------------------------------- |
+| 1      | Basic PDF/UA mode, XMP metadata, DisplayDocTitle          | ✅                               |
+| 2+3    | Structure Tree + Marked Content system                    | ✅                               |
+| 4/5    | Font Embedding (Atkinson Hyperlegible)                    | ✅                               |
+| 6      | Images with Alternative Text                              | ✅                               |
+| 7      | Table Structures with Header Scope                        | ✅                               |
+| 8      | List Structures (ol/ul)                                   | ✅                               |
+| 9      | Link Structures                                           | ✅                               |
+| 10     | Additional Font Styles (Bold, Italic, BoldItalic)         | ✅                               |
+| 11     | Font-Subsetting                                           | ⏭️ Skipped (already implemented) |
+| 12     | Comprehensive Test Document                               | ✅                               |
+| 13     | Semantic Text Highlights (Strong/Em) + Font Detection     | ✅                               |
+| 14     | Span Element for Inline Containers                        | ✅                               |
+| 15     | Quote and BlockQuote Elements                             | ✅                               |
+| 16     | Code Element for Programming Code                         | ✅                               |
+| 17     | Note and Reference for Footnotes/Endnotes                 | ✅                               |
+| 18     | Caption Element for Figure/Table Descriptions             | ✅                               |
+| 19     | TOC Structure + Bookmarks Navigation                      | ✅                               |
+| 20     | Artifacts for Headers, Footers, Decorative Content        | ✅                               |
+| 21     | Accessible Form Fields (AcroForm + PDF/UA)                | ✅                               |
+| 22     | Abbreviations + Formula Elements                          | ✅                               |
+| 23     | BibEntry + Index Elements                                 | ✅                               |
+| 24     | NonStruct/Private + Art/Sect/Div/Part Grouping            | ✅                               |
+| 25     | Ruby/Warichu CJK Annotations                              | ✅                               |
+| 26     | DocumentFragment + Aside (PDF 2.0) + Language Inheritance | ✅                               |
+| 27     | Accessible Annotations (Text/FreeText with Annot element) | ✅                               |
+| 28     | veraPDF Validation Fixes + Comprehensive Showcase         | ✅                               |
+| 29     | veraPDF validation for all test suites                    | ✅                               |
+| 30     | PDF 1.7 + Figure BBox + Ruby structure fix                | ✅                               |
+| 31     | PAC Validation Fixes (Placement attributes)               | ✅                               |
 
 ### Critical Requirements
 
@@ -184,6 +196,7 @@ For API documentation and usage examples, see [docs/pdfua/](./docs/pdfua/README.
 ### Testing Protocol
 
 When working on PDF/UA features, verify:
+
 1. Text displays in Acrobat Reader (not just Firefox)
 2. Structure tree exists
 3. Content is tagged with BDC/EMC operators
@@ -192,11 +205,13 @@ When working on PDF/UA features, verify:
 ### Validation Tools
 
 **veraPDF** (Technical PDF/UA-1 validation):
+
 ```bash
 docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf
 ```
 
 **PAC (PDF Accessibility Checker)** - https://pac.pdf-accessibility.org/
+
 - More strict than veraPDF, checks semantic correctness
 - Validates Placement attributes for inline/block elements
 - Download and run manually on Windows
@@ -205,18 +220,19 @@ docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/
 
 PAC requires `/Placement /Block` for elements used as block-level when they are inline by default:
 
-| Element | Default | When to use `/Placement /Block` |
-|---------|---------|--------------------------------|
-| Note | Inline | Footnotes at page bottom |
-| BibEntry | Inline | Standalone bibliography entries |
-| Code | Inline | Block-level code sections |
-| Link | Inline | Standalone links (not in paragraph) |
-| Annot | Inline | Standalone annotations |
-| Figure | Block | Default is Block |
-| Form | Inline | Form fields (default is Block in our API) |
-| RT | Inline | Ruby text annotations |
+| Element  | Default | When to use `/Placement /Block`           |
+| -------- | ------- | ----------------------------------------- |
+| Note     | Inline  | Footnotes at page bottom                  |
+| BibEntry | Inline  | Standalone bibliography entries           |
+| Code     | Inline  | Block-level code sections                 |
+| Link     | Inline  | Standalone links (not in paragraph)       |
+| Annot    | Inline  | Standalone annotations                    |
+| Figure   | Block   | Default is Block                          |
+| Form     | Inline  | Form fields (default is Block in our API) |
+| RT       | Inline  | Ruby text annotations                     |
 
 The jsPDF-UA API sets sensible defaults:
+
 - `addFootnote()`, `beginBibEntry()`, `beginAnnot()`, `beginFigure()`, `beginFormField()` default to `placement: 'Block'`
 - `beginCode()`, `beginLink()`, `beginRubyText()` require explicit `placement` when used as block-level
 
@@ -227,18 +243,21 @@ Reference: https://biti-wiki.de/index.php?title=Prüfschritte
 These test steps are used to verify PDF/UA compliance. When implementing or modifying PDF/UA features, consider which test steps are affected.
 
 ### 00 - OCR & Structure
-| Step | Title | Relevance |
-|------|-------|-----------|
-| BITi 00.0 | OCR-Validierung / Parsing | Text extraction quality |
+
+| Step      | Title                       | Relevance                |
+| --------- | --------------------------- | ------------------------ |
+| BITi 00.0 | OCR-Validierung / Parsing   | Text extraction quality  |
 | BITi 00.1 | Hierarchie der Baumstruktur | Structure tree hierarchy |
 
 ### 01 - Tagged Content
-| Step | Title | Relevance |
-|------|-------|-----------|
-| BITi 01.0 | Getaggter realer Inhalt / Artefakte | Real content vs artifacts |
-| BITi 01.1 | Artefakte / Kopfzeile und Fußzeile | Headers/footers as artifacts |
+
+| Step      | Title                               | Relevance                    |
+| --------- | ----------------------------------- | ---------------------------- |
+| BITi 01.0 | Getaggter realer Inhalt / Artefakte | Real content vs artifacts    |
+| BITi 01.1 | Artefakte / Kopfzeile und Fußzeile  | Headers/footers as artifacts |
 
 ### 02 - Structure Elements
+
 **02.0 - General**
 | Step | Title | Relevance |
 |------|-------|-----------|
@@ -279,55 +298,56 @@ These test steps are used to verify PDF/UA compliance. When implementing or modi
 | BITi 02.4.2.1 | Nicht-interaktive Formularfelder | Non-interactive forms |
 
 ### 03-16 - Additional Requirements
-| Step | Title | Relevance |
-|------|-------|-----------|
-| BITi 03 | Flimmer-, Blink- oder Blitzeffekte | No flashing content |
-| BITi 04 | Farben, Kontraste und Textvergrößerung | Color contrast, text scaling |
-| BITi 05 | Media | Audio/video accessibility |
-| BITi 06 | Metadaten / Dokumenttitel | XMP metadata, title (Sprint 1) |
-| BITi 07 | Ausgewiesene natürliche Sprache | Lang attribute (Sprint 1, 14) |
-| BITi 08.0 | Logische Lesereihenfolge | Reading order (/Tabs /S) |
-| BITi 08.1 | Lesereihenfolge Artikelabschnitte | Article sections order |
-| BITi 08.2 | Geeignete Verschachtelung der Tags | Proper tag nesting |
-| BITi 09 | Zeichenkodierungen | Character encoding (UTF-8) |
-| BITi 10 | Streckbare Zeichen | Scalable characters |
-| BITi 11 | Optional Content | Optional content groups (see note below) |
-| BITi 12 | Sicherheit | Security settings |
-| BITi 13 | Navigation | Bookmarks, outlines |
-| BITi 14 | Aktionen | JavaScript actions |
-| BITi 15 | XObjects | Form XObjects |
-| BITi 16 | Schriften | Font embedding (Sprint 4/5, 10) |
+
+| Step      | Title                                  | Relevance                                |
+| --------- | -------------------------------------- | ---------------------------------------- |
+| BITi 03   | Flimmer-, Blink- oder Blitzeffekte     | No flashing content                      |
+| BITi 04   | Farben, Kontraste und Textvergrößerung | Color contrast, text scaling             |
+| BITi 05   | Media                                  | Audio/video accessibility                |
+| BITi 06   | Metadaten / Dokumenttitel              | XMP metadata, title (Sprint 1)           |
+| BITi 07   | Ausgewiesene natürliche Sprache        | Lang attribute (Sprint 1, 14)            |
+| BITi 08.0 | Logische Lesereihenfolge               | Reading order (/Tabs /S)                 |
+| BITi 08.1 | Lesereihenfolge Artikelabschnitte      | Article sections order                   |
+| BITi 08.2 | Geeignete Verschachtelung der Tags     | Proper tag nesting                       |
+| BITi 09   | Zeichenkodierungen                     | Character encoding (UTF-8)               |
+| BITi 10   | Streckbare Zeichen                     | Scalable characters                      |
+| BITi 11   | Optional Content                       | Optional content groups (see note below) |
+| BITi 12   | Sicherheit                             | Security settings                        |
+| BITi 13   | Navigation                             | Bookmarks, outlines                      |
+| BITi 14   | Aktionen                               | JavaScript actions                       |
+| BITi 15   | XObjects                               | Form XObjects                            |
+| BITi 16   | Schriften                              | Font embedding (Sprint 4/5, 10)          |
 
 ### Implementation Status by BITi Step
 
-| BITi Step | jsPDF-UA Status | Sprint |
-|-----------|-----------------|--------|
-| 00.1 | ✅ Implemented | 2/3 |
-| 01.0 | ✅ Implemented | 2/3, 20 |
-| 01.1 | ✅ Implemented | 20 |
-| 02.0 | ✅ Implemented | 2/3 |
-| 02.1.0 | ✅ Implemented | 2/3 |
-| 02.1.1 | ✅ Implemented | 19 |
-| 02.1.2 | ✅ BlockQuote, Index | 15, 23 |
-| 02.2.0 | ✅ Implemented | 2/3 |
-| 02.2.1 | ✅ Implemented | 8 |
-| 02.2.2 | ✅ Implemented | 7 |
-| 02.2.3 | ✅ Implemented | 2/3 |
-| 02.2.3.1 | ✅ Abbreviations | 22 |
-| 02.3.0 | ✅ Implemented | 17 |
-| 02.3.1 | ✅ Implemented | 9 |
-| 02.3.2 | ✅ Annot element for Text/FreeText | 27 |
-| 02.3.3 | ✅ Ruby/Warichu | 25 |
-| 02.3.4 | ✅ Span, Quote, BibEntry, Code | 14-16, 23 |
-| 02.4.0 | ✅ Formula | 22 |
-| 02.4.1 | ✅ Implemented | 18 |
-| 02.4.1.1 | ✅ Implemented | 6 |
-| 02.4.2 | ✅ Implemented | 21 |
-| 06 | ✅ Implemented | 1 |
-| 07 | ✅ Implemented | 1, 14 |
-| 08.0 | ✅ Implemented | 2/3 |
-| 13 | ✅ Implemented | 19 |
-| 16 | ✅ Implemented | 4/5, 10 |
+| BITi Step | jsPDF-UA Status                    | Sprint    |
+| --------- | ---------------------------------- | --------- |
+| 00.1      | ✅ Implemented                     | 2/3       |
+| 01.0      | ✅ Implemented                     | 2/3, 20   |
+| 01.1      | ✅ Implemented                     | 20        |
+| 02.0      | ✅ Implemented                     | 2/3       |
+| 02.1.0    | ✅ Implemented                     | 2/3       |
+| 02.1.1    | ✅ Implemented                     | 19        |
+| 02.1.2    | ✅ BlockQuote, Index               | 15, 23    |
+| 02.2.0    | ✅ Implemented                     | 2/3       |
+| 02.2.1    | ✅ Implemented                     | 8         |
+| 02.2.2    | ✅ Implemented                     | 7         |
+| 02.2.3    | ✅ Implemented                     | 2/3       |
+| 02.2.3.1  | ✅ Abbreviations                   | 22        |
+| 02.3.0    | ✅ Implemented                     | 17        |
+| 02.3.1    | ✅ Implemented                     | 9         |
+| 02.3.2    | ✅ Annot element for Text/FreeText | 27        |
+| 02.3.3    | ✅ Ruby/Warichu                    | 25        |
+| 02.3.4    | ✅ Span, Quote, BibEntry, Code     | 14-16, 23 |
+| 02.4.0    | ✅ Formula                         | 22        |
+| 02.4.1    | ✅ Implemented                     | 18        |
+| 02.4.1.1  | ✅ Implemented                     | 6         |
+| 02.4.2    | ✅ Implemented                     | 21        |
+| 06        | ✅ Implemented                     | 1         |
+| 07        | ✅ Implemented                     | 1, 14     |
+| 08.0      | ✅ Implemented                     | 2/3       |
+| 13        | ✅ Implemented                     | 19        |
+| 16        | ✅ Implemented                     | 4/5, 10   |
 
 ### Note on Optional Content (BITi 11 / OCG)
 
@@ -345,11 +365,13 @@ Reference: Matterhorn Protocol checkpoints for Optional Content, ISO 14289-1 Sec
 When external tools are needed (e.g., `qpdf` for PDF inspection, `veraPDF` for validation), do NOT attempt to install them directly using `sudo` commands. The user must enter a password for such commands.
 
 Instead:
+
 1. Explain which tool is needed and why
 2. Provide the installation command for the user to run manually
 3. Wait for the user to confirm the tool is installed before proceeding
 
 Example:
+
 ```
 Tool needed: qpdf (for PDF structure inspection)
 Installation: sudo apt-get install qpdf

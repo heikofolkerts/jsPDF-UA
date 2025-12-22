@@ -9,6 +9,7 @@
 ## Current Status
 
 ### What's Already Working:
+
 - ✅ Basic image support (`addImage()`)
 - ✅ Multiple image formats (JPEG, PNG, GIF, WebP, BMP)
 - ✅ Image options object support
@@ -16,6 +17,7 @@
 - ✅ Marked content (BDC/EMC operators)
 
 ### What's Missing:
+
 - ❌ Alternative text (Alt text) for images
 - ❌ Structure tree integration for images
 - ❌ Figure elements (`/Figure`) in structure tree
@@ -69,16 +71,27 @@ Add support for alternative text and PDF/UA mode:
 // Option 1: Via options object (recommended)
 doc.addImage({
   imageData: imageData,
-  format: 'PNG',
+  format: "PNG",
   x: 10,
   y: 10,
   width: 100,
   height: 80,
-  alt: 'Photo of a sunset over mountains'  // NEW
+  alt: "Photo of a sunset over mountains" // NEW
 });
 
 // Option 2: Additional parameter
-doc.addImage(imageData, 'PNG', 10, 10, 100, 80, 'alias', 'FAST', 0, 'Alternative text');
+doc.addImage(
+  imageData,
+  "PNG",
+  10,
+  10,
+  100,
+  80,
+  "alias",
+  "FAST",
+  0,
+  "Alternative text"
+);
 ```
 
 ### Phase 2: Modify writeImageToPDF
@@ -86,6 +99,7 @@ doc.addImage(imageData, 'PNG', 10, 10, 100, 80, 'alias', 'FAST', 0, 'Alternative
 Update `writeImageToPDF` to wrap images in BDC/EMC when PDF/UA is enabled:
 
 **Current code (addimage.js:492-521):**
+
 ```javascript
 this.internal.write("q"); //Save graphics state
 // ... transformation matrices ...
@@ -94,6 +108,7 @@ this.internal.write("Q"); //Restore graphics state
 ```
 
 **Modified code:**
+
 ```javascript
 var altText = image.alt || null;
 var isPDFUA = this.isPDFUAEnabled && this.isPDFUAEnabled();
@@ -126,7 +141,7 @@ if (isPDFUA && altText) {
 
   // Create Figure structure element
   var figureElement = {
-    type: 'Figure',
+    type: "Figure",
     alt: altText,
     mcid: mcid,
     parent: parent
@@ -141,21 +156,28 @@ if (isPDFUA && altText) {
 For PDF/UA compliance, images MUST have alternative text. Options:
 
 **Option A: Warn and provide default**
+
 ```javascript
 if (isPDFUA && !altText) {
-  console.warn('PDF/UA Warning: Image added without alternative text. Using default.');
-  altText = 'Image';
+  console.warn(
+    "PDF/UA Warning: Image added without alternative text. Using default."
+  );
+  altText = "Image";
 }
 ```
 
 **Option B: Throw error (strict mode)**
+
 ```javascript
 if (isPDFUA && !altText) {
-  throw new Error('PDF/UA requires alternative text for all images. Use alt option.');
+  throw new Error(
+    "PDF/UA requires alternative text for all images. Use alt option."
+  );
 }
 ```
 
 **Option C: Mark as artifact (decorative image)**
+
 ```javascript
 if (isPDFUA && !altText) {
   // Mark as artifact (decorative, not part of content)
@@ -176,19 +198,19 @@ if (isPDFUA && !altText) {
 
 ```javascript
 doc.addImage({
-  imageData: imageData,      // Existing
-  format: 'PNG',             // Existing
-  x: 10,                     // Existing
-  y: 10,                     // Existing
-  width: 100,                // Existing
-  height: 80,                // Existing
-  alias: 'img1',             // Existing
-  compression: 'FAST',       // Existing
-  rotation: 0,               // Existing
+  imageData: imageData, // Existing
+  format: "PNG", // Existing
+  x: 10, // Existing
+  y: 10, // Existing
+  width: 100, // Existing
+  height: 80, // Existing
+  alias: "img1", // Existing
+  compression: "FAST", // Existing
+  rotation: 0, // Existing
 
   // NEW PDF/UA options:
-  alt: 'Description',        // Alternative text
-  decorative: false          // If true, mark as artifact (no alt text needed)
+  alt: "Description", // Alternative text
+  decorative: false // If true, mark as artifact (no alt text needed)
 });
 ```
 
@@ -196,30 +218,30 @@ doc.addImage({
 
 ```javascript
 // For PDF/UA documents, wrap in structure element
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('My Report', 10, 10);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("My Report", 10, 10);
+doc.endStructureElement();
 
-  // Images automatically added to current structure context
-  doc.addImage({
-    imageData: chart,
-    x: 10,
-    y: 30,
-    width: 180,
-    height: 100,
-    alt: 'Bar chart showing sales by quarter'
-  });
+// Images automatically added to current structure context
+doc.addImage({
+  imageData: chart,
+  x: 10,
+  y: 30,
+  width: 180,
+  height: 100,
+  alt: "Bar chart showing sales by quarter"
+});
 
-  // Decorative image (not read by screen readers)
-  doc.addImage({
-    imageData: logo,
-    x: 10,
-    y: 140,
-    width: 50,
-    height: 20,
-    decorative: true  // Marked as artifact
-  });
+// Decorative image (not read by screen readers)
+doc.addImage({
+  imageData: logo,
+  x: 10,
+  y: 140,
+  width: 50,
+  height: 20,
+  decorative: true // Marked as artifact
+});
 doc.endStructureElement();
 ```
 
@@ -228,11 +250,20 @@ doc.endStructureElement();
 ## Implementation Steps
 
 ### Step 1: Extend Image Object
+
 File: `src/modules/addimage.js`
 
 Add `alt` and `decorative` to image object:
+
 ```javascript
-var processImageData = function(imageData, format, alias, compression, alt, decorative) {
+var processImageData = function(
+  imageData,
+  format,
+  alias,
+  compression,
+  alt,
+  decorative
+) {
   // ... existing code ...
 
   result.alt = alt || null;
@@ -243,15 +274,30 @@ var processImageData = function(imageData, format, alias, compression, alt, deco
 ```
 
 ### Step 2: Update addImage Signature
+
 File: `src/modules/addimage.js` (line 786)
 
 ```javascript
 jsPDFAPI.addImage = function() {
-  var imageData, format, x, y, w, h, alias, compression, rotation, alt, decorative;
+  var imageData,
+    format,
+    x,
+    y,
+    w,
+    h,
+    alias,
+    compression,
+    rotation,
+    alt,
+    decorative;
 
   // ... existing argument parsing ...
 
-  if (typeof imageData === "object" && !isDOMElement(imageData) && "imageData" in imageData) {
+  if (
+    typeof imageData === "object" &&
+    !isDOMElement(imageData) &&
+    "imageData" in imageData
+  ) {
     var options = imageData;
 
     // ... existing options ...
@@ -259,7 +305,15 @@ jsPDFAPI.addImage = function() {
     decorative = options.decorative || options.isDecorative || decorative;
   }
 
-  var image = processImageData.call(this, imageData, format, alias, compression, alt, decorative);
+  var image = processImageData.call(
+    this,
+    imageData,
+    format,
+    alias,
+    compression,
+    alt,
+    decorative
+  );
 
   writeImageToPDF.call(this, x, y, w, h, image, rotation);
 
@@ -268,9 +322,11 @@ jsPDFAPI.addImage = function() {
 ```
 
 ### Step 3: Modify writeImageToPDF
+
 File: `src/modules/addimage.js` (line 463)
 
 Add BDC/EMC wrapping:
+
 ```javascript
 var writeImageToPDF = function(x, y, width, height, image, rotation) {
   var isPDFUA = this.isPDFUAEnabled && this.isPDFUAEnabled();
@@ -280,7 +336,9 @@ var writeImageToPDF = function(x, y, width, height, image, rotation) {
   // PDF/UA: Check if we need to wrap image
   if (isPDFUA) {
     if (!altText && !isDecorative) {
-      console.warn('PDF/UA Warning: Image without alternative text will be marked as decorative.');
+      console.warn(
+        "PDF/UA Warning: Image without alternative text will be marked as decorative."
+      );
       isDecorative = true;
     }
 
@@ -293,11 +351,13 @@ var writeImageToPDF = function(x, y, width, height, image, rotation) {
       this.internal.pdfUA.incrementMCID();
       var lang = this.getLanguage();
 
-      this.internal.write("/Figure <</Lang (" + lang + ")/MCID " + mcid + ">> BDC");
+      this.internal.write(
+        "/Figure <</Lang (" + lang + ")/MCID " + mcid + ">> BDC"
+      );
 
       // Add to structure tree
       this.internal.pdfUA.addImageToStructure({
-        type: 'Figure',
+        type: "Figure",
         alt: altText,
         mcid: mcid
       });
@@ -317,6 +377,7 @@ var writeImageToPDF = function(x, y, width, height, image, rotation) {
 ```
 
 ### Step 4: Add Structure Tree Helper
+
 File: `src/modules/structure_tree.js`
 
 ```javascript
@@ -376,6 +437,7 @@ grep "/Alt" output.pdf
 ## Expected Outcomes
 
 After Sprint 6:
+
 - ✅ `addImage()` accepts `alt` and `decorative` options
 - ✅ Images wrapped in BDC/EMC operators in PDF/UA mode
 - ✅ Figure elements in structure tree
@@ -392,17 +454,17 @@ After Sprint 6:
 
 ```javascript
 // Before (works, but not PDF/UA compliant)
-doc.addImage(image, 'PNG', 10, 10, 100, 80);
+doc.addImage(image, "PNG", 10, 10, 100, 80);
 
 // After (PDF/UA compliant)
 doc.addImage({
   imageData: image,
-  format: 'PNG',
+  format: "PNG",
   x: 10,
   y: 10,
   width: 100,
   height: 80,
-  alt: 'Meaningful description'
+  alt: "Meaningful description"
 });
 ```
 
@@ -430,14 +492,17 @@ doc.addImage({
 ## Questions to Resolve
 
 1. **Default behavior without alt text?**
+
    - Current plan: Warn and mark as artifact
    - Alternative: Throw error (strict mode)
 
 2. **Alt text length limit?**
+
    - PDF spec has no limit
    - Recommendation: Warn if > 200 characters?
 
 3. **Support for captions?**
+
    - PDF/UA supports `<Figure><Caption>` structure
    - Defer to later sprint?
 

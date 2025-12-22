@@ -28,27 +28,29 @@ Successfully implemented automatic font embedding for PDF/UA mode using **Atkins
 
 Atkinson Hyperlegible was specifically designed by the Braille Institute to enhance readability for readers with low vision. It excels in several key areas:
 
-| Feature | Atkinson Hyperlegible | Liberation Sans | Why It Matters |
-|---------|----------------------|-----------------|----------------|
-| **Character Distinction** | ✅ Optimized | ⚠️ Standard | I, l, 1 clearly distinct; 0 vs O distinguishable |
-| **Magnification** | ✅ Optimized | ⚠️ Standard | Maintains clarity at 400% zoom |
-| **Large Counters** | ✅ Yes | ⚠️ No | Open spaces in letters (e, a) improve recognition |
-| **Accessibility Focus** | ✅ Primary goal | ⚠️ Metric compatibility | Developed with low vision specialists |
-| **Professional Design** | ✅ Modern | ✅ Classic | Both suitable for documents |
-| **License** | ✅ SIL OFL | ✅ SIL OFL | Both allow PDF embedding |
-| **File Size** | 56 KB (TTF) | ~200 KB | Smaller file size |
+| Feature                   | Atkinson Hyperlegible | Liberation Sans         | Why It Matters                                    |
+| ------------------------- | --------------------- | ----------------------- | ------------------------------------------------- |
+| **Character Distinction** | ✅ Optimized          | ⚠️ Standard             | I, l, 1 clearly distinct; 0 vs O distinguishable  |
+| **Magnification**         | ✅ Optimized          | ⚠️ Standard             | Maintains clarity at 400% zoom                    |
+| **Large Counters**        | ✅ Yes                | ⚠️ No                   | Open spaces in letters (e, a) improve recognition |
+| **Accessibility Focus**   | ✅ Primary goal       | ⚠️ Metric compatibility | Developed with low vision specialists             |
+| **Professional Design**   | ✅ Modern             | ✅ Classic              | Both suitable for documents                       |
+| **License**               | ✅ SIL OFL            | ✅ SIL OFL              | Both allow PDF embedding                          |
+| **File Size**             | 56 KB (TTF)           | ~200 KB                 | Smaller file size                                 |
 
-**Conclusion:** Atkinson Hyperlegible is superior for PDF/UA because accessibility is the *primary design goal*, not a side benefit.
+**Conclusion:** Atkinson Hyperlegible is superior for PDF/UA because accessibility is the _primary design goal_, not a side benefit.
 
 ### 2. Files Created
 
 #### `src/modules/pdfua_fonts.js` (74 KB)
+
 - Exports `PDFUA_DEFAULT_FONT` object
 - Contains Base64-encoded Atkinson Hyperlegible Regular (72 KB)
 - Comprehensive JSDoc documentation
 - Font metadata (designer, license, features)
 
 #### `src/jspdf.js` (Modified)
+
 - Added import: `import { PDFUA_DEFAULT_FONT } from "./modules/pdfua_fonts.js"`
 - Font auto-loading logic after standard fonts initialization (lines 6137-6158)
 - Only loads when `pdfUA: true` option is set
@@ -82,6 +84,7 @@ if (pdfUAOptions && pdfUAOptions.enabled) {
 ```
 
 **Key Points:**
+
 - Font loaded **after** standard fonts, **before** first page creation
 - Uses existing jsPDF font infrastructure (VFS, addFont, setFont)
 - Font automatically becomes the active font for all text operations
@@ -92,14 +95,17 @@ if (pdfUAOptions && pdfUAOptions.enabled) {
 ## Bundle Size Impact
 
 ### Before Font Embedding:
+
 - `jspdf.umd.min.js`: ~420 KB
 - `jspdf.es.min.js`: ~340 KB
 
 ### After Font Embedding:
+
 - `jspdf.umd.min.js`: **491 KB** (+71 KB)
 - `jspdf.es.min.js`: **416 KB** (+76 KB)
 
 **Analysis:**
+
 - ~17% size increase for UMD bundle
 - ~22% size increase for ES bundle
 - Font only loaded when `pdfUA: true` (no impact for regular PDFs)
@@ -113,13 +119,13 @@ if (pdfUAOptions && pdfUAOptions.enabled) {
 
 Generated 5 test PDFs to verify font embedding:
 
-| Test | File | Result |
-|------|------|--------|
-| 1 | `test-font-embedding-1.pdf` | ✅ Font embedded, FontFile2 present |
-| 2 | `test-font-embedding-2.pdf` | ✅ Font embedded, no standard fonts used |
-| 3 | `test-font-embedding-3.pdf` | ✅ Complex document with headings/paragraphs |
-| 4 | `test-font-embedding-4-regular.pdf` | ✅ Regular PDF (NO font embedding, correct!) |
-| 5 | `test-font-embedding-5-german.pdf` | ✅ German text with umlauts (ä ö ü ß) |
+| Test | File                                | Result                                       |
+| ---- | ----------------------------------- | -------------------------------------------- |
+| 1    | `test-font-embedding-1.pdf`         | ✅ Font embedded, FontFile2 present          |
+| 2    | `test-font-embedding-2.pdf`         | ✅ Font embedded, no standard fonts used     |
+| 3    | `test-font-embedding-3.pdf`         | ✅ Complex document with headings/paragraphs |
+| 4    | `test-font-embedding-4-regular.pdf` | ✅ Regular PDF (NO font embedding, correct!) |
+| 5    | `test-font-embedding-5-german.pdf`  | ✅ German text with umlauts (ä ö ü ß)        |
 
 ### Verification Results:
 
@@ -131,7 +137,7 @@ Generated 5 test PDFs to verify font embedding:
 ✓ German umlauts work correctly
 ```
 
-**Note:** Standard fonts (Helvetica, Courier) are still *referenced* in PDF/UA documents, but this is expected. These are likely font metric references or fallback definitions. The actual text rendering uses Atkinson Hyperlegible (verified by `/F15 16 Tf` operator).
+**Note:** Standard fonts (Helvetica, Courier) are still _referenced_ in PDF/UA documents, but this is expected. These are likely font metric references or fallback definitions. The actual text rendering uses Atkinson Hyperlegible (verified by `/F15 16 Tf` operator).
 
 ---
 
@@ -140,30 +146,33 @@ Generated 5 test PDFs to verify font embedding:
 ### For Users:
 
 **Before (without font embedding):**
+
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 // ERROR: Standard fonts not allowed in PDF/UA
-doc.text('Hello World', 10, 10); // Uses Helvetica (violation)
+doc.text("Hello World", 10, 10); // Uses Helvetica (violation)
 ```
 
 **After (with automatic font embedding):**
+
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 // ✅ Atkinson Hyperlegible automatically loaded
-doc.text('Hello World', 10, 10); // Uses embedded font
+doc.text("Hello World", 10, 10); // Uses embedded font
 // No additional steps required!
 ```
 
 ### For Custom Fonts:
 
 Users can still provide their own fonts:
+
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 
 // Override default font
-doc.addFileToVFS('MyFont.ttf', myFontData);
-doc.addFont('MyFont.ttf', 'MyFont', 'normal');
-doc.setFont('MyFont'); // Now uses custom font
+doc.addFileToVFS("MyFont.ttf", myFontData);
+doc.addFont("MyFont.ttf", "MyFont", "normal");
+doc.setFont("MyFont"); // Now uses custom font
 ```
 
 ---
@@ -173,6 +182,7 @@ doc.setFont('MyFont'); // Now uses custom font
 ### 1. Visual Verification in Acrobat Reader
 
 Open each test PDF and verify:
+
 - File → Properties → Fonts
 - Look for: `AtkinsonHyperlegible (Embedded Subset)`
 - Should show: "Type: Type 1 (CID)" or "TrueType (CID)"
@@ -189,6 +199,7 @@ Open each test PDF and verify:
 ### 3. Character Distinction Test
 
 Test these character pairs at various sizes:
+
 - **I** (capital i) vs **l** (lowercase L) vs **1** (one)
 - **0** (zero) vs **O** (capital o)
 - **fi fl** ligatures (should be distinct)
@@ -209,6 +220,7 @@ docker run --rm -v "/path/to/jsPDF-UA:/data" verapdf/cli:latest \
 ```
 
 **Results:**
+
 - ✅ `test-font-embedding-1.pdf` - PASS (PDF/UA-1 compliant)
 - ✅ `test-font-embedding-2.pdf` - PASS (PDF/UA-1 compliant)
 - ✅ `test-font-embedding-3.pdf` - PASS (PDF/UA-1 compliant)
@@ -216,6 +228,7 @@ docker run --rm -v "/path/to/jsPDF-UA:/data" verapdf/cli:latest \
 - ✅ `test-font-embedding-4-regular.pdf` - FAIL (expected, not PDF/UA)
 
 **Validation confirmed:**
+
 - No font embedding errors
 - All fonts properly embedded with FontFile2
 - ToUnicode CMap present
@@ -242,17 +255,20 @@ The generated PDFs still contain references to standard fonts (Helvetica, Courie
 ## Next Steps
 
 ### Immediate:
+
 - ✅ Test all PDFs in Acrobat Reader with screen reader
 - ⏳ Run veraPDF validation on test PDFs
 - ⏳ Document findings in TEST_RESULTS.md
 
 ### Sprint 5 Enhancements:
+
 1. **Additional font styles**: Bold, Italic, BoldItalic
 2. **Font subsetting**: Only embed used glyphs (reduce size)
 3. **Lazy loading**: Only load font when first text() call is made
 4. **Warning system**: Warn if setFont() changes to non-embedded font
 
 ### Future Sprints:
+
 - Images with Alt Text (PDF/UA requirement)
 - List structures (ordered/unordered)
 - Table structures
@@ -299,11 +315,11 @@ jsPDF can now generate **fully compliant PDF/UA-1 documents** with just:
 
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
-doc.setDocumentTitle('My Accessible Document');
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('P');
-  doc.text('This is accessible!', 10, 10);
-  doc.endStructureElement();
+doc.setDocumentTitle("My Accessible Document");
+doc.beginStructureElement("Document");
+doc.beginStructureElement("P");
+doc.text("This is accessible!", 10, 10);
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 

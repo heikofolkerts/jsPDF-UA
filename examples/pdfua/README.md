@@ -18,6 +18,7 @@ Der Server läuft auf `http://localhost:8000`
 ### 2. Test-App öffnen
 
 Öffne im Browser:
+
 ```
 http://localhost:8000/examples/pdfua/test-app.html
 ```
@@ -103,14 +104,14 @@ const testCases = {
   // Bestehende Tests...
 
   myNewTest: {
-    name: 'My New Test',
-    description: 'Beschreibung',
+    name: "My New Test",
+    description: "Beschreibung",
     code: `
       const doc = new jsPDF({ pdfUA: true });
       // ... code ...
       doc.save('test.pdf');
     `,
-    expectedErrors: [],  // Liste erwarteter Fehler
+    expectedErrors: [], // Liste erwarteter Fehler
     generate: function() {
       // PDF-Generierungs-Logik
       const doc = new jsPDF({ pdfUA: true });
@@ -124,8 +125,10 @@ const testCases = {
 Dann Button in `test-app.html` hinzufügen:
 
 ```html
-<button class="list-group-item list-group-item-action test-case-btn"
-        onclick="showTest('myNewTest')">
+<button
+  class="list-group-item list-group-item-action test-case-btn"
+  onclick="showTest('myNewTest')"
+>
   <span>X. My New Test</span>
   <span class="badge bg-warning status-badge">In Progress</span>
 </button>
@@ -136,11 +139,13 @@ Dann Button in `test-app.html` hinzufügen:
 ### Live-Reload während Entwicklung
 
 1. Terminal 1: Dev-Server
+
    ```bash
    npm start
    ```
 
 2. Terminal 2: Build-Watch (optional, wenn src/ geändert wird)
+
    ```bash
    npm run build
    # Refresh browser nach Build
@@ -156,19 +161,19 @@ Browser-Konsole öffnen (F12), dann:
 
 ```javascript
 // Aktueller Test
-testApp.currentTest
+testApp.currentTest;
 
 // Generiertes PDF-Objekt
-testApp.currentPDF
+testApp.currentPDF;
 
 // Alle Test-Cases
-testApp.testCases
+testApp.testCases;
 
 // Test programmatisch auswählen
-testApp.showTest('baseline')
+testApp.showTest("baseline");
 
 // PDF generieren
-testApp.generatePDF()
+testApp.generatePDF();
 ```
 
 ## Validierungs-Workflow

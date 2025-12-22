@@ -16,11 +16,11 @@ Das `Span`-Element ist ein **generischer Inline-Container** in PDF, ähnlich wie
 
 ### Unterschied zu Strong/Em
 
-| Element | Zweck | Semantik |
-|---------|-------|----------|
-| **Strong** | Wichtiger Text | Hat Bedeutung (wichtig) |
-| **Em** | Betonter Text | Hat Bedeutung (betont) |
-| **Span** | Formatierter Text | Keine semantische Bedeutung |
+| Element    | Zweck             | Semantik                    |
+| ---------- | ----------------- | --------------------------- |
+| **Strong** | Wichtiger Text    | Hat Bedeutung (wichtig)     |
+| **Em**     | Betonter Text     | Hat Bedeutung (betont)      |
+| **Span**   | Formatierter Text | Keine semantische Bedeutung |
 
 ### Beispiel
 
@@ -42,6 +42,7 @@ Absatz mit [rotem Text] und [blauem Text] ohne semantische Bedeutung.
 ### Attribute
 
 Das Span-Element kann folgende Attribute haben:
+
 - `/Lang` - Sprachcode (z.B. "en-US", "de-DE") für Sprachwechsel
 - Standard-Attribute wie `/Alt`, `/ActualText`, `/E` (Expansion)
 
@@ -71,36 +72,36 @@ doc.endSpan();
 
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('P');
-    doc.text('Dieser Text ist auf Deutsch, aber ', 10, 20);
+doc.beginStructureElement("Document");
+doc.beginStructureElement("P");
+doc.text("Dieser Text ist auf Deutsch, aber ", 10, 20);
 
-    // Englischer Text innerhalb eines deutschen Absatzes
-    doc.beginSpan({ lang: 'en-US' });
-    doc.text('this part is in English', 80, 20);
-    doc.endSpan();
+// Englischer Text innerhalb eines deutschen Absatzes
+doc.beginSpan({ lang: "en-US" });
+doc.text("this part is in English", 80, 20);
+doc.endSpan();
 
-    doc.text(', und dann wieder Deutsch.', 160, 20);
-  doc.endStructureElement();
+doc.text(", und dann wieder Deutsch.", 160, 20);
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
 ### Formatierung ohne Semantik
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Normal text with ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Normal text with ", 10, 40);
 
 // Roter Text - nur visuell, keine semantische Bedeutung
 doc.beginSpan();
 doc.setTextColor(255, 0, 0);
-doc.text('red colored text', 55, 40);
+doc.text("red colored text", 55, 40);
 doc.setTextColor(0, 0, 0);
 doc.endSpan();
 
-doc.text(' in the middle.', 115, 40);
+doc.text(" in the middle.", 115, 40);
 doc.endStructureElement();
 ```
 
@@ -124,10 +125,10 @@ jsPDFAPI.beginSpan = function(options) {
 
   // If language is specified, pass it to the structure element
   if (options.lang) {
-    return this.beginStructureElement('Span', { lang: options.lang });
+    return this.beginStructureElement("Span", { lang: options.lang });
   }
 
-  return this.beginStructureElement('Span');
+  return this.beginStructureElement("Span");
 };
 
 /**
@@ -142,6 +143,7 @@ jsPDFAPI.endSpan = function() {
 ### Lang-Attribut in Structure Elements
 
 Das `/Lang`-Attribut im Span überschreibt die Dokumentsprache für den enthaltenen Text. Dies ist wichtig für:
+
 - Fremdwörter
 - Zitate in anderen Sprachen
 - Technische Begriffe
@@ -153,58 +155,58 @@ Das `/Lang`-Attribut im Span überschreibt die Dokumentsprache für den enthalte
 ### Test 1: Einfacher Span
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Text with ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Text with ", 10, 40);
 
 doc.beginSpan();
 doc.setTextColor(255, 0, 0);
-doc.text('red text', 40, 40);
+doc.text("red text", 40, 40);
 doc.setTextColor(0, 0, 0);
 doc.endSpan();
 
-doc.text(' inside.', 75, 40);
+doc.text(" inside.", 75, 40);
 doc.endStructureElement();
 ```
 
 ### Test 2: Span mit Sprachwechsel
 
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('P');
-doc.text('Das Wort ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Das Wort ", 10, 40);
 
-doc.beginSpan({ lang: 'en-US' });
-doc.text('Computer', 40, 40);
+doc.beginSpan({ lang: "en-US" });
+doc.text("Computer", 40, 40);
 doc.endSpan();
 
-doc.text(' ist ein Anglizismus.', 80, 40);
+doc.text(" ist ein Anglizismus.", 80, 40);
 doc.endStructureElement();
 ```
 
 ### Test 3: Mehrere Spans mit verschiedenen Sprachen
 
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('P');
-doc.text('Auf Französisch sagt man ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Auf Französisch sagt man ", 10, 40);
 
-doc.beginSpan({ lang: 'fr-FR' });
+doc.beginSpan({ lang: "fr-FR" });
 doc.setFont("AtkinsonHyperlegible", "italic");
-doc.text('bonjour', 80, 40);
+doc.text("bonjour", 80, 40);
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.endSpan();
 
-doc.text(', auf Spanisch ', 110, 40);
+doc.text(", auf Spanisch ", 110, 40);
 
-doc.beginSpan({ lang: 'es-ES' });
+doc.beginSpan({ lang: "es-ES" });
 doc.setFont("AtkinsonHyperlegible", "italic");
-doc.text('hola', 160, 40);
+doc.text("hola", 160, 40);
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.endSpan();
 
-doc.text('.', 180, 40);
+doc.text(".", 180, 40);
 doc.endStructureElement();
 ```
 
@@ -212,41 +214,41 @@ doc.endStructureElement();
 
 ```javascript
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 40);
-    doc.beginListBody();
-      doc.text('Term: ', 20, 40);
-      doc.beginSpan({ lang: 'en-US' });
-      doc.text('Accessibility', 45, 40);
-      doc.endSpan();
-    doc.endListBody();
-  doc.endStructureElement();
+doc.beginListItem();
+doc.addListLabel("•", 15, 40);
+doc.beginListBody();
+doc.text("Term: ", 20, 40);
+doc.beginSpan({ lang: "en-US" });
+doc.text("Accessibility", 45, 40);
+doc.endSpan();
+doc.endListBody();
+doc.endStructureElement();
 doc.endList();
 ```
 
 ### Test 5: Kombination mit Strong/Em
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Dies ist ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Dies ist ", 10, 40);
 
 doc.beginStrong();
 doc.setFont("AtkinsonHyperlegible", "bold");
-doc.text('wichtig', 40, 40);
+doc.text("wichtig", 40, 40);
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.endStrong();
 
-doc.text(' und ', 75, 40);
+doc.text(" und ", 75, 40);
 
-doc.beginSpan({ lang: 'en-US' });
+doc.beginSpan({ lang: "en-US" });
 doc.beginEmphasis();
 doc.setFont("AtkinsonHyperlegible", "italic");
-doc.text('emphasized English', 95, 40);
+doc.text("emphasized English", 95, 40);
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.endEmphasis();
 doc.endSpan();
 
-doc.text('.', 175, 40);
+doc.text(".", 175, 40);
 doc.endStructureElement();
 ```
 
@@ -257,6 +259,7 @@ doc.endStructureElement();
 ### Erwartet:
 
 **Mit Sprachwechsel:**
+
 ```
 "Das Wort [wechselt zu englischer Aussprache] Computer [zurück zu Deutsch] ist ein Anglizismus."
 ```

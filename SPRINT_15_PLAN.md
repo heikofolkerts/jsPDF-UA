@@ -11,6 +11,7 @@
 PDF unterstützt zwei Struktur-Elemente für Zitate:
 
 1. **Quote** - Inline-Zitat innerhalb eines Absatzes
+
    - Entspricht HTML `<q>`
    - Für kurze Zitate innerhalb des Fließtexts
 
@@ -20,12 +21,12 @@ PDF unterstützt zwei Struktur-Elemente für Zitate:
 
 ### Unterschied zu anderen Elementen
 
-| Element | Ebene | Zweck |
-|---------|-------|-------|
-| **Quote** | Inline | Kurzes Zitat im Fließtext |
-| **BlockQuote** | Block | Längeres Zitat als eigener Absatz |
-| **Span** | Inline | Formatierung ohne Semantik |
-| **P** | Block | Normaler Absatz |
+| Element        | Ebene  | Zweck                             |
+| -------------- | ------ | --------------------------------- |
+| **Quote**      | Inline | Kurzes Zitat im Fließtext         |
+| **BlockQuote** | Block  | Längeres Zitat als eigener Absatz |
+| **Span**       | Inline | Formatierung ohne Semantik        |
+| **P**          | Block  | Normaler Absatz                   |
 
 ### Beispiel
 
@@ -57,6 +58,7 @@ mehrere Zeilen umfassen kann.
 ### Attribute
 
 Beide Elemente können folgende Attribute haben:
+
 - Keine speziellen Attribute erforderlich
 - Optional: `/Lang` für anderssprachige Zitate (wie bei Span)
 
@@ -108,20 +110,28 @@ doc.endBlockQuote();
 
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('P');
-    doc.text('Der Autor schrieb: ', 10, 20);
+doc.beginStructureElement("Document");
+doc.beginStructureElement("P");
+doc.text("Der Autor schrieb: ", 10, 20);
 
-    doc.beginQuote();
-    doc.setFont("AtkinsonHyperlegible", "italic");
-    doc.text('"Das ist ein Zitat"', 10 + doc.getTextWidth('Der Autor schrieb: '), 20);
-    doc.setFont("AtkinsonHyperlegible", "normal");
-    doc.endQuote();
+doc.beginQuote();
+doc.setFont("AtkinsonHyperlegible", "italic");
+doc.text(
+  '"Das ist ein Zitat"',
+  10 + doc.getTextWidth("Der Autor schrieb: "),
+  20
+);
+doc.setFont("AtkinsonHyperlegible", "normal");
+doc.endQuote();
 
-    doc.text(' und das war es.', 10 + doc.getTextWidth('Der Autor schrieb: "Das ist ein Zitat"'), 20);
-  doc.endStructureElement();
+doc.text(
+  " und das war es.",
+  10 + doc.getTextWidth('Der Autor schrieb: "Das ist ein Zitat"'),
+  20
+);
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
@@ -129,25 +139,25 @@ doc.endStructureElement();
 
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-    doc.text('Berühmte Zitate', 10, 20);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("Berühmte Zitate", 10, 20);
+doc.endStructureElement();
 
-  doc.beginStructureElement('P');
-    doc.text('Albert Einstein sagte einmal:', 10, 40);
-  doc.endStructureElement();
+doc.beginStructureElement("P");
+doc.text("Albert Einstein sagte einmal:", 10, 40);
+doc.endStructureElement();
 
-  doc.beginBlockQuote();
-    doc.text('"Fantasie ist wichtiger als Wissen,', 20, 55);
-    doc.text('denn Wissen ist begrenzt."', 20, 65);
-  doc.endBlockQuote();
+doc.beginBlockQuote();
+doc.text('"Fantasie ist wichtiger als Wissen,', 20, 55);
+doc.text('denn Wissen ist begrenzt."', 20, 65);
+doc.endBlockQuote();
 
-  doc.beginStructureElement('P');
-    doc.text('Dieses Zitat inspiriert viele Menschen.', 10, 85);
-  doc.endStructureElement();
+doc.beginStructureElement("P");
+doc.text("Dieses Zitat inspiriert viele Menschen.", 10, 85);
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
@@ -189,7 +199,7 @@ jsPDFAPI.beginQuote = function(options) {
   if (options.lang) {
     attributes.lang = options.lang;
   }
-  return this.beginStructureElement('Quote', attributes);
+  return this.beginStructureElement("Quote", attributes);
 };
 
 /**
@@ -213,7 +223,7 @@ jsPDFAPI.beginBlockQuote = function(options) {
   if (options.lang) {
     attributes.lang = options.lang;
   }
-  return this.beginStructureElement('BlockQuote', attributes);
+  return this.beginStructureElement("BlockQuote", attributes);
 };
 
 /**
@@ -232,43 +242,43 @@ jsPDFAPI.endBlockQuote = function() {
 ### Test 1: Einfaches Inline Quote
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Er sagte: ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Er sagte: ", 10, 40);
 
 doc.beginQuote();
 doc.text('"Hallo Welt"', 35, 40);
 doc.endQuote();
 
-doc.text(' und ging.', 75, 40);
+doc.text(" und ging.", 75, 40);
 doc.endStructureElement();
 ```
 
 ### Test 2: Einfaches BlockQuote
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Das folgende Zitat ist berühmt:', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Das folgende Zitat ist berühmt:", 10, 40);
 doc.endStructureElement();
 
 doc.beginBlockQuote();
 doc.text('"Ich denke, also bin ich."', 20, 55);
-doc.text('- René Descartes', 20, 65);
+doc.text("- René Descartes", 20, 65);
 doc.endBlockQuote();
 ```
 
 ### Test 3: Quote mit Sprachwechsel
 
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('P');
-doc.text('Shakespeare schrieb: ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Shakespeare schrieb: ", 10, 40);
 
-doc.beginQuote({ lang: 'en-GB' });
+doc.beginQuote({ lang: "en-GB" });
 doc.text('"To be or not to be"', 65, 40);
 doc.endQuote();
 
-doc.text('.', 140, 40);
+doc.text(".", 140, 40);
 doc.endStructureElement();
 ```
 
@@ -276,31 +286,39 @@ doc.endStructureElement();
 
 ```javascript
 doc.beginBlockQuote();
-  doc.beginStructureElement('P');
-  doc.text('Erstes Absatz des Zitats.', 20, 40);
-  doc.endStructureElement();
+doc.beginStructureElement("P");
+doc.text("Erstes Absatz des Zitats.", 20, 40);
+doc.endStructureElement();
 
-  doc.beginStructureElement('P');
-  doc.text('Zweiter Absatz des Zitats mit ', 20, 55);
+doc.beginStructureElement("P");
+doc.text("Zweiter Absatz des Zitats mit ", 20, 55);
 
-  doc.beginEmphasis();
-  doc.setFont("AtkinsonHyperlegible", "italic");
-  doc.text('Betonung', 20 + doc.getTextWidth('Zweiter Absatz des Zitats mit '), 55);
-  doc.setFont("AtkinsonHyperlegible", "normal");
-  doc.endEmphasis();
+doc.beginEmphasis();
+doc.setFont("AtkinsonHyperlegible", "italic");
+doc.text(
+  "Betonung",
+  20 + doc.getTextWidth("Zweiter Absatz des Zitats mit "),
+  55
+);
+doc.setFont("AtkinsonHyperlegible", "normal");
+doc.endEmphasis();
 
-  doc.text('.', 20 + doc.getTextWidth('Zweiter Absatz des Zitats mit Betonung'), 55);
-  doc.endStructureElement();
+doc.text(
+  ".",
+  20 + doc.getTextWidth("Zweiter Absatz des Zitats mit Betonung"),
+  55
+);
+doc.endStructureElement();
 doc.endBlockQuote();
 ```
 
 ### Test 5: Deutsche Sprache
 
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 
-doc.beginStructureElement('P');
-doc.text('Goethe schrieb in Faust: ', 10, 40);
+doc.beginStructureElement("P");
+doc.text("Goethe schrieb in Faust: ", 10, 40);
 
 doc.beginQuote();
 doc.setFont("AtkinsonHyperlegible", "italic");
@@ -308,7 +326,7 @@ doc.text('"Grau, teurer Freund, ist alle Theorie"', x, 40);
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.endQuote();
 
-doc.text('.', x, 40);
+doc.text(".", x, 40);
 doc.endStructureElement();
 ```
 
@@ -324,6 +342,7 @@ Einige Screenreader fügen "Zitat" oder "Zitat Ende" an.
 
 **BlockQuote:**
 Der Screenreader sollte das Block-Zitat als eigenen Bereich ankündigen:
+
 - "Zitat-Block" beim Eintritt
 - Text des Zitats
 - "Zitat-Block Ende" beim Verlassen

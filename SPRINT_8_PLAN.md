@@ -9,6 +9,7 @@
 ## Überblick
 
 Listen sind ein fundamentales Strukturelement für PDF/UA. Sie ermöglichen Screenreadern:
+
 - Zu erkennen, dass es sich um eine Liste handelt
 - Die Anzahl der Listenelemente anzusagen
 - Durch Listenelemente zu navigieren
@@ -21,14 +22,17 @@ Listen sind ein fundamentales Strukturelement für PDF/UA. Sie ermöglichen Scre
 ### Struktur-Elemente
 
 **Hauptelement:**
+
 - `L` (List) - Container für alle Listenelemente
 
 **Listenelemente:**
+
 - `LI` (ListItem) - Jedes Element in der Liste
 - `Lbl` (Label) - Das Aufzählungszeichen oder die Nummer
 - `LBody` (ListBody) - Der eigentliche Inhalt des Listenelements
 
 **Verschachtelte Listen:**
+
 - Listen können andere Listen enthalten (verschachtelt)
 - Jede verschachtelte Liste ist ein vollständiges `L`-Element innerhalb eines `LI`
 
@@ -37,6 +41,7 @@ Listen sind ein fundamentales Strukturelement für PDF/UA. Sie ermöglichen Scre
 ## Struktur-Hierarchie
 
 ### Einfache ungeordnete Liste (ul):
+
 ```
 L (List)
 ├─ LI (ListItem)
@@ -54,6 +59,7 @@ L (List)
 ```
 
 ### Einfache geordnete Liste (ol):
+
 ```
 L (List)
 ├─ LI (ListItem)
@@ -71,6 +77,7 @@ L (List)
 ```
 
 ### Verschachtelte Liste:
+
 ```
 L (List)
 ├─ LI (ListItem)
@@ -101,36 +108,36 @@ L (List)
 ```javascript
 // Ungeordnete Liste (Bullet Points)
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('•');
-    doc.beginListBody();
-      doc.text('Erster Punkt', 20, 30);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•");
+doc.beginListBody();
+doc.text("Erster Punkt", 20, 30);
+doc.endListBody();
+doc.endListItem();
 
-  doc.beginListItem();
-    doc.addListLabel('•');
-    doc.beginListBody();
-      doc.text('Zweiter Punkt', 20, 40);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•");
+doc.beginListBody();
+doc.text("Zweiter Punkt", 20, 40);
+doc.endListBody();
+doc.endListItem();
 doc.endList();
 
 // Geordnete Liste (Nummeriert)
 doc.beginListNumbered();
-  doc.beginListItem();
-    doc.addListLabel('1.');
-    doc.beginListBody();
-      doc.text('Erster Schritt', 20, 30);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("1.");
+doc.beginListBody();
+doc.text("Erster Schritt", 20, 30);
+doc.endListBody();
+doc.endListItem();
 
-  doc.beginListItem();
-    doc.addListLabel('2.');
-    doc.beginListBody();
-      doc.text('Zweiter Schritt', 20, 40);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("2.");
+doc.beginListBody();
+doc.text("Zweiter Schritt", 20, 40);
+doc.endListBody();
+doc.endListItem();
 doc.endListNumbered();
 ```
 
@@ -139,17 +146,18 @@ doc.endListNumbered();
 ```javascript
 // Automatische Label-Generierung
 doc.beginList();
-  doc.addListItem('Erster Punkt', 20, 30);  // Auto-adds "•"
-  doc.addListItem('Zweiter Punkt', 20, 40);
+doc.addListItem("Erster Punkt", 20, 30); // Auto-adds "•"
+doc.addListItem("Zweiter Punkt", 20, 40);
 doc.endList();
 
 doc.beginListNumbered();
-  doc.addListItem('Erster Schritt', 20, 30);  // Auto-adds "1."
-  doc.addListItem('Zweiter Schritt', 20, 40); // Auto-adds "2."
+doc.addListItem("Erster Schritt", 20, 30); // Auto-adds "1."
+doc.addListItem("Zweiter Schritt", 20, 40); // Auto-adds "2."
 doc.endListNumbered();
 ```
 
 **Entscheidung:** Wir implementieren zunächst die **einfache API** (explizite Labels), da:
+
 1. Benutzer volle Kontrolle über Positionierung haben
 2. Keine automatische Layout-Berechnung nötig
 3. Konsistent mit dem Tabellen-API-Design
@@ -168,7 +176,7 @@ doc.endListNumbered();
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
 jsPDFAPI.beginList = function(numbered) {
-  return this.beginStructureElement('L', { numbered: numbered || false });
+  return this.beginStructureElement("L", { numbered: numbered || false });
 };
 
 /**
@@ -184,7 +192,7 @@ jsPDFAPI.beginListNumbered = function() {
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
 jsPDFAPI.beginListItem = function() {
-  return this.beginStructureElement('LI');
+  return this.beginStructureElement("LI");
 };
 
 /**
@@ -195,7 +203,7 @@ jsPDFAPI.beginListItem = function() {
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
 jsPDFAPI.addListLabel = function(label, x, y) {
-  this.beginStructureElement('Lbl');
+  this.beginStructureElement("Lbl");
   this.text(label, x, y);
   this.endStructureElement();
   return this;
@@ -206,7 +214,7 @@ jsPDFAPI.addListLabel = function(label, x, y) {
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
 jsPDFAPI.beginListBody = function() {
-  return this.beginStructureElement('LBody');
+  return this.beginStructureElement("LBody");
 };
 
 /**
@@ -233,6 +241,7 @@ Die Listen-Elemente (L, LI, Lbl, LBody) benötigen keine speziellen Attribute wi
 ### Step 3: Validierung
 
 Optionale Validierung (kann später hinzugefügt werden):
+
 - Warnung, wenn `LI` kein `Lbl` oder `LBody` enthält
 - Warnung, wenn `L` leer ist
 
@@ -241,158 +250,163 @@ Optionale Validierung (kann später hinzugefügt werden):
 ## Test-Suite
 
 ### Test 1: Einfache ungeordnete Liste
+
 ```javascript
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('Einkaufsliste', 10, 10);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("Einkaufsliste", 10, 10);
+doc.endStructureElement();
 
-  doc.beginList();
-    doc.beginListItem();
-      doc.addListLabel('•', 15, 25);
-      doc.beginListBody();
-        doc.text('Milch', 20, 25);
-      doc.endListBody();
-    doc.endListItem();
+doc.beginList();
+doc.beginListItem();
+doc.addListLabel("•", 15, 25);
+doc.beginListBody();
+doc.text("Milch", 20, 25);
+doc.endListBody();
+doc.endListItem();
 
-    doc.beginListItem();
-      doc.addListLabel('•', 15, 35);
-      doc.beginListBody();
-        doc.text('Brot', 20, 35);
-      doc.endListBody();
-    doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•", 15, 35);
+doc.beginListBody();
+doc.text("Brot", 20, 35);
+doc.endListBody();
+doc.endListItem();
 
-    doc.beginListItem();
-      doc.addListLabel('•', 15, 45);
-      doc.beginListBody();
-        doc.text('Käse', 20, 45);
-      doc.endListBody();
-    doc.endListItem();
-  doc.endList();
+doc.beginListItem();
+doc.addListLabel("•", 15, 45);
+doc.beginListBody();
+doc.text("Käse", 20, 45);
+doc.endListBody();
+doc.endListItem();
+doc.endList();
 doc.endStructureElement();
 ```
 
 ### Test 2: Einfache geordnete Liste
+
 ```javascript
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('Anleitung', 10, 10);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("Anleitung", 10, 10);
+doc.endStructureElement();
 
-  doc.beginListNumbered();
-    doc.beginListItem();
-      doc.addListLabel('1.', 15, 25);
-      doc.beginListBody();
-        doc.text('Datei öffnen', 20, 25);
-      doc.endListBody();
-    doc.endListItem();
+doc.beginListNumbered();
+doc.beginListItem();
+doc.addListLabel("1.", 15, 25);
+doc.beginListBody();
+doc.text("Datei öffnen", 20, 25);
+doc.endListBody();
+doc.endListItem();
 
-    doc.beginListItem();
-      doc.addListLabel('2.', 15, 35);
-      doc.beginListBody();
-        doc.text('Text eingeben', 20, 35);
-      doc.endListBody();
-    doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("2.", 15, 35);
+doc.beginListBody();
+doc.text("Text eingeben", 20, 35);
+doc.endListBody();
+doc.endListItem();
 
-    doc.beginListItem();
-      doc.addListLabel('3.', 15, 45);
-      doc.beginListBody();
-        doc.text('Speichern', 20, 45);
-      doc.endListBody();
-    doc.endListItem();
-  doc.endListNumbered();
+doc.beginListItem();
+doc.addListLabel("3.", 15, 45);
+doc.beginListBody();
+doc.text("Speichern", 20, 45);
+doc.endListBody();
+doc.endListItem();
+doc.endListNumbered();
 doc.endStructureElement();
 ```
 
 ### Test 3: Verschachtelte Liste
+
 ```javascript
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('1.', 15, 25);
-    doc.beginListBody();
-      doc.text('Hauptpunkt 1', 20, 25);
+doc.beginListItem();
+doc.addListLabel("1.", 15, 25);
+doc.beginListBody();
+doc.text("Hauptpunkt 1", 20, 25);
 
-      // Verschachtelte Liste
-      doc.beginList();
-        doc.beginListItem();
-          doc.addListLabel('a.', 25, 35);
-          doc.beginListBody();
-            doc.text('Unterpunkt 1a', 30, 35);
-          doc.endListBody();
-        doc.endListItem();
+// Verschachtelte Liste
+doc.beginList();
+doc.beginListItem();
+doc.addListLabel("a.", 25, 35);
+doc.beginListBody();
+doc.text("Unterpunkt 1a", 30, 35);
+doc.endListBody();
+doc.endListItem();
 
-        doc.beginListItem();
-          doc.addListLabel('b.', 25, 45);
-          doc.beginListBody();
-            doc.text('Unterpunkt 1b', 30, 45);
-          doc.endListBody();
-        doc.endListItem();
-      doc.endList();
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("b.", 25, 45);
+doc.beginListBody();
+doc.text("Unterpunkt 1b", 30, 45);
+doc.endListBody();
+doc.endListItem();
+doc.endList();
+doc.endListBody();
+doc.endListItem();
 
-  doc.beginListItem();
-    doc.addListLabel('2.', 15, 60);
-    doc.beginListBody();
-      doc.text('Hauptpunkt 2', 20, 60);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("2.", 15, 60);
+doc.beginListBody();
+doc.text("Hauptpunkt 2", 20, 60);
+doc.endListBody();
+doc.endListItem();
 doc.endList();
 ```
 
 ### Test 4: Gemischte Verschachtelung
+
 ```javascript
 // Geordnete Liste mit ungeordneter Unterliste
 doc.beginListNumbered();
-  doc.beginListItem();
-    doc.addListLabel('1.', 15, 25);
-    doc.beginListBody();
-      doc.text('Aufgabe 1', 20, 25);
+doc.beginListItem();
+doc.addListLabel("1.", 15, 25);
+doc.beginListBody();
+doc.text("Aufgabe 1", 20, 25);
 
-      doc.beginList();  // Ungeordnete Unterliste
-        doc.beginListItem();
-          doc.addListLabel('•', 25, 35);
-          doc.beginListBody();
-            doc.text('Detail A', 30, 35);
-          doc.endListBody();
-        doc.endListItem();
+doc.beginList(); // Ungeordnete Unterliste
+doc.beginListItem();
+doc.addListLabel("•", 25, 35);
+doc.beginListBody();
+doc.text("Detail A", 30, 35);
+doc.endListBody();
+doc.endListItem();
 
-        doc.beginListItem();
-          doc.addListLabel('•', 25, 45);
-          doc.beginListBody();
-            doc.text('Detail B', 30, 45);
-          doc.endListBody();
-        doc.endListItem();
-      doc.endList();
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•", 25, 45);
+doc.beginListBody();
+doc.text("Detail B", 30, 45);
+doc.endListBody();
+doc.endListItem();
+doc.endList();
+doc.endListBody();
+doc.endListItem();
 doc.endListNumbered();
 ```
 
 ### Test 5: Deutsche Sprache
+
 ```javascript
-doc.setLanguage('de-DE');
+doc.setLanguage("de-DE");
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 25);
-    doc.beginListBody();
-      doc.text('Äpfel', 20, 25);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•", 15, 25);
+doc.beginListBody();
+doc.text("Äpfel", 20, 25);
+doc.endListBody();
+doc.endListItem();
 
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 35);
-    doc.beginListBody();
-      doc.text('Öl', 20, 35);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•", 15, 35);
+doc.beginListBody();
+doc.text("Öl", 20, 35);
+doc.endListBody();
+doc.endListItem();
 
-  doc.beginListItem();
-    doc.addListLabel('•', 15, 45);
-    doc.beginListBody();
-      doc.text('Überzug', 20, 45);
-    doc.endListBody();
-  doc.endListItem();
+doc.beginListItem();
+doc.addListLabel("•", 15, 45);
+doc.beginListBody();
+doc.text("Überzug", 20, 45);
+doc.endListBody();
+doc.endListItem();
 doc.endList();
 ```
 
@@ -401,6 +415,7 @@ doc.endList();
 ## PDF-Referenz-Beispiele
 
 ### List Element:
+
 ```pdf
 10 0 obj
 << /Type /StructElem
@@ -412,6 +427,7 @@ endobj
 ```
 
 ### List Item:
+
 ```pdf
 11 0 obj
 << /Type /StructElem
@@ -423,6 +439,7 @@ endobj
 ```
 
 ### Label:
+
 ```pdf
 14 0 obj
 << /Type /StructElem
@@ -435,6 +452,7 @@ endobj
 ```
 
 ### List Body:
+
 ```pdf
 15 0 obj
 << /Type /StructElem
@@ -496,6 +514,7 @@ endobj
 ### Implementation Summary:
 
 **Files Modified:**
+
 1. `src/modules/structure_tree.js`:
    - Added `beginList(numbered)` method
    - Added `beginListNumbered()` convenience method
@@ -505,6 +524,7 @@ endobj
    - Added `endList()` method
 
 **Test Results:**
+
 - ✅ All 5 list test cases pass unit tests
 - ✅ All 5 PDFs pass veraPDF PDF/UA-1 validation
 - ✅ List structure correctly written to PDF (L, LI, Lbl, LBody)
@@ -515,6 +535,7 @@ endobj
 - ✅ German language support confirmed
 
 **veraPDF Validation Results:**
+
 ```
 PASS /data/examples/temp/test-list-1-unordered.pdf ua1
 PASS /data/examples/temp/test-list-2-ordered.pdf ua1
@@ -524,6 +545,7 @@ PASS /data/examples/temp/test-list-5-german.pdf ua1
 ```
 
 **Generated Test PDFs:**
+
 1. `test-list-1-unordered.pdf` - Simple bullet list (3 items)
 2. `test-list-2-ordered.pdf` - Numbered list (3 steps)
 3. `test-list-3-nested.pdf` - Nested lists (ordered with sub-items)
@@ -532,6 +554,7 @@ PASS /data/examples/temp/test-list-5-german.pdf ua1
 
 **Structure Verification:**
 Inspected PDF structure shows correct hierarchy:
+
 ```
 L (List)
 ├─ LI (ListItem)
@@ -547,6 +570,7 @@ L (List)
 
 **Nested Lists:**
 Nested structure confirmed with two `/S /L` elements in PDF:
+
 ```
 L (Outer List)
 └─ LI (ListItem)
@@ -558,6 +582,7 @@ L (Outer List)
 
 **User Testing Required:**
 The user should test the generated PDFs with:
+
 1. Acrobat Reader + screen reader
 2. Navigate through list items
 3. Verify screen reader announces:
@@ -572,6 +597,7 @@ User reported that nested lists showed no list announcements in screen reader - 
 **Root Cause:** When a structure element had both MCIDs (text content) and child elements (nested lists), the `/K` array only included child elements, omitting the MCIDs. This caused text content like "Research" to be lost in the structure tree.
 
 **Example of the bug:**
+
 ```pdf
 << /Type /StructElem
    /S /LBody
@@ -584,9 +610,9 @@ User reported that nested lists showed no list announcements in screen reader - 
 ```javascript
 // OLD (buggy):
 if (elem.children.length > 0) {
-  this.internal.write('/K [' + kids + ']');
+  this.internal.write("/K [" + kids + "]");
 } else if (elem.mcids.length > 0) {
-  this.internal.write('/K [' + mcidArray + ']');
+  this.internal.write("/K [" + mcidArray + "]");
 }
 
 // NEW (fixed):
@@ -596,13 +622,14 @@ if (elem.children.length > 0 || elem.mcids.length > 0) {
     kArray.push(m.mcid);
   });
   elem.children.forEach(function(c) {
-    kArray.push(c.objectNumber + ' 0 R');
+    kArray.push(c.objectNumber + " 0 R");
   });
-  this.internal.write('/K [' + kArray.join(' ') + ']');
+  this.internal.write("/K [" + kArray.join(" ") + "]");
 }
 ```
 
 **Result after fix:**
+
 ```pdf
 << /Type /StructElem
    /S /LBody
@@ -611,6 +638,7 @@ if (elem.children.length > 0 || elem.mcids.length > 0) {
 ```
 
 **Verification:**
+
 - All 5 list PDFs still pass veraPDF validation after fix
 - Structure tree now correctly includes both text and nested elements
 - User should re-test with screen reader

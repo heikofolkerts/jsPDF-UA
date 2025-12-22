@@ -23,6 +23,7 @@ can announce headers when navigating through table cells.
 ### 1. Structure Elements
 
 Tables must use these structure types:
+
 - `/Table` - The table container
 - `/TR` - Table Row
 - `/TH` - Table Header cell
@@ -36,11 +37,13 @@ Tables must use these structure types:
 **CRITICAL for accessibility:**
 
 Each `/TH` element MUST have a `/Scope` attribute:
+
 - `/Scope /Row` - Header for the entire row
 - `/Scope /Column` - Header for the entire column
 - `/Scope /Both` - Header for both row and column (rare)
 
 **Example:**
+
 ```pdf
 % Column header (e.g., "Product Name" column)
 << /Type /StructElem
@@ -62,12 +65,14 @@ Each `/TH` element MUST have a `/Scope` attribute:
 ### 3. Headers Association
 
 The `/Scope` attribute tells screen readers:
+
 - When navigating horizontally (left/right): announce column headers
 - When navigating vertically (up/down): announce row headers
 
 **Example Screen Reader Behavior:**
 
 With proper `/Scope` marking:
+
 ```
 User navigates to cell (2,3):
 Screen reader: "Q2, Revenue, $45,000"
@@ -77,6 +82,7 @@ Screen reader: "Q2, Revenue, $45,000"
 ```
 
 Without `/Scope`:
+
 ```
 Screen reader: "$45,000"  // Missing context!
 ```
@@ -86,11 +92,13 @@ Screen reader: "$45,000"  // Missing context!
 ## Current jsPDF Support
 
 jsPDF has **NO built-in table API**. Users typically:
+
 1. Use `doc.text()` to manually draw table content
 2. Use third-party plugins like `autoTable`
 3. Draw lines manually with `doc.line()`
 
 **For PDF/UA, we need:**
+
 - API to create table structures
 - Automatic header scope detection/specification
 - Integration with structure tree
@@ -102,39 +110,41 @@ jsPDF has **NO built-in table API**. Users typically:
 ### Option A: Extend existing API with table structure methods
 
 ```javascript
-doc.beginStructureElement('Table');
+doc.beginStructureElement("Table");
 
-  // Header row
-  doc.beginStructureElement('TR');
-    doc.beginTableHeaderCell('Column'); // /TH with /Scope /Column
-    doc.text('Product', 10, 10);
-    doc.endStructureElement();
+// Header row
+doc.beginStructureElement("TR");
+doc.beginTableHeaderCell("Column"); // /TH with /Scope /Column
+doc.text("Product", 10, 10);
+doc.endStructureElement();
 
-    doc.beginTableHeaderCell('Column');
-    doc.text('Price', 60, 10);
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Price", 60, 10);
+doc.endStructureElement();
+doc.endStructureElement();
 
-  // Data row
-  doc.beginStructureElement('TR');
-    doc.beginTableHeaderCell('Row'); // /TH with /Scope /Row
-    doc.text('Widget A', 10, 20);
-    doc.endStructureElement();
+// Data row
+doc.beginStructureElement("TR");
+doc.beginTableHeaderCell("Row"); // /TH with /Scope /Row
+doc.text("Widget A", 10, 20);
+doc.endStructureElement();
 
-    doc.beginTableDataCell(); // /TD
-    doc.text('$19.99', 60, 20);
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableDataCell(); // /TD
+doc.text("$19.99", 60, 20);
+doc.endStructureElement();
+doc.endStructureElement();
 
 doc.endStructureElement();
 ```
 
 **Pros:**
+
 - Explicit control over structure
 - Flexible for complex tables
 - Clear API
 
 **Cons:**
+
 - Verbose
 - User must track structure manually
 
@@ -142,10 +152,10 @@ doc.endStructureElement();
 
 ```javascript
 doc.addTable({
-  headers: ['Product', 'Price', 'Quantity'],
+  headers: ["Product", "Price", "Quantity"],
   rows: [
-    ['Widget A', '$19.99', '10'],
-    ['Widget B', '$29.99', '5']
+    ["Widget A", "$19.99", "10"],
+    ["Widget B", "$29.99", "5"]
   ],
   x: 10,
   y: 10,
@@ -154,11 +164,13 @@ doc.addTable({
 ```
 
 **Pros:**
+
 - Simple, declarative
 - Automatic structure tree generation
 - Less error-prone
 
 **Cons:**
+
 - Less flexible for complex tables
 - More implementation complexity
 
@@ -195,8 +207,8 @@ Extend `src/modules/structure_tree.js`:
 
 ```javascript
 // Add /Scope attribute to TH elements
-if (elem.type === 'TH' && elem.scope) {
-  this.internal.write('/Scope /' + elem.scope);
+if (elem.type === "TH" && elem.scope) {
+  this.internal.write("/Scope /" + elem.scope);
 }
 ```
 
@@ -212,7 +224,7 @@ File: `src/jspdf.js`
  * Convenience method for doc.beginStructureElement('TR')
  */
 jsPDFAPI.beginTableRow = function() {
-  return this.beginStructureElement('TR');
+  return this.beginStructureElement("TR");
 };
 
 /**
@@ -220,13 +232,16 @@ jsPDFAPI.beginTableRow = function() {
  * @param {string} scope - 'Row', 'Column', or 'Both'
  */
 jsPDFAPI.beginTableHeaderCell = function(scope) {
-  if (!scope || !['Row', 'Column', 'Both'].includes(scope)) {
+  if (!scope || !["Row", "Column", "Both"].includes(scope)) {
     throw new Error('Table header scope must be "Row", "Column", or "Both"');
   }
 
   // Store scope for structure tree
-  var elem = this.beginStructureElement('TH');
-  if (this.internal.structureTree && this.internal.structureTree.currentParent) {
+  var elem = this.beginStructureElement("TH");
+  if (
+    this.internal.structureTree &&
+    this.internal.structureTree.currentParent
+  ) {
     this.internal.structureTree.currentParent.scope = scope;
   }
   return elem;
@@ -236,7 +251,7 @@ jsPDFAPI.beginTableHeaderCell = function(scope) {
  * Begin a table data cell
  */
 jsPDFAPI.beginTableDataCell = function() {
-  return this.beginStructureElement('TD');
+  return this.beginStructureElement("TD");
 };
 ```
 
@@ -251,7 +266,9 @@ In `writeStructTree` function, after writing `/Alt`:
 if (elem.attributes && elem.attributes.scope) {
   // CRITICAL: Scope must be in an /A (attribute) dictionary with /O /Table owner
   // This is required for veraPDF's algorithm to determine headers
-  this.internal.write('/A << /O /Table /Scope /' + elem.attributes.scope + ' >>');
+  this.internal.write(
+    "/A << /O /Table /Scope /" + elem.attributes.scope + " >>"
+  );
 }
 ```
 
@@ -260,6 +277,7 @@ if (elem.attributes && elem.attributes.scope) {
 **Step 3: Validation for PDF/UA**
 
 Ensure table structure is valid:
+
 - TH elements must have /Scope
 - TR elements must be children of Table
 - TD/TH must be children of TR
@@ -273,63 +291,64 @@ Ensure table structure is valid:
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 
-doc.beginStructureElement('Document');
-  doc.beginStructureElement('H1');
-  doc.text('Sales Report', 10, 10);
-  doc.endStructureElement();
+doc.beginStructureElement("Document");
+doc.beginStructureElement("H1");
+doc.text("Sales Report", 10, 10);
+doc.endStructureElement();
 
-  doc.beginStructureElement('Table');
-    // Header row
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Column');
-      doc.text('Product', 20, 30);
-      doc.endStructureElement();
+doc.beginStructureElement("Table");
+// Header row
+doc.beginTableRow();
+doc.beginTableHeaderCell("Column");
+doc.text("Product", 20, 30);
+doc.endStructureElement();
 
-      doc.beginTableHeaderCell('Column');
-      doc.text('Q1', 80, 30);
-      doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Q1", 80, 30);
+doc.endStructureElement();
 
-      doc.beginTableHeaderCell('Column');
-      doc.text('Q2', 120, 30);
-      doc.endStructureElement();
-    doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Q2", 120, 30);
+doc.endStructureElement();
+doc.endStructureElement();
 
-    // Data row 1
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Row');
-      doc.text('Widget A', 20, 40);
-      doc.endStructureElement();
+// Data row 1
+doc.beginTableRow();
+doc.beginTableHeaderCell("Row");
+doc.text("Widget A", 20, 40);
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.text('$10,000', 80, 40);
-      doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$10,000", 80, 40);
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.text('$12,000', 120, 40);
-      doc.endStructureElement();
-    doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$12,000", 120, 40);
+doc.endStructureElement();
+doc.endStructureElement();
 
-    // Data row 2
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Row');
-      doc.text('Widget B', 20, 50);
-      doc.endStructureElement();
+// Data row 2
+doc.beginTableRow();
+doc.beginTableHeaderCell("Row");
+doc.text("Widget B", 20, 50);
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.text('$15,000', 80, 50);
-      doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$15,000", 80, 50);
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.text('$18,000', 120, 50);
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$18,000", 120, 50);
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
 **Screen Reader Experience:**
 
 When navigating to cell (Row 2, Column 2):
+
 ```
 Screen reader announces:
 "Widget B, Q2, $18,000"
@@ -341,36 +360,36 @@ header  header value
 ### Complex Table with Row and Column Headers:
 
 ```javascript
-doc.beginStructureElement('Table');
-  // Top-left corner (both)
-  doc.beginTableRow();
-    doc.beginTableHeaderCell('Both');
-    doc.text('Product/Quarter', 20, 30);
-    doc.endStructureElement();
+doc.beginStructureElement("Table");
+// Top-left corner (both)
+doc.beginTableRow();
+doc.beginTableHeaderCell("Both");
+doc.text("Product/Quarter", 20, 30);
+doc.endStructureElement();
 
-    doc.beginTableHeaderCell('Column');
-    doc.text('Q1', 80, 30);
-    doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Q1", 80, 30);
+doc.endStructureElement();
 
-    doc.beginTableHeaderCell('Column');
-    doc.text('Q2', 120, 30);
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableHeaderCell("Column");
+doc.text("Q2", 120, 30);
+doc.endStructureElement();
+doc.endStructureElement();
 
-  // Data rows with row headers
-  doc.beginTableRow();
-    doc.beginTableHeaderCell('Row');
-    doc.text('Widget A', 20, 40);
-    doc.endStructureElement();
+// Data rows with row headers
+doc.beginTableRow();
+doc.beginTableHeaderCell("Row");
+doc.text("Widget A", 20, 40);
+doc.endStructureElement();
 
-    doc.beginTableDataCell();
-    doc.text('$10,000', 80, 40);
-    doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$10,000", 80, 40);
+doc.endStructureElement();
 
-    doc.beginTableDataCell();
-    doc.text('$12,000', 120, 40);
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginTableDataCell();
+doc.text("$12,000", 120, 40);
+doc.endStructureElement();
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
@@ -405,6 +424,7 @@ grep "/Scope" output.pdf
 ```
 
 Expected output:
+
 ```pdf
 << /Type /StructElem
    /S /TH
@@ -419,6 +439,7 @@ Expected output:
 ## PDF Reference Examples
 
 ### Column Header:
+
 ```pdf
 10 0 obj
 << /Type /StructElem
@@ -432,6 +453,7 @@ endobj
 ```
 
 ### Row Header:
+
 ```pdf
 11 0 obj
 << /Type /StructElem
@@ -445,6 +467,7 @@ endobj
 ```
 
 ### Data Cell:
+
 ```pdf
 12 0 obj
 << /Type /StructElem
@@ -505,6 +528,7 @@ endobj
 ### Implementation Summary:
 
 **Files Modified:**
+
 1. `src/modules/structure_tree.js`:
    - Added `beginTableHead()`, `beginTableBody()`, `beginTableFoot()` methods
    - Added `beginTableRow()` convenience method
@@ -513,6 +537,7 @@ endobj
    - Modified structure tree writing to output Scope in attribute dictionary (`/A << /O /Table /Scope /... >>`)
 
 **Test Results:**
+
 - ✅ All 4 table test cases pass unit tests
 - ✅ All 4 PDFs pass veraPDF PDF/UA-1 validation
 - ✅ Scope attribute correctly formatted in attribute dictionary
@@ -520,6 +545,7 @@ endobj
 - ✅ Error validation for invalid scope values
 
 **Generated Test PDFs:**
+
 1. `test-table-1-column-headers.pdf` - Simple table with column headers only
 2. `test-table-2-row-headers.pdf` - Table with row and column headers
 3. `test-table-3-complex.pdf` - Complex table with mixed headers
@@ -533,12 +559,14 @@ The `/Scope` attribute MUST be placed inside an `/A` (attribute) dictionary with
 ```
 
 Not:
+
 ```
 /Scope /Column  # This doesn't work!
 ```
 
 **User Testing Required:**
 The user should test the generated PDFs with:
+
 1. Acrobat Reader + screen reader
 2. Navigate through table cells
 3. Verify headers are announced correctly when navigating both horizontally and vertically

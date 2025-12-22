@@ -9,6 +9,7 @@
 ## Überblick
 
 Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhängenden, realistischen PDF-Dokument. Es dient als:
+
 - **Funktionsnachweis** für alle implementierten Features
 - **Referenz** für Entwickler zur korrekten API-Verwendung
 - **Testdokument** für Screenreader und veraPDF-Validierung
@@ -21,6 +22,7 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ### Seite 1: Titelseite und Grundlagen
 
 **Inhalt:**
+
 - H1: Titel des Dokuments (zentriert, fett, 24pt)
 - P: Untertitel (zentriert, kursiv)
 - H2: "Schriftstile"
@@ -35,6 +37,7 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ### Seite 2: Tabellen und Gemischter Inhalt
 
 **Inhalt:**
+
 - H2: "Tabellen"
 - H3: "Produktkatalog"
 - Table: Quartalszahlen mit:
@@ -49,6 +52,7 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ### Seite 3: Links und Feature-Übersicht
 
 **Inhalt:**
+
 - H2: "Links (teilweise implementiert)"
 - P: Link-Beispiel mit Struktur-Element
 - Hinweis auf fehlende Annotation-Verknüpfung
@@ -66,35 +70,41 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ### ✓ Implementiert und getestet:
 
 1. **PDF/UA Grundstruktur**
+
    - XMP Metadata mit PDF/UA-1 Deklaration
    - `/MarkInfo` Dictionary mit `/Marked true`
    - `/ViewerPreferences` mit `/DisplayDocTitle true`
    - `/Lang` in Catalog und BDC-Operatoren
 
 2. **Structure Tree**
+
    - StructTreeRoot mit RoleMap und ParentTree
    - Document-Root-Element
    - Hierarchische Struktur-Elemente
    - MCID-Tracking und BDC/EMC-Wrapping
 
 3. **Überschriften und Absätze**
+
    - H1, H2, H3 (weitere H4-H6 verfügbar)
    - P (Paragraph)
    - Korrekte Parent-Child-Beziehungen
 
 4. **Font-System**
+
    - Atkinson Hyperlegible (4 Stile)
    - Automatisches Embedding bei `pdfUA: true`
    - Regular, Bold, Italic, BoldItalic
    - Deutsche Umlauts (ä, ö, ü, ß, Ä, Ö, Ü)
 
 5. **Listen**
+
    - L (List), LI (List Item)
    - Lbl (Label), LBody (List Body)
    - Einfache und verschachtelte Listen
    - Korrekte /K-Array-Struktur
 
 6. **Tabellen**
+
    - Table, THead, TBody, TFoot
    - TR (Table Row)
    - TH (Table Header) mit Scope-Attribut
@@ -102,6 +112,7 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
    - Row- und Column-Header-Zuordnung
 
 7. **Bilder** (nicht im Test-Dokument, aber implementiert)
+
    - Figure-Strukturelement
    - Alt-Text (Pflicht)
    - Decorative-Flag für dekorative Bilder
@@ -124,6 +135,7 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ### ○ Noch nicht implementiert:
 
 10. **Semantische Hervorhebungen**
+
     - Strong (semantisch wichtig)
     - Em (Betonung)
 
@@ -140,15 +152,15 @@ Dieses Dokument zeigt alle bisher implementierten Features in einem zusammenhän
 ```javascript
 const doc = new jsPDF({ pdfUA: true });
 
-doc.setDocumentTitle('PDF/UA Comprehensive Test Document');
-doc.setLanguage('de-DE');
+doc.setDocumentTitle("PDF/UA Comprehensive Test Document");
+doc.setLanguage("de-DE");
 doc.setProperties({
-  subject: 'Test aller implementierten PDF/UA-Features',
-  creator: 'jsPDF-UA Library',
-  keywords: 'PDF/UA, Barrierefreiheit, Accessibility, Test'
+  subject: "Test aller implementierten PDF/UA-Features",
+  creator: "jsPDF-UA Library",
+  keywords: "PDF/UA, Barrierefreiheit, Accessibility, Test"
 });
 
-doc.beginStructureElement('Document');
+doc.beginStructureElement("Document");
 // ... content ...
 doc.endStructureElement();
 ```
@@ -156,10 +168,10 @@ doc.endStructureElement();
 ### Überschriften mit Font-Stilen
 
 ```javascript
-doc.beginStructureElement('H1');
+doc.beginStructureElement("H1");
 doc.setFont("AtkinsonHyperlegible", "bold");
 doc.setFontSize(24);
-doc.text('Umfassender PDF/UA Test', 105, 20, { align: 'center' });
+doc.text("Umfassender PDF/UA Test", 105, 20, { align: "center" });
 doc.setFont("AtkinsonHyperlegible", "normal");
 doc.setFontSize(12);
 doc.endStructureElement();
@@ -169,76 +181,76 @@ doc.endStructureElement();
 
 ```javascript
 doc.beginList();
-  doc.beginListItem();
-    doc.addListLabel('1.', 25, y);
-    doc.beginListBody();
-      doc.text('Hauptpunkt mit Unterpunkten:', 32, y);
+doc.beginListItem();
+doc.addListLabel("1.", 25, y);
+doc.beginListBody();
+doc.text("Hauptpunkt mit Unterpunkten:", 32, y);
 
-      // Nested list
-      doc.beginList();
-        doc.beginListItem();
-          doc.addListLabel('•', 35, y);
-          doc.beginListBody();
-            doc.text('Unterpunkt A', 40, y);
-          doc.endListBody();
-        doc.endStructureElement();
-      doc.endList();
-    doc.endListBody();
-  doc.endStructureElement();
+// Nested list
+doc.beginList();
+doc.beginListItem();
+doc.addListLabel("•", 35, y);
+doc.beginListBody();
+doc.text("Unterpunkt A", 40, y);
+doc.endListBody();
+doc.endStructureElement();
+doc.endList();
+doc.endListBody();
+doc.endStructureElement();
 doc.endList();
 ```
 
 ### Tabellen mit Scope
 
 ```javascript
-doc.beginStructureElement('Table');
-  doc.beginTableHead();
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Column');
-      doc.setFont("AtkinsonHyperlegible", "bold");
-      doc.text('Produkt', 25, y);
-      doc.setFont("AtkinsonHyperlegible", "normal");
-      doc.endStructureElement();
-      // ... more headers ...
-    doc.endStructureElement();
-  doc.endTableHead();
+doc.beginStructureElement("Table");
+doc.beginTableHead();
+doc.beginTableRow();
+doc.beginTableHeaderCell("Column");
+doc.setFont("AtkinsonHyperlegible", "bold");
+doc.text("Produkt", 25, y);
+doc.setFont("AtkinsonHyperlegible", "normal");
+doc.endStructureElement();
+// ... more headers ...
+doc.endStructureElement();
+doc.endTableHead();
 
-  doc.beginTableBody();
-    doc.beginTableRow();
-      doc.beginTableHeaderCell('Row');
-      doc.setFont("AtkinsonHyperlegible", "bold");
-      doc.text('Widget A', 25, y);
-      doc.setFont("AtkinsonHyperlegible", "normal");
-      doc.endStructureElement();
+doc.beginTableBody();
+doc.beginTableRow();
+doc.beginTableHeaderCell("Row");
+doc.setFont("AtkinsonHyperlegible", "bold");
+doc.text("Widget A", 25, y);
+doc.setFont("AtkinsonHyperlegible", "normal");
+doc.endStructureElement();
 
-      doc.beginTableDataCell();
-      doc.text('12.500 €', 80, y);
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endTableBody();
+doc.beginTableDataCell();
+doc.text("12.500 €", 80, y);
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endTableBody();
 doc.endStructureElement();
 ```
 
 ### Gemischte Font-Stile
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Dieser Absatz enthält ', 20, y);
-const w1 = doc.getTextWidth('Dieser Absatz enthält ');
+doc.beginStructureElement("P");
+doc.text("Dieser Absatz enthält ", 20, y);
+const w1 = doc.getTextWidth("Dieser Absatz enthält ");
 
 doc.setFont("AtkinsonHyperlegible", "bold");
-doc.text('fetten Text', 20 + w1, y);
-const w2 = doc.getTextWidth('fetten Text');
+doc.text("fetten Text", 20 + w1, y);
+const w2 = doc.getTextWidth("fetten Text");
 doc.setFont("AtkinsonHyperlegible", "normal");
 
-doc.text(' und ', 20 + w1 + w2, y);
-const w3 = doc.getTextWidth(' und ');
+doc.text(" und ", 20 + w1 + w2, y);
+const w3 = doc.getTextWidth(" und ");
 
 doc.setFont("AtkinsonHyperlegible", "italic");
-doc.text('kursiven Text', 20 + w1 + w2 + w3, y);
+doc.text("kursiven Text", 20 + w1 + w2 + w3, y);
 doc.setFont("AtkinsonHyperlegible", "normal");
 
-doc.text(' in einem Satz.', 20 + w1 + w2 + w3 + w4, y);
+doc.text(" in einem Satz.", 20 + w1 + w2 + w3 + w4, y);
 doc.endStructureElement();
 ```
 
@@ -268,6 +280,7 @@ doc.endStructureElement();
 ### Screenreader-Test (User-Testing erforderlich)
 
 Zu prüfen:
+
 - [ ] Dokumenttitel wird angesagt
 - [ ] Überschriften werden erkannt (H1, H2, H3)
 - [ ] Listen werden als Listen erkannt
@@ -282,6 +295,7 @@ Zu prüfen:
 ### veraPDF-Validierung
 
 Erwartete Ergebnisse:
+
 - ✓ Grundstruktur (MarkInfo, Catalog, XMP)
 - ✓ Structure Tree vollständig
 - ✓ Alle Fonts eingebettet
@@ -295,12 +309,14 @@ Erwartete Ergebnisse:
 ## Bekannte Einschränkungen
 
 1. **Links**: Annotations fehlt `/StructParent`-Attribut
+
    - Struktur-Element vorhanden
    - Visuelle Darstellung funktioniert
    - PDF/UA-Compliance nicht vollständig
    - Wird in späterem Sprint behoben
 
 2. **Keine Bilder im Test-Dokument**
+
    - Bild-Feature ist implementiert
    - Nicht im comprehensive-test demonstriert
    - Separate Bild-Tests verfügbar
@@ -355,12 +371,15 @@ Erwartete Ergebnisse:
 ### Implementation Summary:
 
 **File Created:**
+
 - `tests/pdfua/comprehensive-test.js` - Comprehensive test document generator
 
 **Generated PDF:**
+
 - `examples/temp/comprehensive-test.pdf` (99 KB, 3 pages)
 
 **What's Working:**
+
 - ✅ All implemented features demonstrated in one document
 - ✅ 3 pages with structured content
 - ✅ German language throughout
@@ -373,11 +392,13 @@ Erwartete Ergebnisse:
 - ✅ Feature summary included in document
 
 **Document Structure:**
+
 - Page 1: Title, font styles, lists (simple + nested)
 - Page 2: Tables with scope attributes, mixed content
 - Page 3: Links, feature summary with status indicators
 
 **Features Demonstrated:**
+
 1. PDF/UA structure with XMP metadata
 2. Structure Tree with all element types
 3. Font embedding (Atkinson Hyperlegible - all styles)
@@ -388,6 +409,7 @@ Erwartete Ergebnisse:
 8. Links (structure only, annotation linkage pending)
 
 **User Testing Required:**
+
 - Open in Acrobat Reader
 - Test with NVDA/JAWS screen reader
 - Verify navigation through all elements:
@@ -399,6 +421,7 @@ Erwartete Ergebnisse:
   - Link recognition
 
 **Next Steps:**
+
 - User to test with screen reader
 - Report any issues or unexpected behavior
 - Decide on next sprint (Links completion or Strong/Em)
