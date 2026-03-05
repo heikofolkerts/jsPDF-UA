@@ -2,6 +2,61 @@
 
 :+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
 
+## About this Fork
+
+This is a maintained fork of [parallax/jsPDF](https://github.com/parallax/jsPDF) with PDF/UA (Universal Accessibility) support. We regularly sync upstream changes.
+
+## Branching Strategy
+
+| Branch | Purpose |
+|--------|---------|
+| `main` | **Default branch.** All PDF/UA development happens here. |
+| `master` | **Upstream mirror.** Tracks `parallax/jsPDF`. Never commit directly. |
+
+### Workflow
+
+```
+upstream (parallax/jsPDF)
+    |
+    v
+  master  --- upstream mirror (fetch & merge only)
+    |
+    v
+   main   --- default branch (PDF/UA features)
+    |
+    v
+  feature/* - short-lived feature branches (merged via PR into main)
+```
+
+### Daily Development
+
+1. Create feature branches from `main`:
+   ```bash
+   git checkout main
+   git pull
+   git checkout -b feature/my-feature
+   ```
+2. Open a Pull Request against `main` when ready.
+3. After merge, delete the feature branch.
+
+### Syncing Upstream Changes
+
+```bash
+# Fetch latest upstream
+git fetch upstream
+
+# Update local master
+git checkout master
+git merge upstream/master
+git push origin master
+
+# Merge into main
+git checkout main
+git merge master
+# Resolve conflicts if any
+git push origin main
+```
+
 ## Code of Conduct
 
 This project and everyone participating in it is governed by the

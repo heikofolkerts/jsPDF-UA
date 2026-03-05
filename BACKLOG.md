@@ -143,7 +143,7 @@ Die CI/CD-Pipeline soll nach jedem Commit automatisch das Showcase-Dokument erst
 ## Branching-Strategie fuer Fork-Pflege
 
 **Prioritaet:** Hoch
-**Status:** Offen
+**Status:** Erledigt (2026-03-05)
 **Erstellt:** 2026-03-05
 
 ### Beschreibung
