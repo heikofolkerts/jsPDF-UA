@@ -1506,6 +1506,82 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Add a formatted TOC entry with dot leaders and right-aligned page number.
+   *
+   * Renders a single TOC line:
+   *   Title .................. 12
+   *
+   * - Title is left-aligned at indent position
+   * - Page number is right-aligned at rightMargin
+   * - Dot leaders fill the space between title and page number
+   *
+   * Automatically wraps the entry in TOCI > Link structure elements
+   * and creates a clickable link to the target page.
+   *
+   * @param {Object} options - Entry options
+   * @param {string} options.title - The TOC entry title text
+   * @param {number} options.page - Target page number
+   * @param {number} options.y - Y position for this entry
+   * @param {number} [options.level=1] - Heading level (1-6), controls indentation
+   * @param {number} [options.indent=20] - Base left indent in mm
+   * @param {number} [options.subIndent=10] - Additional indent per sub-level in mm
+   * @param {number} [options.rightMargin=190] - Right edge for page numbers in mm
+   * @param {string} [options.dotChar='.'] - Character used for dot leaders
+   * @param {number} [options.dotSpacing=1.5] - Spacing between dot characters in mm
+   * @param {number} [options.gap=2] - Minimum gap between title/dots and page number in mm
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addTOCEntry = function(options) {
+    options = options || {};
+    var title = options.title || '';
+    var page = options.page || 1;
+    var y = options.y;
+    var level = options.level || 1;
+    var baseIndent = options.indent !== undefined ? options.indent : 20;
+    var subIndent = options.subIndent !== undefined ? options.subIndent : 10;
+    var rightMargin = options.rightMargin !== undefined ? options.rightMargin : 190;
+    var dotChar = options.dotChar || '.';
+    var gap = options.gap !== undefined ? options.gap : 2;
+
+    var indent = baseIndent + (level - 1) * subIndent;
+    var pageStr = String(page);
+
+    // Measure widths
+    var titleWidth = this.getTextWidth(title);
+    var pageWidth = this.getTextWidth(pageStr);
+    var dotCharWidth = this.getTextWidth(dotChar);
+    var spaceWidth = this.getTextWidth(' ');
+
+    // Calculate available space for dots between title and page number
+    var titleEnd = titleWidth + spaceWidth;
+    var pageStart = rightMargin - indent - pageWidth - spaceWidth;
+    var dotsSpace = pageStart - titleEnd;
+
+    // Build single string: title + space + dots + space + pageNumber
+    // Use space characters between dots for even visual spacing
+    var fullText = title + ' ';
+    if (dotsSpace > 0 && dotCharWidth > 0) {
+      var dotWithSpaceWidth = dotCharWidth + spaceWidth;
+      var numDots = Math.floor(dotsSpace / dotWithSpaceWidth);
+      if (numDots > 0) {
+        for (var i = 0; i < numDots; i++) {
+          fullText += dotChar + ' ';
+        }
+      }
+    }
+    fullText += pageStr;
+
+    // Wrap in TOCI > Link, single textWithLink call for one MCID
+    this.beginTOCI();
+    this.beginLink();
+    this.textWithLink(fullText, indent, y, { pageNumber: page });
+    this.endLink();
+    this.endTOCI();
+
+    return this;
+  };
+
+  /**
    * Begin a Code (computer code) element
    * For inline code snippets or block-level code sections.
    * Corresponds to HTML <code> element.

@@ -33,7 +33,7 @@
  * - Caption
  */
 
-const { jsPDF } = require('../../dist/jspdf.node.js');
+const { jsPDF } = require('./dist/jspdf.node.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -151,18 +151,19 @@ doc.beginTOC();
   ];
 
   let tocY = 88;
-  doc.setFontSize(8);  // Reduced font size to fit all entries
+  doc.setFontSize(8);
   doc.setFont(undefined, 'normal');
   tocItems.forEach(item => {
-    doc.beginTOCI();
-      doc.beginLink();
-      // Indent level 2 items (subchapters)
-      const indent = item.level === 2 ? 30 : 25;
-      const dotsCount = item.level === 2 ? 40 - item.title.length : 45 - item.title.length;
-      doc.textWithLink(item.title + ' ' + '.'.repeat(Math.max(dotsCount, 3)) + ' ' + item.page, indent, tocY, { pageNumber: item.page });
-      doc.endLink();
-    doc.endTOCI();
-    tocY += 5;  // Reduced spacing to fit all 21 entries
+    doc.addTOCEntry({
+      title: item.title,
+      page: item.page,
+      y: tocY,
+      level: item.level,
+      indent: 25,
+      subIndent: 5,
+      rightMargin: 190
+    });
+    tocY += 5;
   });
 doc.endTOC();
 
@@ -950,7 +951,7 @@ doc.endArtifact();
 // ============================================================================
 // Save Document
 // ============================================================================
-const outputDir = path.join(__dirname, '../../examples/temp');
+const outputDir = path.join(__dirname, 'examples/temp');
 if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
