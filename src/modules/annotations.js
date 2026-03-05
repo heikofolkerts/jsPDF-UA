@@ -315,7 +315,7 @@ import { jsPDF } from "../jspdf.js";
               var loc = this.annotations._nameMap[anno.options.name];
               anno.options.pageNumber = loc.page;
               anno.options.top = loc.y;
-            } else {
+            } else if (!anno.options.destinationName) {
               if (!anno.options.top) {
                 anno.options.top = 0;
               }
@@ -340,6 +340,13 @@ import { jsPDF } from "../jspdf.js";
                 "/Border [0 0 0] /A <</S /URI /URI (" +
                 escape(encryptor(anno.options.url)) +
                 ") >>";
+            } else if (anno.options.destinationName) {
+              line =
+                "<</Type /Annot /Subtype /Link " +
+                rect +
+                "/Border [0 0 0] /Dest (" +
+                this.internal.pdfEscape(anno.options.destinationName) +
+                ")";
             } else if (anno.options.pageNumber) {
               // first page is 0
               var info = this.internal.getPageInfo(anno.options.pageNumber);
@@ -465,6 +472,161 @@ import { jsPDF } from "../jspdf.js";
     }
   ]);
 
+  // ============================================================
+  // Named Destinations
+  // ============================================================
+
+  /**
+   * Register a named destination that can be linked to by name.
+   * Named destinations allow linking by ID instead of page number,
+   * which is more robust when pages change.
+   *
+   * @name addNamedDestination
+   * @function
+   * @param {string} name - Unique destination name (e.g., 'chapter1', 'fn1')
+   * @param {Object} [options] - Destination options
+   * @param {number} [options.pageNumber] - Target page number (default: current page)
+   * @param {number} [options.top] - Y position on the page (default: 0 = top)
+   * @param {number} [options.left] - X position on the page (default: 0)
+   * @param {number} [options.zoom] - Zoom factor (default: 0 = unchanged)
+   * @param {string} [options.magFactor] - Magnification type: 'XYZ', 'Fit', 'FitH', 'FitV' (default: 'XYZ')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Register destination at current position
+   * doc.addNamedDestination('chapter1');
+   *
+   * // Register destination with specific page and position
+   * doc.addNamedDestination('section2', { pageNumber: 3, top: 100 });
+   *
+   * // Link to it
+   * doc.textWithLink('Go to Chapter 1', 20, 30, { destinationName: 'chapter1' });
+   */
+  jsPDFAPI.addNamedDestination = function(name, options) {
+    options = options || {};
+
+    if (!this.internal.namedDestinations) {
+      this.internal.namedDestinations = {};
+    }
+
+    if (!name || typeof name !== "string") {
+      throw new Error("Named destination requires a non-empty string name.");
+    }
+
+    this.internal.namedDestinations[name] = {
+      pageNumber:
+        options.pageNumber ||
+        this.internal.getCurrentPageInfo().pageNumber,
+      top: options.top !== undefined ? options.top : 0,
+      left: options.left || 0,
+      zoom: options.zoom !== undefined ? options.zoom : 0,
+      magFactor: options.magFactor || "XYZ"
+    };
+
+    return this;
+  };
+
+  /**
+   * Write named destinations as PDF objects and create Names dictionary
+   */
+  jsPDFAPI.events.push([
+    "postPutResources",
+    function() {
+      if (!this.internal.namedDestinations) {
+        return;
+      }
+
+      var pdf = this;
+      var dests = this.internal.namedDestinations;
+      var names = Object.keys(dests).sort(); // PDF spec requires sorted names
+
+      if (names.length === 0) {
+        return;
+      }
+
+      var getVerticalCoordinateString =
+        this.internal.getVerticalCoordinateString;
+
+      // Write destination objects
+      var destObjIds = {};
+      for (var i = 0; i < names.length; i++) {
+        var name = names[i];
+        var dest = dests[name];
+        var info = pdf.internal.getPageInfo(dest.pageNumber);
+        var destObjId = pdf.internal.newObject();
+        destObjIds[name] = destObjId;
+
+        var destArray = "<< /D [" + info.objId + " 0 R";
+        switch (dest.magFactor) {
+          case "Fit":
+            destArray += " /Fit";
+            break;
+          case "FitH":
+            destArray +=
+              " /FitH " + getVerticalCoordinateString(dest.top);
+            break;
+          case "FitV":
+            destArray += " /FitV " + dest.left;
+            break;
+          case "XYZ":
+          default:
+            destArray +=
+              " /XYZ " +
+              dest.left +
+              " " +
+              getVerticalCoordinateString(dest.top) +
+              " " +
+              dest.zoom;
+            break;
+        }
+        destArray += "] >> endobj";
+        pdf.internal.write(destArray);
+      }
+
+      // Create Names array (sorted, as required by PDF spec)
+      var namesObjId = pdf.internal.newObject();
+      pdf.internal.write("<< /Names [");
+      for (var i = 0; i < names.length; i++) {
+        pdf.internal.write(
+          "(" +
+            pdf.internal.pdfEscape(names[i]) +
+            ") " +
+            destObjIds[names[i]] +
+            " 0 R"
+        );
+      }
+      pdf.internal.write("] >>", "endobj");
+
+      // Create /Dests entry pointing to Names array
+      var destsObjId = pdf.internal.newObject();
+      pdf.internal.write(
+        "<< /Dests " + namesObjId + " 0 R >>",
+        "endobj"
+      );
+
+      // Store for putCatalog
+      this.internal.namedDestinationsObjId = destsObjId;
+    }
+  ]);
+
+  /**
+   * Add /Names entry to Catalog for named destinations.
+   * Skips if outline module already wrote /Names (createNamedDestinations).
+   */
+  jsPDFAPI.events.push([
+    "putCatalog",
+    function() {
+      if (
+        this.internal.namedDestinationsObjId &&
+        !(this.outline && this.outline.createNamedDestinations)
+      ) {
+        this.internal.write(
+          "/Names " + this.internal.namedDestinationsObjId + " 0 R"
+        );
+      }
+    }
+  ]);
+
   /**
    * Create an annotation.
    * For PDF/UA mode, returns an internal ID that can be used with addAnnotationRef()
@@ -557,6 +719,8 @@ import { jsPDF } from "../jspdf.js";
         annotation.contentsText = options.linkText;
       } else if (options.url) {
         annotation.contentsText = options.url;
+      } else if (options.destinationName) {
+        annotation.contentsText = options.destinationName;
       } else if (options.pageNumber) {
         annotation.contentsText = "Go to page " + options.pageNumber;
       }

@@ -210,9 +210,15 @@ import { jsPDF } from "../jspdf.js";
           }
 
           if (item.options) {
-            if (item.options.pageNumber) {
+            if (item.options.destinationName) {
+              // Named Destination
+              this.line(
+                "/Dest (" +
+                  pdf.internal.pdfEscape(item.options.destinationName) +
+                  ")"
+              );
+            } else if (item.options.pageNumber) {
               // Explicit Destination
-              //WARNING this assumes page ids are 3,5,7, etc.
               var info = pdf.internal.getPageInfo(item.options.pageNumber);
               this.line(
                 "/Dest " +
@@ -222,16 +228,6 @@ import { jsPDF } from "../jspdf.js";
                   getVerticalCoordinateString(0) +
                   " 0]"
               );
-              // this line does not work on all clients (pageNumber instead of page ref)
-              //this.line('/Dest ' + '[' + (item.options.pageNumber - 1) + ' /XYZ 0 ' + this.ctx.pdf.internal.pageSize.getHeight() + ' 0]');
-
-              // Named Destination
-              // this.line('/Dest (page_' + (item.options.pageNumber) + ')');
-
-              // Action Destination
-              // var id = pdf.internal.newObject();
-              // pdf.internal.write('<</D[' + (item.options.pageNumber - 1) + ' /XYZ null null null]/S/GoTo>> endobj');
-              // this.line('/A ' + id + ' 0 R' );
             }
           }
           this.objEnd();

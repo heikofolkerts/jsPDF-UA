@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 4.0.0 Built on 2026-01-27T18:55:54.158Z
+ * Version 4.0.0 Built on 2026-03-05T14:15:22.720Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -10581,6 +10581,36 @@ var AcroForm = jsPDF.AcroForm;
 // HIGH-LEVEL ACCESSIBLE FORM API (PDF/UA - BITi 02.4.2)
 // ============================================================
 
+// Translations for "required field" tooltip suffix by language
+var requiredFieldTranslations = {
+  de: "Pflichtfeld",
+  en: "Required field",
+  fr: "Champ obligatoire",
+  es: "Campo obligatorio",
+  it: "Campo obbligatorio",
+  pt: "Campo obrigatório",
+  nl: "Verplicht veld",
+  pl: "Pole wymagane",
+  cs: "Povinné pole",
+  ja: "必須項目",
+  zh: "必填字段",
+  ko: "필수 항목",
+  ru: "Обязательное поле",
+  ar: "حقل مطلوب",
+  tr: "Zorunlu alan",
+  sv: "Obligatoriskt fält",
+  da: "Påkrævet felt",
+  fi: "Pakollinen kenttä",
+  nb: "Obligatorisk felt",
+  nn: "Obligatorisk felt"
+};
+
+function getRequiredFieldText(doc) {
+  var lang = (doc.getLanguage ? doc.getLanguage() : "en-US").toLowerCase();
+  var base = lang.split("-")[0];
+  return requiredFieldTranslations[lang] || requiredFieldTranslations[base] || requiredFieldTranslations["en"];
+}
+
 /**
  * Add an accessible text field with proper PDF/UA structure.
  * This high-level API automatically handles:
@@ -10671,7 +10701,7 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -10782,7 +10812,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -10895,7 +10925,7 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -10989,7 +11019,7 @@ jsPDFAPI.addAccessibleListBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -11073,7 +11103,7 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   radioGroup.TU = tooltipText;
 
@@ -12486,7 +12516,7 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
               var loc = this.annotations._nameMap[anno.options.name];
               anno.options.pageNumber = loc.page;
               anno.options.top = loc.y;
-            } else {
+            } else if (!anno.options.destinationName) {
               if (!anno.options.top) {
                 anno.options.top = 0;
               }
@@ -12511,6 +12541,13 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
                 "/Border [0 0 0] /A <</S /URI /URI (" +
                 escape(encryptor(anno.options.url)) +
                 ") >>";
+            } else if (anno.options.destinationName) {
+              line =
+                "<</Type /Annot /Subtype /Link " +
+                rect +
+                "/Border [0 0 0] /Dest (" +
+                this.internal.pdfEscape(anno.options.destinationName) +
+                ")";
             } else if (anno.options.pageNumber) {
               // first page is 0
               var info = this.internal.getPageInfo(anno.options.pageNumber);
@@ -12636,6 +12673,161 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
     }
   ]);
 
+  // ============================================================
+  // Named Destinations
+  // ============================================================
+
+  /**
+   * Register a named destination that can be linked to by name.
+   * Named destinations allow linking by ID instead of page number,
+   * which is more robust when pages change.
+   *
+   * @name addNamedDestination
+   * @function
+   * @param {string} name - Unique destination name (e.g., 'chapter1', 'fn1')
+   * @param {Object} [options] - Destination options
+   * @param {number} [options.pageNumber] - Target page number (default: current page)
+   * @param {number} [options.top] - Y position on the page (default: 0 = top)
+   * @param {number} [options.left] - X position on the page (default: 0)
+   * @param {number} [options.zoom] - Zoom factor (default: 0 = unchanged)
+   * @param {string} [options.magFactor] - Magnification type: 'XYZ', 'Fit', 'FitH', 'FitV' (default: 'XYZ')
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   *
+   * @example
+   * // Register destination at current position
+   * doc.addNamedDestination('chapter1');
+   *
+   * // Register destination with specific page and position
+   * doc.addNamedDestination('section2', { pageNumber: 3, top: 100 });
+   *
+   * // Link to it
+   * doc.textWithLink('Go to Chapter 1', 20, 30, { destinationName: 'chapter1' });
+   */
+  jsPDFAPI.addNamedDestination = function(name, options) {
+    options = options || {};
+
+    if (!this.internal.namedDestinations) {
+      this.internal.namedDestinations = {};
+    }
+
+    if (!name || typeof name !== "string") {
+      throw new Error("Named destination requires a non-empty string name.");
+    }
+
+    this.internal.namedDestinations[name] = {
+      pageNumber:
+        options.pageNumber ||
+        this.internal.getCurrentPageInfo().pageNumber,
+      top: options.top !== undefined ? options.top : 0,
+      left: options.left || 0,
+      zoom: options.zoom !== undefined ? options.zoom : 0,
+      magFactor: options.magFactor || "XYZ"
+    };
+
+    return this;
+  };
+
+  /**
+   * Write named destinations as PDF objects and create Names dictionary
+   */
+  jsPDFAPI.events.push([
+    "postPutResources",
+    function() {
+      if (!this.internal.namedDestinations) {
+        return;
+      }
+
+      var pdf = this;
+      var dests = this.internal.namedDestinations;
+      var names = Object.keys(dests).sort(); // PDF spec requires sorted names
+
+      if (names.length === 0) {
+        return;
+      }
+
+      var getVerticalCoordinateString =
+        this.internal.getVerticalCoordinateString;
+
+      // Write destination objects
+      var destObjIds = {};
+      for (var i = 0; i < names.length; i++) {
+        var name = names[i];
+        var dest = dests[name];
+        var info = pdf.internal.getPageInfo(dest.pageNumber);
+        var destObjId = pdf.internal.newObject();
+        destObjIds[name] = destObjId;
+
+        var destArray = "<< /D [" + info.objId + " 0 R";
+        switch (dest.magFactor) {
+          case "Fit":
+            destArray += " /Fit";
+            break;
+          case "FitH":
+            destArray +=
+              " /FitH " + getVerticalCoordinateString(dest.top);
+            break;
+          case "FitV":
+            destArray += " /FitV " + dest.left;
+            break;
+          case "XYZ":
+          default:
+            destArray +=
+              " /XYZ " +
+              dest.left +
+              " " +
+              getVerticalCoordinateString(dest.top) +
+              " " +
+              dest.zoom;
+            break;
+        }
+        destArray += "] >> endobj";
+        pdf.internal.write(destArray);
+      }
+
+      // Create Names array (sorted, as required by PDF spec)
+      var namesObjId = pdf.internal.newObject();
+      pdf.internal.write("<< /Names [");
+      for (var i = 0; i < names.length; i++) {
+        pdf.internal.write(
+          "(" +
+            pdf.internal.pdfEscape(names[i]) +
+            ") " +
+            destObjIds[names[i]] +
+            " 0 R"
+        );
+      }
+      pdf.internal.write("] >>", "endobj");
+
+      // Create /Dests entry pointing to Names array
+      var destsObjId = pdf.internal.newObject();
+      pdf.internal.write(
+        "<< /Dests " + namesObjId + " 0 R >>",
+        "endobj"
+      );
+
+      // Store for putCatalog
+      this.internal.namedDestinationsObjId = destsObjId;
+    }
+  ]);
+
+  /**
+   * Add /Names entry to Catalog for named destinations.
+   * Skips if outline module already wrote /Names (createNamedDestinations).
+   */
+  jsPDFAPI.events.push([
+    "putCatalog",
+    function() {
+      if (
+        this.internal.namedDestinationsObjId &&
+        !(this.outline && this.outline.createNamedDestinations)
+      ) {
+        this.internal.write(
+          "/Names " + this.internal.namedDestinationsObjId + " 0 R"
+        );
+      }
+    }
+  ]);
+
   /**
    * Create an annotation.
    * For PDF/UA mode, returns an internal ID that can be used with addAnnotationRef()
@@ -12728,6 +12920,8 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
         annotation.contentsText = options.linkText;
       } else if (options.url) {
         annotation.contentsText = options.url;
+      } else if (options.destinationName) {
+        annotation.contentsText = options.destinationName;
       } else if (options.pageNumber) {
         annotation.contentsText = "Go to page " + options.pageNumber;
       }
@@ -18789,9 +18983,15 @@ function parseFontFamily(input) {
           }
 
           if (item.options) {
-            if (item.options.pageNumber) {
+            if (item.options.destinationName) {
+              // Named Destination
+              this.line(
+                "/Dest (" +
+                  pdf.internal.pdfEscape(item.options.destinationName) +
+                  ")"
+              );
+            } else if (item.options.pageNumber) {
               // Explicit Destination
-              //WARNING this assumes page ids are 3,5,7, etc.
               var info = pdf.internal.getPageInfo(item.options.pageNumber);
               this.line(
                 "/Dest " +
@@ -18801,16 +19001,6 @@ function parseFontFamily(input) {
                   getVerticalCoordinateString(0) +
                   " 0]"
               );
-              // this line does not work on all clients (pageNumber instead of page ref)
-              //this.line('/Dest ' + '[' + (item.options.pageNumber - 1) + ' /XYZ 0 ' + this.ctx.pdf.internal.pageSize.getHeight() + ' 0]');
-
-              // Named Destination
-              // this.line('/Dest (page_' + (item.options.pageNumber) + ')');
-
-              // Action Destination
-              // var id = pdf.internal.newObject();
-              // pdf.internal.write('<</D[' + (item.options.pageNumber - 1) + ' /XYZ null null null]/S/GoTo>> endobj');
-              // this.line('/A ' + id + ' 0 R' );
             }
           }
           this.objEnd();
@@ -28071,6 +28261,40 @@ WebPDecoder.prototype.getData = function() {
 
 (function(jsPDFAPI) {
 
+  // Translations for footnote link texts
+  var footnoteTranslations = {
+    de: { forward: "Zur Fußnote", back: "Zurück zum Text" },
+    en: { forward: "Go to footnote", back: "Back to text" },
+    fr: { forward: "Aller à la note", back: "Retour au texte" },
+    es: { forward: "Ir a la nota", back: "Volver al texto" },
+    it: { forward: "Vai alla nota", back: "Torna al testo" },
+    pt: { forward: "Ir para a nota", back: "Voltar ao texto" },
+    nl: { forward: "Ga naar voetnoot", back: "Terug naar tekst" },
+    pl: { forward: "Przejdź do przypisu", back: "Powrót do tekstu" },
+    ja: { forward: "脚注へ", back: "本文に戻る" },
+    zh: { forward: "转到脚注", back: "返回正文" },
+    ko: { forward: "각주로 이동", back: "본문으로 돌아가기" },
+    ru: { forward: "К сноске", back: "Назад к тексту" },
+    sv: { forward: "Gå till fotnot", back: "Tillbaka till text" },
+    da: { forward: "Gå til fodnote", back: "Tilbage til tekst" },
+    fi: { forward: "Siirry alaviitteeseen", back: "Takaisin tekstiin" },
+    nb: { forward: "Gå til fotnote", back: "Tilbake til tekst" },
+    nn: { forward: "Gå til fotnote", back: "Tilbake til tekst" },
+    tr: { forward: "Dipnota git", back: "Metne dön" },
+    cs: { forward: "Přejít na poznámku", back: "Zpět na text" },
+    ar: { forward: "انتقل إلى الحاشية", back: "العودة إلى النص" }
+  };
+
+  function getFootnoteText(doc, key) {
+    var lang = (doc.getLanguage ? doc.getLanguage() : "en-US").toLowerCase();
+    var base = lang.split("-")[0];
+    var t =
+      footnoteTranslations[lang] ||
+      footnoteTranslations[base] ||
+      footnoteTranslations["en"];
+    return t[key];
+  }
+
   /**
    * StructElement class - represents a structure element in the PDF structure tree
    */
@@ -29134,7 +29358,7 @@ WebPDecoder.prototype.getData = function() {
       linkData.options = { url: options };
     } else if (
       options &&
-      (options.url || options.pageNumber || options.placement)
+      (options.url || options.pageNumber || options.destinationName || options.placement)
     ) {
       linkData.options = options;
       // Placement attribute for standalone (block-level) links
@@ -29713,6 +29937,14 @@ WebPDecoder.prototype.getData = function() {
     var noteId = this.internal.pdfuaFootnotes.currentReferenceNoteId;
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
 
+    // Register named destination for back-link target (reference position)
+    if (this.addNamedDestination) {
+      this.addNamedDestination("noteref-" + noteId, {
+        pageNumber: pageNumber,
+        top: y
+      });
+    }
+
     // Store pending reference link info (includes label for back-link)
     this.internal.pdfuaFootnotes.pendingReferences.push({
       noteId: noteId,
@@ -29803,10 +30035,19 @@ WebPDecoder.prototype.getData = function() {
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    var noteTop = options.y || 0;
     this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
       page: pageNumber,
-      y: options.y || 0 // Y position for destination
+      y: noteTop
     };
+
+    // Auto-register named destination for this note
+    if (this.addNamedDestination) {
+      this.addNamedDestination("note-" + noteId, {
+        pageNumber: pageNumber,
+        top: noteTop
+      });
+    }
 
     // Store current note info for back-link generation
     this.internal.pdfuaFootnotes.currentNoteId = noteId;
@@ -30020,6 +30261,7 @@ WebPDecoder.prototype.getData = function() {
     this.internal.pdfuaFootnotes.pendingBackLinks =
       this.internal.pdfuaFootnotes.pendingBackLinks || [];
     this.internal.pdfuaFootnotes.pendingBackLinks.push({
+      destinationName: "noteref-" + ref.noteId,
       targetPage: ref.page,
       targetY: ref.y, // Y position of the reference for precise back-navigation
       sourcePage: pageNumber,
@@ -30070,13 +30312,15 @@ WebPDecoder.prototype.getData = function() {
             h: getVerticalCoordinateString(ref.y + ref.height)
           },
           options: {
+            destinationName: "note-" + ref.noteId,
             pageNumber: dest.page
           },
           type: "link",
           // PDF/UA compliance properties
           needsObjId: true,
           internalId: internalId,
-          contentsText: "Zur Fußnote " + ref.label
+          contentsText:
+            getFootnoteText(self, "forward") + " " + ref.label
         };
 
         // Add annotation to the REFERENCE's page, not the current page
@@ -30110,6 +30354,7 @@ WebPDecoder.prototype.getData = function() {
             h: getVerticalCoordinateString(backLink.y + backLink.height)
           },
           options: {
+            destinationName: backLink.destinationName,
             pageNumber: backLink.targetPage,
             top: backLink.targetY // Y position of reference for precise back-navigation
           },
@@ -30117,7 +30362,7 @@ WebPDecoder.prototype.getData = function() {
           // PDF/UA compliance properties
           needsObjId: true,
           internalId: backLinkInternalId,
-          contentsText: "Zurück zum Text"
+          contentsText: getFootnoteText(self, "back")
         };
 
         // Add annotation to the NOTE's page
@@ -30776,8 +31021,13 @@ WebPDecoder.prototype.getData = function() {
    * Add an index entry with term and page references.
    * Convenience method that creates a list item with the term and references.
    *
+   * pageRefs can be either:
+   * - A string for plain text references (e.g., "12, 45, 78")
+   * - An array of objects with clickable links:
+   *   [{ page: "12", destinationName: "kap1" }, { page: "45", destinationName: "kap2" }]
+   *
    * @param {string} term - The index term
-   * @param {string} pageRefs - Page references (e.g., "12, 45, 78")
+   * @param {string|Array} pageRefs - Page references as string or link array
    * @param {number} x - X position
    * @param {number} y - Y position
    * @param {Object} [options] - Optional attributes
@@ -30785,19 +31035,56 @@ WebPDecoder.prototype.getData = function() {
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
-   * doc.beginIndex();
-   *   doc.beginListUnordered();
-   *     doc.addIndexEntry('Accessibility', '12, 45, 78', 10, 120);
-   *     doc.addIndexEntry('Barrierefreiheit', '23, 56', 10, 135);
-   *   doc.endList();
-   * doc.endIndex();
+   * // Plain text references (backward compatible)
+   * doc.addIndexEntry('Accessibility', '12, 45, 78', 10, 120);
+   *
+   * // Clickable references with named destinations
+   * doc.addIndexEntry('Accessibility', [
+   *   { page: '12', destinationName: 'chapter1' },
+   *   { page: '45', destinationName: 'section3' }
+   * ], 10, 120);
    */
   jsPDFAPI.addIndexEntry = function(term, pageRefs, x, y, options) {
 
     this.beginListItem();
     this.beginListBody();
-    var text = term + ", " + pageRefs;
-    this.text(text, x, y);
+
+    if (Array.isArray(pageRefs)) {
+      // Clickable page references with named destinations
+      this.text(term + ", ", x, y);
+      var currentX = x + this.getTextWidth(term + ", ");
+
+      for (var i = 0; i < pageRefs.length; i++) {
+        var ref = pageRefs[i];
+        var separator = i < pageRefs.length - 1 ? ", " : "";
+        var linkText = ref.page + separator;
+
+        if (ref.destinationName) {
+          this.beginLink({ destinationName: ref.destinationName });
+          this.text(ref.page, currentX, y);
+          this.endLink();
+          if (separator) {
+            this.text(separator, currentX + this.getTextWidth(ref.page), y);
+          }
+        } else if (ref.pageNumber) {
+          this.beginLink({ pageNumber: ref.pageNumber });
+          this.text(ref.page, currentX, y);
+          this.endLink();
+          if (separator) {
+            this.text(separator, currentX + this.getTextWidth(ref.page), y);
+          }
+        } else {
+          this.text(linkText, currentX, y);
+        }
+
+        currentX += this.getTextWidth(linkText);
+      }
+    } else {
+      // Plain text references (backward compatible)
+      var text = term + ", " + pageRefs;
+      this.text(text, x, y);
+    }
+
     this.endListBody();
     this.endStructureElement(); // end LI
 

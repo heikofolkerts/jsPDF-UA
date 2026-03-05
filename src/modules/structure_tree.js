@@ -16,6 +16,40 @@ import { jsPDF } from "../jspdf.js";
 (function(jsPDFAPI) {
   "use strict";
 
+  // Translations for footnote link texts
+  var footnoteTranslations = {
+    de: { forward: "Zur Fußnote", back: "Zurück zum Text" },
+    en: { forward: "Go to footnote", back: "Back to text" },
+    fr: { forward: "Aller à la note", back: "Retour au texte" },
+    es: { forward: "Ir a la nota", back: "Volver al texto" },
+    it: { forward: "Vai alla nota", back: "Torna al testo" },
+    pt: { forward: "Ir para a nota", back: "Voltar ao texto" },
+    nl: { forward: "Ga naar voetnoot", back: "Terug naar tekst" },
+    pl: { forward: "Przejdź do przypisu", back: "Powrót do tekstu" },
+    ja: { forward: "脚注へ", back: "本文に戻る" },
+    zh: { forward: "转到脚注", back: "返回正文" },
+    ko: { forward: "각주로 이동", back: "본문으로 돌아가기" },
+    ru: { forward: "К сноске", back: "Назад к тексту" },
+    sv: { forward: "Gå till fotnot", back: "Tillbaka till text" },
+    da: { forward: "Gå til fodnote", back: "Tilbage til tekst" },
+    fi: { forward: "Siirry alaviitteeseen", back: "Takaisin tekstiin" },
+    nb: { forward: "Gå til fotnote", back: "Tilbake til tekst" },
+    nn: { forward: "Gå til fotnote", back: "Tilbake til tekst" },
+    tr: { forward: "Dipnota git", back: "Metne dön" },
+    cs: { forward: "Přejít na poznámku", back: "Zpět na text" },
+    ar: { forward: "انتقل إلى الحاشية", back: "العودة إلى النص" }
+  };
+
+  function getFootnoteText(doc, key) {
+    var lang = (doc.getLanguage ? doc.getLanguage() : "en-US").toLowerCase();
+    var base = lang.split("-")[0];
+    var t =
+      footnoteTranslations[lang] ||
+      footnoteTranslations[base] ||
+      footnoteTranslations["en"];
+    return t[key];
+  }
+
   /**
    * StructElement class - represents a structure element in the PDF structure tree
    */
@@ -1079,7 +1113,7 @@ import { jsPDF } from "../jspdf.js";
       linkData.options = { url: options };
     } else if (
       options &&
-      (options.url || options.pageNumber || options.placement)
+      (options.url || options.pageNumber || options.destinationName || options.placement)
     ) {
       linkData.options = options;
       // Placement attribute for standalone (block-level) links
@@ -1658,6 +1692,14 @@ import { jsPDF } from "../jspdf.js";
     var noteId = this.internal.pdfuaFootnotes.currentReferenceNoteId;
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
 
+    // Register named destination for back-link target (reference position)
+    if (this.addNamedDestination) {
+      this.addNamedDestination("noteref-" + noteId, {
+        pageNumber: pageNumber,
+        top: y
+      });
+    }
+
     // Store pending reference link info (includes label for back-link)
     this.internal.pdfuaFootnotes.pendingReferences.push({
       noteId: noteId,
@@ -1748,10 +1790,19 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    var noteTop = options.y || 0;
     this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
       page: pageNumber,
-      y: options.y || 0 // Y position for destination
+      y: noteTop
     };
+
+    // Auto-register named destination for this note
+    if (this.addNamedDestination) {
+      this.addNamedDestination("note-" + noteId, {
+        pageNumber: pageNumber,
+        top: noteTop
+      });
+    }
 
     // Store current note info for back-link generation
     this.internal.pdfuaFootnotes.currentNoteId = noteId;
@@ -1965,6 +2016,7 @@ import { jsPDF } from "../jspdf.js";
     this.internal.pdfuaFootnotes.pendingBackLinks =
       this.internal.pdfuaFootnotes.pendingBackLinks || [];
     this.internal.pdfuaFootnotes.pendingBackLinks.push({
+      destinationName: "noteref-" + ref.noteId,
       targetPage: ref.page,
       targetY: ref.y, // Y position of the reference for precise back-navigation
       sourcePage: pageNumber,
@@ -2015,13 +2067,15 @@ import { jsPDF } from "../jspdf.js";
             h: getVerticalCoordinateString(ref.y + ref.height)
           },
           options: {
+            destinationName: "note-" + ref.noteId,
             pageNumber: dest.page
           },
           type: "link",
           // PDF/UA compliance properties
           needsObjId: true,
           internalId: internalId,
-          contentsText: "Zur Fußnote " + ref.label
+          contentsText:
+            getFootnoteText(self, "forward") + " " + ref.label
         };
 
         // Add annotation to the REFERENCE's page, not the current page
@@ -2055,6 +2109,7 @@ import { jsPDF } from "../jspdf.js";
             h: getVerticalCoordinateString(backLink.y + backLink.height)
           },
           options: {
+            destinationName: backLink.destinationName,
             pageNumber: backLink.targetPage,
             top: backLink.targetY // Y position of reference for precise back-navigation
           },
@@ -2062,7 +2117,7 @@ import { jsPDF } from "../jspdf.js";
           // PDF/UA compliance properties
           needsObjId: true,
           internalId: backLinkInternalId,
-          contentsText: "Zurück zum Text"
+          contentsText: getFootnoteText(self, "back")
         };
 
         // Add annotation to the NOTE's page
@@ -2721,8 +2776,13 @@ import { jsPDF } from "../jspdf.js";
    * Add an index entry with term and page references.
    * Convenience method that creates a list item with the term and references.
    *
+   * pageRefs can be either:
+   * - A string for plain text references (e.g., "12, 45, 78")
+   * - An array of objects with clickable links:
+   *   [{ page: "12", destinationName: "kap1" }, { page: "45", destinationName: "kap2" }]
+   *
    * @param {string} term - The index term
-   * @param {string} pageRefs - Page references (e.g., "12, 45, 78")
+   * @param {string|Array} pageRefs - Page references as string or link array
    * @param {number} x - X position
    * @param {number} y - Y position
    * @param {Object} [options] - Optional attributes
@@ -2730,20 +2790,57 @@ import { jsPDF } from "../jspdf.js";
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
-   * doc.beginIndex();
-   *   doc.beginListUnordered();
-   *     doc.addIndexEntry('Accessibility', '12, 45, 78', 10, 120);
-   *     doc.addIndexEntry('Barrierefreiheit', '23, 56', 10, 135);
-   *   doc.endList();
-   * doc.endIndex();
+   * // Plain text references (backward compatible)
+   * doc.addIndexEntry('Accessibility', '12, 45, 78', 10, 120);
+   *
+   * // Clickable references with named destinations
+   * doc.addIndexEntry('Accessibility', [
+   *   { page: '12', destinationName: 'chapter1' },
+   *   { page: '45', destinationName: 'section3' }
+   * ], 10, 120);
    */
   jsPDFAPI.addIndexEntry = function(term, pageRefs, x, y, options) {
     options = options || {};
 
     this.beginListItem();
     this.beginListBody();
-    var text = term + ", " + pageRefs;
-    this.text(text, x, y);
+
+    if (Array.isArray(pageRefs)) {
+      // Clickable page references with named destinations
+      this.text(term + ", ", x, y);
+      var currentX = x + this.getTextWidth(term + ", ");
+
+      for (var i = 0; i < pageRefs.length; i++) {
+        var ref = pageRefs[i];
+        var separator = i < pageRefs.length - 1 ? ", " : "";
+        var linkText = ref.page + separator;
+
+        if (ref.destinationName) {
+          this.beginLink({ destinationName: ref.destinationName });
+          this.text(ref.page, currentX, y);
+          this.endLink();
+          if (separator) {
+            this.text(separator, currentX + this.getTextWidth(ref.page), y);
+          }
+        } else if (ref.pageNumber) {
+          this.beginLink({ pageNumber: ref.pageNumber });
+          this.text(ref.page, currentX, y);
+          this.endLink();
+          if (separator) {
+            this.text(separator, currentX + this.getTextWidth(ref.page), y);
+          }
+        } else {
+          this.text(linkText, currentX, y);
+        }
+
+        currentX += this.getTextWidth(linkText);
+      }
+    } else {
+      // Plain text references (backward compatible)
+      var text = term + ", " + pageRefs;
+      this.text(text, x, y);
+    }
+
     this.endListBody();
     this.endStructureElement(); // end LI
 

@@ -3302,6 +3302,36 @@ var AcroForm = jsPDF.AcroForm;
 // HIGH-LEVEL ACCESSIBLE FORM API (PDF/UA - BITi 02.4.2)
 // ============================================================
 
+// Translations for "required field" tooltip suffix by language
+var requiredFieldTranslations = {
+  de: "Pflichtfeld",
+  en: "Required field",
+  fr: "Champ obligatoire",
+  es: "Campo obligatorio",
+  it: "Campo obbligatorio",
+  pt: "Campo obrigatório",
+  nl: "Verplicht veld",
+  pl: "Pole wymagane",
+  cs: "Povinné pole",
+  ja: "必須項目",
+  zh: "必填字段",
+  ko: "필수 항목",
+  ru: "Обязательное поле",
+  ar: "حقل مطلوب",
+  tr: "Zorunlu alan",
+  sv: "Obligatoriskt fält",
+  da: "Påkrævet felt",
+  fi: "Pakollinen kenttä",
+  nb: "Obligatorisk felt",
+  nn: "Obligatorisk felt"
+};
+
+function getRequiredFieldText(doc) {
+  var lang = (doc.getLanguage ? doc.getLanguage() : "en-US").toLowerCase();
+  var base = lang.split("-")[0];
+  return requiredFieldTranslations[lang] || requiredFieldTranslations[base] || requiredFieldTranslations["en"];
+}
+
 /**
  * Add an accessible text field with proper PDF/UA structure.
  * This high-level API automatically handles:
@@ -3392,7 +3422,7 @@ jsPDFAPI.addAccessibleTextField = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -3503,7 +3533,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -3616,7 +3646,7 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -3710,7 +3740,7 @@ jsPDFAPI.addAccessibleListBox = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   field.TU = tooltipText;
 
@@ -3794,7 +3824,7 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
   if (options.required) {
-    tooltipText += " (Pflichtfeld)";
+    tooltipText += " (" + getRequiredFieldText(this) + ")";
   }
   radioGroup.TU = tooltipText;
 
