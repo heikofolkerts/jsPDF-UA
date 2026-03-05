@@ -1,0 +1,59 @@
+name: Generate Showcase PDF
+
+on:
+  push:
+    paths:
+      - 'showcase-pdfua-complete.txt'
+      - 'src/**'
+  pull_request:
+    paths:
+      - 'showcase-pdfua-complete.txt'
+      - 'src/**'
+  workflow_dispatch:
+
+jobs:
+  generate-showcase:
+    name: Generate & Validate Showcase PDF
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: npm install
+        run: npm ci
+
+      - name: Build jsPDF
+        run: npm run build
+
+      - name: Generate Showcase PDF
+        run: node showcase-pdfua-complete.txt
+
+      - name: Validate with veraPDF
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}/examples/temp:/data" \
+            verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf \
+            | tee verapdf-report.xml
+          # Check if compliant
+          grep -q 'isCompliant="true"' verapdf-report.xml
+
+      - name: Upload Showcase PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfua-showcase
+          path: examples/temp/pdfua-complete-showcase.pdf
+          retention-days: 30
+
+      - name: Upload veraPDF Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verapdf-report
+          path: verapdf-report.xml
+          retention-days: 30
