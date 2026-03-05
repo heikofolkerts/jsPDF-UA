@@ -147,7 +147,7 @@ describe("Module: PDF/UA", () => {
       doc.addMetadata("Custom metadata", "http://example.com/");
 
       expect(doc.internal.__metadata__).toBeDefined();
-      expect(doc.internal.__metadata__.customMetadata).toBe("Custom metadata");
+      expect(doc.internal.__metadata__.metadata).toBe("Custom metadata");
     });
   });
 

@@ -1,7 +1,7 @@
 /** @license
  *
  * jsPDF - PDF Document creation from JavaScript
- * Version 4.0.0 Built on 2026-03-05T14:15:22.720Z
+ * Version 4.2.0 Built on 2026-03-05T19:22:15.119Z
  *                      CommitID 00000000
  *
  * Copyright (c) 2010-2025 James Hall <james@parall.ax>, https://github.com/MrRio/jsPDF
@@ -7289,11 +7289,11 @@ jsPDF.API.isPDFUAEnabled = function() {
  * @type {string}
  * @memberof jsPDF#
  */
-jsPDF.version = "4.0.0";
+jsPDF.version = "4.2.0";
 
 /* global jsPDF */
 
-var jsPDFAPI = jsPDF.API;
+var jsPDFAPI$1 = jsPDF.API;
 var scaleFactor = 1;
 
 var pdfEscape = function(value) {
@@ -7309,6 +7309,23 @@ var pdfUnescape = function(value) {
     .replace(/\\\)/g, ")");
 };
 
+/**
+ * Escapes a PDF Name Object.
+ * Replaces special characters (delimiter, whitespace, #) with their hex representation.
+ */
+var pdfEscapeName = function(value) {
+  return value
+    .toString()
+    .replace(/#/g, "#23")
+    .replace(/[\s\n\r()<>[\]{}\/%]/g, c => {
+      const hex = c
+        .charCodeAt(0)
+        .toString(16)
+        .toUpperCase();
+      return "#" + (hex.length === 1 ? "0" + hex : hex);
+    });
+};
+
 var f2 = function(number) {
   return number.toFixed(2); // Ie, %.2f
 };
@@ -7317,7 +7334,7 @@ var f5 = function(number) {
   return number.toFixed(5); // Ie, %.2f
 };
 
-jsPDFAPI.__acroform__ = {};
+jsPDFAPI$1.__acroform__ = {};
 var inherit = function(child, parent) {
   child.prototype = Object.create(parent.prototype);
   child.prototype.constructor = child;
@@ -7338,7 +7355,7 @@ var createFormXObject = function(formObject) {
 /**
  * Bit-Operations
  */
-var setBit = (jsPDFAPI.__acroform__.setBit = function(number, bitPosition) {
+var setBit = (jsPDFAPI$1.__acroform__.setBit = function(number, bitPosition) {
   number = number || 0;
   bitPosition = bitPosition || 0;
 
@@ -7354,7 +7371,7 @@ var setBit = (jsPDFAPI.__acroform__.setBit = function(number, bitPosition) {
   return number;
 });
 
-var clearBit = (jsPDFAPI.__acroform__.clearBit = function(number, bitPosition) {
+var clearBit = (jsPDFAPI$1.__acroform__.clearBit = function(number, bitPosition) {
   number = number || 0;
   bitPosition = bitPosition || 0;
 
@@ -7370,7 +7387,7 @@ var clearBit = (jsPDFAPI.__acroform__.clearBit = function(number, bitPosition) {
   return number;
 });
 
-var getBit = (jsPDFAPI.__acroform__.getBit = function(number, bitPosition) {
+var getBit = (jsPDFAPI$1.__acroform__.getBit = function(number, bitPosition) {
   if (isNaN(number) || isNaN(bitPosition)) {
     throw new Error(
       "Invalid arguments passed to jsPDF.API.__acroform__.getBit"
@@ -7382,7 +7399,7 @@ var getBit = (jsPDFAPI.__acroform__.getBit = function(number, bitPosition) {
 /*
  * Ff starts counting the bit position at 1 and not like javascript at 0
  */
-var getBitForPdf = (jsPDFAPI.__acroform__.getBitForPdf = function(
+var getBitForPdf = (jsPDFAPI$1.__acroform__.getBitForPdf = function(
   number,
   bitPosition
 ) {
@@ -7394,7 +7411,7 @@ var getBitForPdf = (jsPDFAPI.__acroform__.getBitForPdf = function(
   return getBit(number, bitPosition - 1);
 });
 
-var setBitForPdf = (jsPDFAPI.__acroform__.setBitForPdf = function(
+var setBitForPdf = (jsPDFAPI$1.__acroform__.setBitForPdf = function(
   number,
   bitPosition
 ) {
@@ -7406,7 +7423,7 @@ var setBitForPdf = (jsPDFAPI.__acroform__.setBitForPdf = function(
   return setBit(number, bitPosition - 1);
 });
 
-var clearBitForPdf = (jsPDFAPI.__acroform__.clearBitForPdf = function(
+var clearBitForPdf = (jsPDFAPI$1.__acroform__.clearBitForPdf = function(
   number,
   bitPosition
 ) {
@@ -7418,7 +7435,7 @@ var clearBitForPdf = (jsPDFAPI.__acroform__.clearBitForPdf = function(
   return clearBit(number, bitPosition - 1);
 });
 
-var calculateCoordinates = (jsPDFAPI.__acroform__.calculateCoordinates = function(
+var calculateCoordinates = (jsPDFAPI$1.__acroform__.calculateCoordinates = function(
   args,
   scope
 ) {
@@ -8057,7 +8074,7 @@ var initializeAcroForm = function(scope, formObject) {
 };
 
 //PDF 32000-1:2008, page 26, 7.3.6
-var arrayToPdfArray = (jsPDFAPI.__acroform__.arrayToPdfArray = function(
+var arrayToPdfArray = (jsPDFAPI$1.__acroform__.arrayToPdfArray = function(
   array,
   objId,
   scope
@@ -8078,12 +8095,12 @@ var arrayToPdfArray = (jsPDFAPI.__acroform__.arrayToPdfArray = function(
           content += array[i].toString();
           break;
         case "string":
-          if (array[i].substr(0, 1) !== "/") {
+          if (array[i].substr(0, 1) === "/") {
+            content += "/" + pdfEscapeName(array[i].substr(1));
+          } else {
             if (typeof objId !== "undefined" && scope)
               encryptor = scope.internal.getEncryptor(objId);
             content += "(" + pdfEscape(encryptor(array[i].toString())) + ")";
-          } else {
-            content += array[i].toString();
           }
           break;
       }
@@ -8095,6 +8112,7 @@ var arrayToPdfArray = (jsPDFAPI.__acroform__.arrayToPdfArray = function(
     "Invalid argument passed to jsPDF.__acroform__.arrayToPdfArray"
   );
 });
+
 function getMatches(string, regex, index) {
   index || (index = 1); // default to the first capturing group
   var matches = [];
@@ -8802,7 +8820,7 @@ var AcroFormField = function() {
     set: function(value) {
       value = value.toString();
       if (this instanceof AcroFormButton === true) {
-        _DV = "/" + value;
+        _DV = "/" + pdfEscapeName(value);
       } else {
         _DV = value;
       }
@@ -8869,7 +8887,7 @@ var AcroFormField = function() {
     set: function(value) {
       value = value.toString();
       if (this instanceof AcroFormButton === true) {
-        _V = "/" + value;
+        _V = "/" + pdfEscapeName(value);
       } else {
         _V = value;
       }
@@ -9533,7 +9551,11 @@ var AcroFormButton = function() {
       return _AS;
     },
     set: function(value) {
-      _AS = value;
+      var name = value === undefined || value === null ? "" : value.toString();
+      if (name.substr(0, 1) === "/") {
+        name = name.substr(1);
+      }
+      _AS = "/" + pdfEscapeName(name);
     }
   });
 
@@ -9550,7 +9572,7 @@ var AcroFormButton = function() {
       return _AS.substr(1, _AS.length - 1);
     },
     set: function(value) {
-      _AS = "/" + value;
+      _AS = "/" + pdfEscapeName(value);
     }
   });
 };
@@ -9686,7 +9708,11 @@ var AcroFormChildClass = function() {
       return _AS;
     },
     set: function(value) {
-      _AS = value;
+      var name = value === undefined || value === null ? "" : value.toString();
+      if (name.substr(0, 1) === "/") {
+        name = name.substr(1);
+      }
+      _AS = "/" + pdfEscapeName(name);
     }
   });
 
@@ -9703,7 +9729,11 @@ var AcroFormChildClass = function() {
       return _AS.substr(1, _AS.length - 1);
     },
     set: function(value) {
-      _AS = "/" + value;
+      var name = value === undefined || value === null ? "" : value.toString();
+      if (name.substr(0, 1) === "/") {
+        name = name.substr(1);
+      }
+      _AS = "/" + pdfEscapeName(name);
     }
   });
   this.caption = "l";
@@ -10515,7 +10545,7 @@ AcroFormAppearance.internal.getHeight = function(formObject) {
  * @param {Object} fieldObject
  * @returns {jsPDF}
  */
-var addField = (jsPDFAPI.addField = function(fieldObject) {
+var addField = (jsPDFAPI$1.addField = function(fieldObject) {
   initializeAcroForm(this, fieldObject);
 
   if (fieldObject instanceof AcroFormField) {
@@ -10535,19 +10565,19 @@ var addField = (jsPDFAPI.addField = function(fieldObject) {
   return this;
 });
 
-jsPDFAPI.AcroFormChoiceField = AcroFormChoiceField;
-jsPDFAPI.AcroFormListBox = AcroFormListBox;
-jsPDFAPI.AcroFormComboBox = AcroFormComboBox;
-jsPDFAPI.AcroFormEditBox = AcroFormEditBox;
-jsPDFAPI.AcroFormButton = AcroFormButton;
-jsPDFAPI.AcroFormPushButton = AcroFormPushButton;
-jsPDFAPI.AcroFormRadioButton = AcroFormRadioButton;
-jsPDFAPI.AcroFormCheckBox = AcroFormCheckBox;
-jsPDFAPI.AcroFormTextField = AcroFormTextField;
-jsPDFAPI.AcroFormPasswordField = AcroFormPasswordField;
-jsPDFAPI.AcroFormAppearance = AcroFormAppearance;
+jsPDFAPI$1.AcroFormChoiceField = AcroFormChoiceField;
+jsPDFAPI$1.AcroFormListBox = AcroFormListBox;
+jsPDFAPI$1.AcroFormComboBox = AcroFormComboBox;
+jsPDFAPI$1.AcroFormEditBox = AcroFormEditBox;
+jsPDFAPI$1.AcroFormButton = AcroFormButton;
+jsPDFAPI$1.AcroFormPushButton = AcroFormPushButton;
+jsPDFAPI$1.AcroFormRadioButton = AcroFormRadioButton;
+jsPDFAPI$1.AcroFormCheckBox = AcroFormCheckBox;
+jsPDFAPI$1.AcroFormTextField = AcroFormTextField;
+jsPDFAPI$1.AcroFormPasswordField = AcroFormPasswordField;
+jsPDFAPI$1.AcroFormAppearance = AcroFormAppearance;
 
-jsPDFAPI.AcroForm = {
+jsPDFAPI$1.AcroForm = {
   ChoiceField: AcroFormChoiceField,
   ListBox: AcroFormListBox,
   ComboBox: AcroFormComboBox,
@@ -10646,7 +10676,7 @@ function getRequiredFieldText(doc) {
  *   required: true
  * });
  */
-jsPDFAPI.addAccessibleTextField = function(options) {
+jsPDFAPI$1.addAccessibleTextField = function(options) {
   options = options || {};
 
   // Strict validation for PDF/UA
@@ -10759,7 +10789,7 @@ jsPDFAPI.addAccessibleTextField = function(options) {
  *   required: true
  * });
  */
-jsPDFAPI.addAccessibleCheckBox = function(options) {
+jsPDFAPI$1.addAccessibleCheckBox = function(options) {
   options = options || {};
 
   // Strict validation for PDF/UA
@@ -10868,7 +10898,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
  *   required: true
  * });
  */
-jsPDFAPI.addAccessibleComboBox = function(options) {
+jsPDFAPI$1.addAccessibleComboBox = function(options) {
   options = options || {};
 
   // Strict validation for PDF/UA
@@ -10975,7 +11005,7 @@ jsPDFAPI.addAccessibleComboBox = function(options) {
  * @param {boolean} [options.multiSelect] - Allow multiple selections
  * @returns {jsPDF} - Returns jsPDF instance for method chaining
  */
-jsPDFAPI.addAccessibleListBox = function(options) {
+jsPDFAPI$1.addAccessibleListBox = function(options) {
   options = options || {};
 
   // Strict validation for PDF/UA
@@ -11080,7 +11110,7 @@ jsPDFAPI.addAccessibleListBox = function(options) {
  *   ]
  * });
  */
-jsPDFAPI.addAccessibleRadioGroup = function(options) {
+jsPDFAPI$1.addAccessibleRadioGroup = function(options) {
   options = options || {};
 
   // Strict validation for PDF/UA
@@ -11995,6 +12025,8 @@ jsPDFAPI.addAccessibleRadioGroup = function(options) {
    * @param {string} alias alias of the image (if used multiple times)
    * @param {string} compression compression of the generated JPEG, can have the values 'NONE', 'FAST', 'MEDIUM' and 'SLOW'
    * @param {number} rotation rotation of the image in degrees (0-359)
+   *
+   * @throws {Error} if the input is invalid, such as invalid image data.
    *
    * @returns jsPDF
    */
@@ -18742,7 +18774,6 @@ function parseFontFamily(input) {
  * @module
  */
 (function(jsPDFAPI) {
-  var jsNamesObj, jsJsObj, text;
   /**
    * @name addJS
    * @function
@@ -18750,7 +18781,32 @@ function parseFontFamily(input) {
    * @returns {jsPDF}
    */
   jsPDFAPI.addJS = function(javascript) {
-    text = javascript;
+    var jsNamesObj;
+    var jsJsObj;
+    // Escape only unescaped parentheses, without double-escaping already escaped ones
+    function escapeParens(str) {
+      let out = "";
+      for (let i = 0; i < str.length; i++) {
+        const ch = str[i];
+        if (ch === "(" || ch === ")") {
+          // Count preceding backslashes to determine if the paren is already escaped
+          let bs = 0;
+          for (let j = i - 1; j >= 0 && str[j] === "\\"; j--) {
+            bs++;
+          }
+          if (bs % 2 === 0) {
+            out += "\\" + ch;
+          } else {
+            out += ch;
+          }
+        } else {
+          out += ch;
+        }
+      }
+      return out;
+    }
+    const text = escapeParens(javascript);
+
     this.internal.events.subscribe("postPutResources", function() {
       jsNamesObj = this.internal.newObject();
       this.internal.out("<<");
@@ -18761,10 +18817,12 @@ function parseFontFamily(input) {
       jsJsObj = this.internal.newObject();
       this.internal.out("<<");
       this.internal.out("/S /JavaScript");
+      // The sanitized 'text' is now safe to be enclosed in parentheses
       this.internal.out("/JS (" + text + ")");
       this.internal.out(">>");
       this.internal.out("endobj");
     });
+
     this.internal.events.subscribe("putCatalog", function() {
       if (jsNamesObj !== undefined && jsJsObj !== undefined) {
         this.internal.out("/Names <</JavaScript " + jsNamesObj + " 0 R>>");
@@ -19915,6 +19973,11 @@ function GifReader(buf) {
   this.decodeAndBlitFrameBGRA = function(frame_num, pixels) {
     var frame = this.frameInfo(frame_num);
     var num_pixels = frame.width * frame.height;
+
+    if (num_pixels > 512 * 1024 * 1024) {
+      throw new Error("Image dimensions exceed 512MB, which is too large.");
+    }
+
     var index_stream = new Uint8Array(num_pixels); // At most 8-bit indices.
     GifReaderLZWOutputIndexStream(
       buf,
@@ -19987,6 +20050,11 @@ function GifReader(buf) {
   this.decodeAndBlitFrameRGBA = function(frame_num, pixels) {
     var frame = this.frameInfo(frame_num);
     var num_pixels = frame.width * frame.height;
+
+    if (num_pixels > 512 * 1024 * 1024) {
+      throw new Error("Image dimensions exceed 512MB, which is too large.");
+    }
+
     var index_stream = new Uint8Array(num_pixels); // At most 8-bit indices.
     GifReaderLZWOutputIndexStream(
       buf,
@@ -21562,11 +21630,16 @@ BmpDecoder.prototype.parseHeader = function() {
 
 BmpDecoder.prototype.parseBGR = function() {
   this.pos = this.offset;
-  try {
-    var bitn = "bit" + this.bitPP;
-    var len = this.width * this.height * 4;
-    this.data = new Uint8Array(len);
+  var bitn = "bit" + this.bitPP;
+  var len = this.width * this.height * 4;
 
+  if (len > 512 * 1024 * 1024) {
+    throw new Error("Image dimensions exceed 512MB, which is too large.");
+  }
+
+  this.data = new Uint8Array(len);
+
+  try {
     this[bitn]();
   } catch (e) {
     console$1.log("bit decode error:" + e);
@@ -29751,6 +29824,82 @@ WebPDecoder.prototype.getData = function() {
   };
 
   /**
+   * Add a formatted TOC entry with dot leaders and right-aligned page number.
+   *
+   * Renders a single TOC line:
+   *   Title .................. 12
+   *
+   * - Title is left-aligned at indent position
+   * - Page number is right-aligned at rightMargin
+   * - Dot leaders fill the space between title and page number
+   *
+   * Automatically wraps the entry in TOCI > Link structure elements
+   * and creates a clickable link to the target page.
+   *
+   * @param {Object} options - Entry options
+   * @param {string} options.title - The TOC entry title text
+   * @param {number} options.page - Target page number
+   * @param {number} options.y - Y position for this entry
+   * @param {number} [options.level=1] - Heading level (1-6), controls indentation
+   * @param {number} [options.indent=20] - Base left indent in mm
+   * @param {number} [options.subIndent=10] - Additional indent per sub-level in mm
+   * @param {number} [options.rightMargin=190] - Right edge for page numbers in mm
+   * @param {string} [options.dotChar='.'] - Character used for dot leaders
+   * @param {number} [options.dotSpacing=1.5] - Spacing between dot characters in mm
+   * @param {number} [options.gap=2] - Minimum gap between title/dots and page number in mm
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.addTOCEntry = function(options) {
+    options = options || {};
+    var title = options.title || '';
+    var page = options.page || 1;
+    var y = options.y;
+    var level = options.level || 1;
+    var baseIndent = options.indent !== undefined ? options.indent : 20;
+    var subIndent = options.subIndent !== undefined ? options.subIndent : 10;
+    var rightMargin = options.rightMargin !== undefined ? options.rightMargin : 190;
+    var dotChar = options.dotChar || '.';
+    options.gap !== undefined ? options.gap : 2;
+
+    var indent = baseIndent + (level - 1) * subIndent;
+    var pageStr = String(page);
+
+    // Measure widths
+    var titleWidth = this.getTextWidth(title);
+    var pageWidth = this.getTextWidth(pageStr);
+    var dotCharWidth = this.getTextWidth(dotChar);
+    var spaceWidth = this.getTextWidth(' ');
+
+    // Calculate available space for dots between title and page number
+    var titleEnd = titleWidth + spaceWidth;
+    var pageStart = rightMargin - indent - pageWidth - spaceWidth;
+    var dotsSpace = pageStart - titleEnd;
+
+    // Build single string: title + space + dots + space + pageNumber
+    // Use space characters between dots for even visual spacing
+    var fullText = title + ' ';
+    if (dotsSpace > 0 && dotCharWidth > 0) {
+      var dotWithSpaceWidth = dotCharWidth + spaceWidth;
+      var numDots = Math.floor(dotsSpace / dotWithSpaceWidth);
+      if (numDots > 0) {
+        for (var i = 0; i < numDots; i++) {
+          fullText += dotChar + ' ';
+        }
+      }
+    }
+    fullText += pageStr;
+
+    // Wrap in TOCI > Link, single textWithLink call for one MCID
+    this.beginTOCI();
+    this.beginLink();
+    this.textWithLink(fullText, indent, y, { pageNumber: page });
+    this.endLink();
+    this.endTOCI();
+
+    return this;
+  };
+
+  /**
    * Begin a Code (computer code) element
    * For inline code snippets or block-level code sections.
    * Corresponds to HTML <code> element.
@@ -32763,168 +32912,190 @@ WebPDecoder.prototype.getData = function() {
  * ====================================================================
  */
 
-/**
- * @name xmp_metadata
- * @module
- */
-(function(jsPDFAPI) {
+var jsPDFAPI = jsPDF.API;
 
-  var postPutResources = function() {
-    var metadata = this.internal.__metadata__;
+function postPutResources() {
+  var meta = this.internal.__metadata__;
 
-    // Build XMP packet
-    var xmpmeta_beginning = '<x:xmpmeta xmlns:x="adobe:ns:meta/">';
-    var xmpmeta_ending = "</x:xmpmeta>";
+  var content;
+  if (meta.rawXml) {
+    // Raw XML mode (upstream feature) - use metadata as-is
+    content = unescape(encodeURIComponent(meta.metadata));
+  } else if (meta.pdfUA) {
+    // PDF/UA mode - build structured XMP with all required fields
+    content = buildPdfUaXmp(meta);
+  } else if (meta.metadata) {
+    // Legacy mode - wrap custom metadata in XMP structure
+    var utf8Metadata = unescape(encodeURIComponent(meta.metadata));
+    var xmpmetaBeginning = '<x:xmpmeta xmlns:x="adobe:ns:meta/">';
+    var rdfBeginning =
+      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:jspdf="' +
+      meta.namespaceUri +
+      '"><jspdf:metadata>';
+    var rdfEnding = "</jspdf:metadata></rdf:Description></rdf:RDF>";
+    var xmpmetaEnding = "</x:xmpmeta>";
 
-    // Build RDF structure with all metadata
-    var rdf_content =
-      '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">';
+    content =
+      xmpmetaBeginning +
+      rdfBeginning +
+      escapeXml(utf8Metadata) +
+      rdfEnding +
+      xmpmetaEnding;
+  } else {
+    return;
+  }
 
-    // Main Description element with all namespaces
-    var namespaces = 'xmlns:dc="http://purl.org/dc/elements/1.1/"';
+  meta.metadataObjectNumber = this.internal.newObject();
+  this.internal.write(
+    "<< /Type /Metadata /Subtype /XML /Length " + content.length + " >>"
+  );
+  this.internal.write("stream");
+  this.internal.write(content);
+  this.internal.write("endstream");
+  this.internal.write("endobj");
+}
 
-    if (metadata.pdfUA) {
-      namespaces += ' xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"';
-    }
+function buildPdfUaXmp(meta) {
+  var xmpmeta_beginning = '<x:xmpmeta xmlns:x="adobe:ns:meta/">';
+  var xmpmeta_ending = "</x:xmpmeta>";
 
-    if (metadata.customMetadata) {
-      namespaces +=
-        ' xmlns:jspdf="' +
-        (metadata.namespaceuri || "http://jspdf.default.namespaceuri/") +
-        '"';
-    }
+  var rdf_content =
+    '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">';
 
-    rdf_content += '<rdf:Description rdf:about="" ' + namespaces + ">";
+  // Main Description element with all namespaces
+  var namespaces = 'xmlns:dc="http://purl.org/dc/elements/1.1/"';
+  namespaces += ' xmlns:pdfuaid="http://www.aiim.org/pdfua/ns/id/"';
 
-    // Add dc:title - required for PDF/UA (ISO 14289-1, clause 7.1, test 9)
-    // Use provided title, or default to "Untitled Document" for PDF/UA compliance
-    var title = metadata.title;
-    if (!title && metadata.pdfUA) {
-      title = "Untitled Document"; // Fallback for PDF/UA compliance
-    }
-    if (title) {
-      rdf_content +=
-        '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' +
-        escapeXML(title) +
-        "</rdf:li></rdf:Alt></dc:title>";
-    }
+  if (meta.customMetadata) {
+    namespaces +=
+      ' xmlns:jspdf="' +
+      (meta.namespaceUri || "http://jspdf.default.namespaceuri/") +
+      '"';
+  }
 
-    // Add PDF/UA identification if enabled
-    if (metadata.pdfUA) {
-      rdf_content += "<pdfuaid:part>1</pdfuaid:part>";
-      rdf_content += "<pdfuaid:conformance>A</pdfuaid:conformance>";
-    }
+  rdf_content += '<rdf:Description rdf:about="" ' + namespaces + ">";
 
-    // Add custom metadata if provided (legacy support)
-    if (metadata.customMetadata) {
-      rdf_content +=
-        "<jspdf:metadata>" +
-        escapeXML(metadata.customMetadata) +
-        "</jspdf:metadata>";
-    }
+  // Add dc:title - required for PDF/UA (ISO 14289-1, clause 7.1, test 9)
+  var title = meta.title;
+  if (!title) {
+    title = "Untitled Document"; // Fallback for PDF/UA compliance
+  }
+  rdf_content +=
+    '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">' +
+    escapeXml(title) +
+    "</rdf:li></rdf:Alt></dc:title>";
 
-    rdf_content += "</rdf:Description></rdf:RDF>";
+  // Add PDF/UA identification
+  rdf_content += "<pdfuaid:part>1</pdfuaid:part>";
+  rdf_content += "<pdfuaid:conformance>A</pdfuaid:conformance>";
 
-    // Complete XMP packet
-    var xmp_packet = xmpmeta_beginning + rdf_content + xmpmeta_ending;
-    var utf8_xmp_packet = unescape(encodeURIComponent(xmp_packet));
+  // Add custom metadata if provided (legacy support)
+  if (meta.customMetadata) {
+    rdf_content +=
+      "<jspdf:metadata>" +
+      escapeXml(meta.customMetadata) +
+      "</jspdf:metadata>";
+  }
 
-    metadata.metadata_object_number = this.internal.newObject();
+  rdf_content += "</rdf:Description></rdf:RDF>";
+
+  var xmp_packet = xmpmeta_beginning + rdf_content + xmpmeta_ending;
+  return unescape(encodeURIComponent(xmp_packet));
+}
+
+function putCatalog() {
+  if (this.internal.__metadata__.metadataObjectNumber) {
     this.internal.write(
-      "<< /Type /Metadata /Subtype /XML /Length " +
-        utf8_xmp_packet.length +
-        " >>"
+      "/Metadata " + this.internal.__metadata__.metadataObjectNumber + " 0 R"
     );
-    this.internal.write("stream");
-    this.internal.write(utf8_xmp_packet);
-    this.internal.write("endstream");
-    this.internal.write("endobj");
-  };
-
-  // Helper function to escape XML special characters
-  function escapeXML(str) {
-    if (!str) return "";
-    return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
   }
+}
 
-  var putCatalog = function() {
-    if (this.internal.__metadata__.metadata_object_number) {
-      this.internal.write(
-        "/Metadata " +
-          this.internal.__metadata__.metadata_object_number +
-          " 0 R"
-      );
-    }
-  };
+function escapeXml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
-  /**
-   * Initialize metadata structure
-   * @private
-   */
-  function initMetadata(doc) {
-    if (typeof doc.internal.__metadata__ === "undefined") {
-      doc.internal.__metadata__ = {};
-      doc.internal.events.subscribe("putCatalog", putCatalog);
-      doc.internal.events.subscribe("postPutResources", postPutResources);
-    }
+/**
+ * Initialize metadata structure
+ * @private
+ */
+function initMetadata(doc) {
+  if (typeof doc.internal.__metadata__ === "undefined") {
+    doc.internal.__metadata__ = {
+      namespaceUri: "http://jspdf.default.namespaceuri/"
+    };
+    doc.internal.events.subscribe("putCatalog", putCatalog);
+    doc.internal.events.subscribe("postPutResources", postPutResources);
   }
+}
 
-  /**
-   * Adds XMP formatted metadata to PDF
-   *
-   * @name addMetadata
-   * @function
-   * @param {String} metadata The actual metadata to be added. The metadata shall be stored as XMP simple value. Note that if the metadata string contains XML markup characters "<", ">" or "&", those characters should be written using XML entities.
-   * @param {String} namespaceuri Sets the namespace URI for the metadata. Last character should be slash or hash.
-   * @returns {jsPDF} jsPDF-instance
-   */
-  jsPDFAPI.addMetadata = function(metadata, namespaceuri) {
-    initMetadata(this);
-    this.internal.__metadata__.customMetadata = metadata;
-    this.internal.__metadata__.namespaceuri =
-      namespaceuri || "http://jspdf.default.namespaceuri/";
-    return this;
-  };
+/**
+ * Adds XMP formatted metadata to PDF.
+ *
+ * WARNING: Passing raw XML is potentially insecure! Always sanitize user input before passing it to this function!
+ * @name addMetadata
+ * @function
+ * @param {string} metadata The actual metadata to be added. The interpretation of this parameter depends on the
+ *   second parameter.
+ * @param {boolean|string|undefined} rawXmlOrNamespaceUri If a string is passed it sets the namespace URI for the
+ *   metadata and the metadata shall be stored as XMP simple value. The last character should be a slash or hash.
+ *
+ *   If this argument is omitted, a string is passed, or `false` is passed, the `metadata` argument will be
+ *   XML-escaped before including it in the PDF.
+ *
+ *   If `true` is passed, the `metadata` argument will be interpreted as raw XMP and will be included verbatim
+ *   in the PDF. The passed metadata must be complete (including surrounding `xmpmeta` and `RDF` tags).
+ * @returns {jsPDF} jsPDF-instance
+ */
+jsPDFAPI.addMetadata = function(metadata, rawXmlOrNamespaceUri) {
+  initMetadata(this);
+  this.internal.__metadata__.metadata = metadata;
+  this.internal.__metadata__.namespaceUri =
+    rawXmlOrNamespaceUri ?? "http://jspdf.default.namespaceuri/";
+  this.internal.__metadata__.rawXml =
+    typeof rawXmlOrNamespaceUri === "boolean" ? rawXmlOrNamespaceUri : false;
+  return this;
+};
 
-  /**
-   * Set document title (will be used in XMP dc:title and for DisplayDocTitle)
-   *
-   * @name setDocumentTitle
-   * @function
-   * @param {String} title The document title
-   * @returns {jsPDF} jsPDF-instance
-   */
-  jsPDFAPI.setDocumentTitle = function(title) {
-    initMetadata(this);
-    this.internal.__metadata__.title = title;
+/**
+ * Set document title (will be used in XMP dc:title and for DisplayDocTitle)
+ *
+ * @name setDocumentTitle
+ * @function
+ * @param {String} title The document title
+ * @returns {jsPDF} jsPDF-instance
+ */
+jsPDFAPI.setDocumentTitle = function(title) {
+  initMetadata(this);
+  this.internal.__metadata__.title = title;
 
-    // Also set in document properties for consistency
-    this.setProperties({ title: title });
+  // Also set in document properties for consistency
+  this.setProperties({ title: title });
 
-    return this;
-  };
+  return this;
+};
 
-  // Automatically initialize XMP metadata for PDF/UA documents
-  jsPDFAPI.events.push([
-    "initialized",
-    function() {
-      if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
-        initMetadata(this);
-        this.internal.__metadata__.pdfUA = true;
+// Automatically initialize XMP metadata for PDF/UA documents
+jsPDFAPI.events.push([
+  "initialized",
+  function() {
+    if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
+      initMetadata(this);
+      this.internal.__metadata__.pdfUA = true;
 
-        // Get title from properties if set
-        if (this.internal.title) {
-          this.internal.__metadata__.title = this.internal.title;
-        }
+      // Get title from properties if set
+      if (this.internal.title) {
+        this.internal.__metadata__.title = this.internal.title;
       }
     }
-  ]);
-})(jsPDF.API);
+  }
+]);
 
 /**
  * @name utf8
