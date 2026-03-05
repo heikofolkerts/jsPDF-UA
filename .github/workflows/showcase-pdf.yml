@@ -3,11 +3,11 @@ name: Generate Showcase PDF
 on:
   push:
     paths:
-      - 'showcase-pdfua-complete.txt'
+      - 'showcase-pdfua-complete.js'
       - 'src/**'
   pull_request:
     paths:
-      - 'showcase-pdfua-complete.txt'
+      - 'showcase-pdfua-complete.js'
       - 'src/**'
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
         run: npm run build
 
       - name: Generate Showcase PDF
-        run: node showcase-pdfua-complete.txt
+        run: node showcase-pdfua-complete.js
 
       - name: Validate with veraPDF
         run: |
