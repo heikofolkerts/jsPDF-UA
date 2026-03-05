@@ -99,7 +99,7 @@ Viele PDF/A-Anforderungen sind durch die PDF/UA-Implementierung bereits erfuellt
 ## TOC mit Blocksatz und Fuehrungspunkten
 
 **Prioritaet:** Mittel
-**Status:** Offen
+**Status:** Erledigt (2026-03-05)
 **Erstellt:** 2026-03-05
 
 ### Beschreibung
@@ -123,7 +123,7 @@ Das Inhaltsverzeichnis (TOC) soll standardmaessig als Blocksatz formatiert werde
 ## CI/CD: Automatische Showcase-PDF-Erstellung
 
 **Prioritaet:** Mittel
-**Status:** Offen
+**Status:** Erledigt (2026-03-05)
 **Erstellt:** 2026-03-05
 
 ### Beschreibung

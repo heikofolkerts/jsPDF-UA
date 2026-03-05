@@ -116,21 +116,30 @@ doc.text('Go to page 2', 10, 35);
 doc.endLink();
 ```
 
-### Images
+### Images / Figures
 
 ```javascript
-doc.beginStructureElement('Figure', { alt: 'Description of the image' });
+// Using convenience method (recommended)
+doc.beginFigure({ alt: 'Description of the image' });
 doc.addImage(imageData, 'PNG', x, y, width, height);
-doc.endStructureElement();
+doc.endFigure();
 
 // With caption
-doc.beginStructureElement('Figure', { alt: 'Chart showing sales data' });
+doc.beginFigure({ alt: 'Chart showing sales data' });
 doc.addImage(chartImage, 'PNG', 10, 50, 100, 80);
 doc.beginCaption();
 doc.text('Figure 1: Quarterly Sales', 10, 135);
 doc.endCaption();
-doc.endStructureElement();
+doc.endFigure();
 ```
+
+**beginFigure options:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `alt` | Alternative text (required for accessibility) |
+| `lang` | Language override |
+| `placement` | `'Block'` (default) or `'Inline'` |
 
 ---
 
@@ -184,13 +193,20 @@ doc.beginCode();
 doc.text('const x = 42;', 10, 20);
 doc.endCode();
 
-// Code block
-doc.beginCodeBlock();
+// Block-level code (with Placement attribute for PAC compliance)
+doc.beginCode({ placement: 'Block' });
 doc.text('function hello() {', 10, 35);
 doc.text('  console.log("Hi");', 10, 45);
 doc.text('}', 10, 55);
-doc.endCodeBlock();
+doc.endCode();
 ```
+
+**beginCode options:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `lang` | - | Language override |
+| `placement` | - | `'Block'` for block-level code (PAC requirement) |
 
 ### Abbreviations
 
@@ -212,6 +228,32 @@ doc.endFormula();
 
 ## Footnotes and References
 
+### addFootnote(options)
+
+High-level method that creates a complete footnote with reference mark, note text, and back-link:
+
+```javascript
+doc.addFootnote({
+  refMark: '1',           // Reference mark shown in text
+  refX: 80, refY: 40,     // Position of reference mark
+  noteText: '1 Source: Einstein, 1905',
+  noteX: 20, noteY: 270,  // Position of footnote text
+  noteId: 'fn1'           // Unique ID for linking
+});
+```
+
+### addFootnoteRef(label, x, y, options)
+
+Adds just the superscript reference mark in the text body:
+
+```javascript
+doc.addFootnoteRef('1', 80, 40, { noteId: 'fn1', fontSize: 8, yOffset: -3 });
+```
+
+### Manual footnotes (low-level)
+
+For full control over footnote structure:
+
 ```javascript
 // In main text
 doc.beginStructureElement('P');
@@ -221,7 +263,7 @@ doc.text('¹', 95, 20);
 doc.endReference();
 doc.endStructureElement();
 
-// Footnote
+// Footnote at page bottom
 doc.beginNote();
 doc.text('¹ Albert Einstein, 1905', 10, 250);
 doc.endNote();
@@ -231,14 +273,55 @@ doc.endNote();
 
 ## Table of Contents
 
+### addTOCEntry(options)
+
+Renders a formatted TOC entry with left-aligned title, right-aligned page number,
+and dot leaders. Automatically wraps in TOCI > Link structure.
+
+```javascript
+doc.beginTOC();
+
+doc.addTOCEntry({
+  title: 'Chapter 1: Introduction',
+  page: 1,
+  y: 30,
+  level: 1        // Heading level (1-6), controls indentation
+});
+
+doc.addTOCEntry({
+  title: '1.1 Background',
+  page: 3,
+  y: 37,
+  level: 2        // Indented sub-entry
+});
+
+doc.endTOC();
+```
+
+**Options:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `title` | `''` | Entry title text |
+| `page` | `1` | Target page number |
+| `y` | - | Y position (mm) |
+| `level` | `1` | Heading level (1-6) |
+| `indent` | `20` | Base left indent (mm) |
+| `subIndent` | `10` | Additional indent per sub-level (mm) |
+| `rightMargin` | `190` | Right edge for page numbers (mm) |
+| `dotChar` | `'.'` | Dot leader character |
+| `gap` | `2` | Min gap between title/page number (mm) |
+
+### Manual TOC (low-level)
+
+For full control over TOC entry rendering:
+
 ```javascript
 doc.beginTOC();
   doc.beginTOCI();
-  doc.beginReference();
   doc.beginLink({ pageNumber: 1 });
   doc.text('Chapter 1 ..... 1', 10, 20);
   doc.endLink();
-  doc.endReference();
   doc.endTOCI();
 doc.endTOC();
 ```
@@ -362,23 +445,50 @@ doc.text('Page 1', 100, 290);
 doc.endArtifact();
 ```
 
+### beginHeader() / endHeader(), beginFooter() / endFooter()
+
+Shorthand for pagination artifacts:
+
+```javascript
+doc.beginHeader();
+doc.text('Document Title', 20, 10);
+doc.endHeader();
+
+doc.beginFooter();
+doc.text('Page ' + pageNum, 100, 290);
+doc.endFooter();
+```
+
 ---
 
 ## Form Fields
 
+### beginFormField(options) / endFormField()
+
+Wraps form fields in a `Form` structure element for PDF/UA compliance:
+
 ```javascript
-doc.beginForm({ label: 'Full Name', required: true });
+doc.beginFormField({ label: 'Full Name', required: true, placement: 'Block' });
 doc.createTextField('name', 50, 100, 100, 20, {
   value: '',
   required: true
 });
-doc.endForm();
+doc.endFormField();
 
 // Checkbox
-doc.beginForm({ label: 'I agree to the terms' });
+doc.beginFormField({ label: 'I agree to the terms' });
 doc.createCheckBox('agree', 50, 130, 15, 15, {});
-doc.endForm();
+doc.endFormField();
 ```
+
+**beginFormField options:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `label` | - | Accessible label for the field |
+| `required` | `false` | Whether the field is required |
+| `placement` | `'Block'` | `'Block'` or `'Inline'` |
+| `lang` | - | Language override |
 
 ---
 
@@ -416,15 +526,35 @@ doc.addBookmark('Chapter 2', 2, 0);      // Page 2, top
 
 ```javascript
 doc.beginBibliography();
-  doc.beginBibEntry();
+  doc.beginBibEntry({ placement: 'Block' });
   doc.text('[1] Smith, J. (2024). Title. Publisher.', 10, 20);
   doc.endBibEntry();
 doc.endBibliography();
 ```
 
+**beginBibEntry options:**
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `placement` | `'Block'` | `'Block'` for standalone entries (PAC requirement) |
+| `lang` | - | Language override |
+
 ---
 
 ## Index
+
+### addIndexEntry(term, pageRefs, x, y, options)
+
+Convenience method that renders a formatted index entry:
+
+```javascript
+doc.beginIndex();
+doc.addIndexEntry('Accessibility', '12, 45, 67', 20, 30);
+doc.addIndexEntry('PDF/UA', '1, 5', 20, 37, { lang: 'en-US' });
+doc.endIndex();
+```
+
+### Manual index (low-level)
 
 ```javascript
 doc.beginIndex();
