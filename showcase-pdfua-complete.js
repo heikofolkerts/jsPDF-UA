@@ -481,7 +481,7 @@ doc.beginSect();
     name: 'subscribe',
     label: 'Subscribe to newsletter.',  // label is visible
     tooltip: 'Check to receive our newsletter.',
-    x: 20, y: 68, width: 7, height: 7  // Moved to left of label
+    x: 20, y: 73, width: 7, height: 7  // Moved to left of label
   });
 
   // Combobox - visible label must match accessibility label
@@ -628,7 +628,7 @@ doc.beginSect();
 
   // Separator line as artifact (at page bottom)
   doc.beginArtifact({ type: 'Layout' });
-  doc.line(20, 668, 100, 68);
+  doc.line(20, 68, 400, 68);
   doc.endArtifact();
 
   // Footnotes using the new convenience API
@@ -638,7 +638,7 @@ doc.beginSect();
     label: '¹',
     text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
     x: 25,
-    y: 675,
+    y: 375,
     labelX: 20
   });
 
@@ -647,7 +647,7 @@ doc.beginSect();
     label: '²',
     text: 'PDF Association, Matterhorn Protocol 1.1',
     x: 25,
-    y: 685,
+    y: 385,
     labelX: 20
   });
 
@@ -690,18 +690,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-													   
-				   
-				  
-
 																			
-															   
+																		   
 										 
 				 
-					
-																 
+					  
+																		 
 											 
 			   
+	 
+											   
+				 
+
   // Figure 2
   doc.beginFigure({
     alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages',
@@ -718,18 +718,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-							
-
-								 
-					  
-								   
-																					
-							
-
-																									 
-																			 
-																			  
+																			
+															   
 										 
+				 
+					
+																 
+											 
+			   
+	 
+											   
+				 
+
   // --- Annotations Subsection (within Figures and Captions) ---
   doc.beginStructureElement('H3');
   doc.setFontSize(12);
@@ -778,6 +778,34 @@ doc.beginSect();
   doc.text('Note: Annotation icons appear near the figures above.', 20, 250);
   doc.endStructureElement();
 doc.endSect();
+
+																
+												
+										
+							
+					
+
+				
+											
+					 
+				   
+			  
+				
+																													
+		  
+		  
+			  
+	 
+
+				   
+			  
+				
+													 
+		  
+		  
+			  
+	 
+			  
 
 // --- Footer Artifact ---
 doc.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
@@ -870,11 +898,6 @@ doc.beginSect();
   doc.beginPrivate();
     doc.text('[Internal metadata: doc-version=1.0, author-id=42]', 25, 154);
   doc.endPrivate();
-							
-
-					 
-																			
-				   
 
 															   
 																   
@@ -882,6 +905,11 @@ doc.beginSect();
 				 
 					  
 																																		   
+											 
+			   
+	 
+											   
+				 
 doc.endSect();
 
 // --- Footer Artifact ---
@@ -1042,4 +1070,3 @@ console.log('  - Index');
 console.log('\nValidation:');
 console.log('  docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf');
 console.log('\n' + '='.repeat(70));
-								
