@@ -481,7 +481,7 @@ doc.beginSect();
     name: 'subscribe',
     label: 'Subscribe to newsletter.',  // label is visible
     tooltip: 'Check to receive our newsletter.',
-    x: 20, y: 78, width: 8, height: 8  // Moved to left of label
+    x: 20, y: 68, width: 7, height: 7  // Moved to left of label
   });
 
   // Combobox - visible label must match accessibility label
@@ -602,10 +602,10 @@ doc.beginSect();
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
 
-  // First line: "PDF/UA¹ (Universal Accessibility) is an ISO standard¹ that ensures"
+  // First line: "PDF/UA (Universal Accessibility) is an ISO standard¹ that ensures"
   let fnX = 20;
   doc.text('PDF/UA (Universal Accessibility) is an ISO standard', fnX, 40);
-  fnX += doc.getTextWidth('PDF/UA');
+  fnX += doc.getTextWidth('PDF/UA (Universal Accessibility) is an ISO standard');
 
   // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
   doc.addFootnoteRef('¹', fnX, 40, { noteId: 'fn1' });
@@ -626,7 +626,31 @@ doc.beginSect();
   doc.text('provides validation checkpoints for PDF/UA compliance.', 20, 60);
   doc.endStructureElement();
 
-  // footnotetext see below at bottom of PAGE
+  // Separator line as artifact (at page bottom)
+  doc.beginArtifact({ type: 'Layout' });
+  doc.line(20, 668, 100, 68);
+  doc.endArtifact();
+
+  // Footnotes using the new convenience API
+  doc.setFontSize(9);
+  doc.addFootnote({
+    id: 'fn1',
+    label: '¹',
+    text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
+    x: 25,
+    y: 675,
+    labelX: 20
+  });
+
+  doc.addFootnote({
+    id: 'fn2',
+    label: '²',
+    text: 'PDF Association, Matterhorn Protocol 1.1',
+    x: 25,
+    y: 685,
+    labelX: 20
+  });
+
   doc.setFontSize(11);
 doc.endSect();
 
@@ -666,18 +690,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
+													   
+				   
+				  
+
 																			
-																		   
+															   
 										 
 				 
-					  
-																		 
+					
+																 
 											 
 			   
-	 
-											   
-				 
-
   // Figure 2
   doc.beginFigure({
     alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages',
@@ -694,18 +718,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-																			
-															   
-										 
-				 
-					
-																 
-											 
-			   
-	 
-											   
-				 
+							
 
+								 
+					  
+								   
+																					
+							
+
+																									 
+																			 
+																			  
+										 
   // --- Annotations Subsection (within Figures and Captions) ---
   doc.beginStructureElement('H3');
   doc.setFontSize(12);
@@ -753,35 +777,6 @@ doc.beginSect();
   doc.beginStructureElement('P');
   doc.text('Note: Annotation icons appear near the figures above.', 20, 250);
   doc.endStructureElement();
-doc.endSect();
-
-// --- Section 10: Footnotes at bottom of corresponding PAGE ---
-doc.beginSect();
-  // Separator line as artifact (at page bottom)
-  doc.beginArtifact({ type: 'Layout' });
-  doc.line(20, 68, 100, 68);
-  doc.endArtifact();
-
-				
-  // Footnotes using the new convenience API
-  doc.setFontSize(9);
-  doc.addFootnote({
-    id: 'fn1',
-    label: '¹',
-    text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
-    x: 25,
-    y: 75,
-    labelX: 20
-  });
-
-  doc.addFootnote({
-    id: 'fn2',
-    label: '²',
-    text: 'PDF Association, Matterhorn Protocol 1.1',
-    x: 25,
-    y: 85,
-    labelX: 20
-  });
 doc.endSect();
 
 // --- Footer Artifact ---
@@ -875,6 +870,11 @@ doc.beginSect();
   doc.beginPrivate();
     doc.text('[Internal metadata: doc-version=1.0, author-id=42]', 25, 154);
   doc.endPrivate();
+							
+
+					 
+																			
+				   
 
 															   
 																   
@@ -882,11 +882,6 @@ doc.beginSect();
 				 
 					  
 																																		   
-											 
-			   
-	 
-											   
-				 
 doc.endSect();
 
 // --- Footer Artifact ---
@@ -1047,3 +1042,4 @@ console.log('  - Index');
 console.log('\nValidation:');
 console.log('  docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf');
 console.log('\n' + '='.repeat(70));
+								
