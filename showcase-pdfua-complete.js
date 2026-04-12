@@ -481,7 +481,7 @@ doc.beginSect();
     name: 'subscribe',
     label: 'Subscribe to newsletter.',  // label is visible
     tooltip: 'Check to receive our newsletter.',
-    x: 20, y: 73, width: 7, height: 7  // Moved to left of label
+    x: 20, y: 71, width: 7, height: 7  // Moved to left of label
   });
 
   // Combobox - visible label must match accessibility label
@@ -628,7 +628,7 @@ doc.beginSect();
 
   // Separator line as artifact (at page bottom)
   doc.beginArtifact({ type: 'Layout' });
-  doc.line(20, 68, 400, 68);
+  doc.line(20, 268, 100, 268);
   doc.endArtifact();
 
   // Footnotes using the new convenience API
@@ -638,7 +638,7 @@ doc.beginSect();
     label: '¹',
     text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
     x: 25,
-    y: 375,
+    y: 275,
     labelX: 20
   });
 
@@ -647,7 +647,7 @@ doc.beginSect();
     label: '²',
     text: 'PDF Association, Matterhorn Protocol 1.1',
     x: 25,
-    y: 385,
+    y: 285,
     labelX: 20
   });
 
@@ -690,17 +690,17 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-																			
-																		   
-										 
-				 
-					  
-																		 
-											 
-			   
-	 
-											   
-				 
+  // Annot element goes here for correct reading order in screenreader tools
+  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
+  const annotId1 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer',
+    contents: 'Comment: This figure shows quarterly sales distribution.',
+    bounds: { x: 180, y: 100, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId1) doc.addAnnotationRef(annotId1);
+  doc.endAnnot();
 
   // Figure 2
   doc.beginFigure({
@@ -718,18 +718,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-																			
-															   
-										 
-				 
-					
-																 
-											 
-			   
-	 
-											   
-				 
-
+  // Annot element goes here for correct reading order in screenreader tools
+  doc.beginAnnot({ alt: 'Editor note about comparison data' });
+  const annotId2 = doc.createAnnotation({
+    type: 'text',
+    title: 'Editor',
+    contents: 'Note: Consider adding year-over-year comparison.',
+    bounds: { x: 180, y: 130, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId2) doc.addAnnotationRef(annotId2);
+  doc.endAnnot();
+  
   // --- Annotations Subsection (within Figures and Captions) ---
   doc.beginStructureElement('H3');
   doc.setFontSize(12);
@@ -752,7 +752,7 @@ doc.beginSect();
 
   // PDF/UA requires Text annotations to be nested in Annot structure elements (ISO 14289-1, 7.18.1).
   // Annot elements are used as block-level containers for document comments.
-  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
+/**  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
   const annotId1 = doc.createAnnotation({
     type: 'text',
     title: 'Reviewer',
@@ -773,7 +773,7 @@ doc.beginSect();
   });
   if (annotId2) doc.addAnnotationRef(annotId2);
   doc.endAnnot();
-
+*/
   doc.beginStructureElement('P');
   doc.text('Note: Annotation icons appear near the figures above.', 20, 250);
   doc.endStructureElement();
@@ -899,17 +899,17 @@ doc.beginSect();
     doc.text('[Internal metadata: doc-version=1.0, author-id=42]', 25, 154);
   doc.endPrivate();
 
-															   
-																   
-										 
-				 
-					  
-																																		   
-											 
-			   
-	 
-											   
-				 
+  // Annot element goes here for explanation of Private element
+  doc.beginAnnot({ alt: 'Creator comment about Private element' });
+  const annotId1 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer',
+    contents: 'Comment: This content is marked as private and therefore not presented in PDF-document nor visible for screenreader tools.',
+    bounds: { x: 180, y: 140, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId1) doc.addAnnotationRef(annotId1);
+  doc.endAnnot();
 doc.endSect();
 
 // --- Footer Artifact ---
