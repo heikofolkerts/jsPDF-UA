@@ -467,7 +467,7 @@ doc.beginSect();
   doc.addAccessibleTextField({
     name: 'name',
     label: 'Name:',  // label is visible
-    tooltip: 'Enter your full name (required field).',
+    tooltip: 'Enter your full name.',
     x: 20, y: 55, width: 80, height: 12,
     required: true
   });
@@ -696,7 +696,7 @@ doc.beginSect();
     type: 'text',
     title: 'Reviewer',
     contents: 'Comment: This figure shows quarterly sales distribution.',
-    bounds: { x: 180, y: 100, w: 20, h: 20 },
+    bounds: { x: 180, y: 60, w: 20, h: 20 },
     open: false
   });
   if (annotId1) doc.addAnnotationRef(annotId1);
@@ -718,17 +718,17 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
-																			
-															   
-										 
-				 
-					
-																 
-											 
-			   
-	 
-											   
-				 
+  // Annot element goes here for correct reading order in screenreader tools
+  doc.beginAnnot({ alt: 'Editor note about comparison data' });
+  const annotId2 = doc.createAnnotation({
+    type: 'text',
+    title: 'Editor',
+    contents: 'Note: Consider adding year-over-year comparison.',
+    bounds: { x: 180, y: 90, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId2) doc.addAnnotationRef(annotId2);
+  doc.endAnnot();
 
   // --- Annotations Subsection (within Figures and Captions) ---
   doc.beginStructureElement('H3');
@@ -762,7 +762,7 @@ doc.beginSect();
   });
   if (annotId1) doc.addAnnotationRef(annotId1);
   doc.endAnnot();
-*/
+
   doc.beginAnnot({ alt: 'Editor note about comparison data' });
   const annotId2 = doc.createAnnotation({
     type: 'text',
@@ -773,7 +773,7 @@ doc.beginSect();
   });
   if (annotId2) doc.addAnnotationRef(annotId2);
   doc.endAnnot();
-
+*/
   doc.beginStructureElement('P');
   doc.text('Note: Annotation icons appear near the figures above.', 20, 250);
   doc.endStructureElement();
@@ -899,17 +899,17 @@ doc.beginSect();
     doc.text('[Internal metadata: doc-version=1.0, author-id=42]', 25, 154);
   doc.endPrivate();
 
-															   
-																   
-										 
-				 
-					  
-																																		   
-											 
-			   
-	 
-											   
-				 
+  // Annot element goes here for explanation of Private element
+  doc.beginAnnot({ alt: 'Creator comment about Private element' });
+  const annotId3 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer',
+    contents: 'Comment: This content is marked as private and therefore not presented in PDF-document nor visible for screenreader tools.',
+    bounds: { x: 180, y: 140, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId3) doc.addAnnotationRef(annotId3);
+  doc.endAnnot();
 doc.endSect();
 
 // --- Footer Artifact ---
