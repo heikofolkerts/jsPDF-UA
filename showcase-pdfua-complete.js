@@ -460,40 +460,40 @@ doc.beginSect();
   doc.endStructureElement();
 
   // Text field - visible label must match accessibility label
-  doc.beginStructureElement('P');
-  doc.text('Name:', 20, 55);
-  doc.endStructureElement();
-   
+/** doc.beginStructureElement('P');
+ * doc.text('Name:', 20, 55);
+ * doc.endStructureElement();
+ */
   doc.addAccessibleTextField({
     name: 'name',
-    label: 'Name:',  // Synchronized with visible label
-    tooltip: 'Enter your full name',
-    x: 50, y: 48, width: 80, height: 12,
+    label: 'Name:',  // label is visible
+    tooltip: 'Enter your full name (required field).',
+    x: 20, y: 55, width: 80, height: 12,
     required: true
   });
 
   // Checkbox - visible label must be present and match accessibility label
-  doc.beginStructureElement('P');
-  doc.text('Subscribe to newsletter:', 20, 72);  // Added visible label
-  doc.endStructureElement();
-   
+/** doc.beginStructureElement('P');
+ *  doc.text('Subscribe to newsletter:', 20, 72);  // Added visible label
+ *  doc.endStructureElement();
+ */
   doc.addAccessibleCheckBox({
     name: 'subscribe',
-    label: 'Subscribe to newsletter:',  // Synchronized with visible label
-    tooltip: 'Check to receive our newsletter',
-    x: 150, y: 68, width: 10, height: 10  // Moved to right of label
+    label: 'Subscribe to newsletter.',  // label is visible
+    tooltip: 'Check to receive our newsletter.',
+    x: 50, y: 68, width: 10, height: 10  // Moved to right of label
   });
 
   // Combobox - visible label must match accessibility label
-  doc.beginStructureElement('P');
-  doc.text('Country:', 20, 95);
-  doc.endStructureElement();
-   
+/** doc.beginStructureElement('P');
+ * doc.text('Country:', 20, 95);
+ * doc.endStructureElement();
+ */
   doc.addAccessibleComboBox({
     name: 'country',
-    label: 'Country:',  // Synchronized with visible label
-    tooltip: 'Select your country from the list',
-    x: 50, y: 88, width: 60, height: 12,
+    label: 'Country:',  // label is visible
+    tooltip: 'Select your country from the list.',
+    x: 20, y: 88, width: 60, height: 12,
     options: ['USA', 'Germany', 'France', 'UK', 'Japan']
   });
 doc.endSect();
