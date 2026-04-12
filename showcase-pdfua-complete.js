@@ -628,7 +628,7 @@ doc.beginSect();
 
   // Separator line as artifact (at page bottom)
   doc.beginArtifact({ type: 'Layout' });
-  doc.line(20, 268, 100, 268);
+  doc.line(20, 258, 100, 258);
   doc.endArtifact();
 
   // Footnotes using the new convenience API
@@ -638,7 +638,7 @@ doc.beginSect();
     label: '¹',
     text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
     x: 25,
-    y: 275,
+    y: 265,
     labelX: 20
   });
 
@@ -647,7 +647,7 @@ doc.beginSect();
     label: '²',
     text: 'PDF Association, Matterhorn Protocol 1.1',
     x: 25,
-    y: 285,
+    y: 275,
     labelX: 20
   });
 
@@ -690,6 +690,18 @@ doc.beginSect();
   doc.endCaption();
   doc.endFigure();
 
+  // Annot element goes here for correct reading order in screenreader tools
+  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
+  const annotId1 = doc.createAnnotation({
+    type: 'text',
+    title: 'Reviewer',
+    contents: 'Comment: This figure shows quarterly sales distribution.',
+    bounds: { x: 180, y: 100, w: 20, h: 20 },
+    open: false
+  });
+  if (annotId1) doc.addAnnotationRef(annotId1);
+  doc.endAnnot();
+
   // Figure 2
   doc.beginFigure({
     alt: 'A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages',
@@ -705,6 +717,18 @@ doc.beginSect();
   doc.text('Figure 2: Process Flow Diagram', 120, 188);
   doc.endCaption();
   doc.endFigure();
+
+																			
+															   
+										 
+				 
+					
+																 
+											 
+			   
+	 
+											   
+				 
 
   // --- Annotations Subsection (within Figures and Captions) ---
   doc.beginStructureElement('H3');
@@ -728,7 +752,7 @@ doc.beginSect();
 
   // PDF/UA requires Text annotations to be nested in Annot structure elements (ISO 14289-1, 7.18.1).
   // Annot elements are used as block-level containers for document comments.
-  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
+/**  doc.beginAnnot({ alt: 'Reviewer comment about quarterly sales figure' });
   const annotId1 = doc.createAnnotation({
     type: 'text',
     title: 'Reviewer',
@@ -738,7 +762,7 @@ doc.beginSect();
   });
   if (annotId1) doc.addAnnotationRef(annotId1);
   doc.endAnnot();
-
+*/
   doc.beginAnnot({ alt: 'Editor note about comparison data' });
   const annotId2 = doc.createAnnotation({
     type: 'text',
@@ -754,6 +778,34 @@ doc.beginSect();
   doc.text('Note: Annotation icons appear near the figures above.', 20, 250);
   doc.endStructureElement();
 doc.endSect();
+
+																
+												
+										
+							
+					
+
+				
+											
+					 
+				   
+			  
+				
+																													
+		  
+		  
+			  
+	 
+
+				   
+			  
+				
+													 
+		  
+		  
+			  
+	 
+			  
 
 // --- Footer Artifact ---
 doc.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
@@ -778,7 +830,7 @@ doc.text('Page 5', 180, 10);
 doc.setTextColor(0, 0, 0);
 doc.endArtifact();
 
-// --- Section 11: Advanced Elements ---
+// --- Section 10: Advanced Elements ---
 doc.beginSect();
   doc.beginStructureElement('H2');
   doc.setFontSize(14);
@@ -846,6 +898,18 @@ doc.beginSect();
   doc.beginPrivate();
     doc.text('[Internal metadata: doc-version=1.0, author-id=42]', 25, 154);
   doc.endPrivate();
+
+															   
+																   
+										 
+				 
+					  
+																																		   
+											 
+			   
+	 
+											   
+				 
 doc.endSect();
 
 // --- Footer Artifact ---
@@ -871,7 +935,7 @@ doc.text('Page 6', 180, 10);
 doc.setTextColor(0, 0, 0);
 doc.endArtifact();
 
-// --- Section 12: Bibliography ---
+// --- Section 11: Bibliography ---
 doc.beginSect();
   doc.beginStructureElement('H2');
   doc.setFontSize(14);
@@ -902,7 +966,7 @@ doc.beginSect();
   doc.endBibEntry();
 doc.endSect();
 
-// --- Section 13: Index ---
+// --- Section 12: Index ---
 doc.beginSect();
   doc.beginStructureElement('H2');
   doc.setFontSize(14);
