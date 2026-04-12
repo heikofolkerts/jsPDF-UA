@@ -481,7 +481,7 @@ doc.beginSect();
     name: 'subscribe',
     label: 'Subscribe to newsletter.',  // label is visible
     tooltip: 'Check to receive our newsletter.',
-    x: 50, y: 68, width: 10, height: 10  // Moved to right of label
+    x: 20, y: 78, width: 8, height: 8  // Moved to left of label
   });
 
   // Combobox - visible label must match accessibility label
@@ -602,17 +602,17 @@ doc.beginSect();
   doc.setFontSize(11);
   doc.setFont(undefined, 'normal');
 
-  // First line: "PDF/UA¹ (Universal Accessibility) is an ISO standard that ensures"
+  // First line: "PDF/UA¹ (Universal Accessibility) is an ISO standard¹ that ensures"
   let fnX = 20;
-  doc.text('PDF/UA', fnX, 40);
+  doc.text('PDF/UA (Universal Accessibility) is an ISO standard', fnX, 40);
   fnX += doc.getTextWidth('PDF/UA');
 
-  // Footnote reference ¹ - directly after "PDF/UA" (explains the ISO standard)
+  // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
   doc.addFootnoteRef('¹', fnX, 40, { noteId: 'fn1' });
   fnX += doc.getTextWidth('¹') * 0.7 + 1;
 
   // Continue text
-  doc.text(' (Universal Accessibility) is an ISO standard that ensures', fnX, 40);
+  doc.text(' that ensures', fnX, 40);
 
   // Second line: "PDFs can be read by assistive technologies. The Matterhorn Protocol²"
   fnX = 20;
@@ -626,33 +626,7 @@ doc.beginSect();
   doc.text('provides validation checkpoints for PDF/UA compliance.', 20, 60);
   doc.endStructureElement();
 
-  // Separator line as artifact (at page bottom)
-  doc.beginArtifact({ type: 'Layout' });
-  doc.line(20, 68, 100, 68);
-  doc.endArtifact();
-
-  // Footnotes using the new convenience API
-  doc.setFontSize(9);
-
-  doc.addFootnote({
-    id: 'fn1',
-    label: '¹',
-    text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
-    x: 25,
-    y: 75,
-    labelX: 20
-  });
-
-  doc.addFootnote({
-    id: 'fn2',
-    label: '²',
-    text: 'PDF Association, Matterhorn Protocol 1.1',
-    x: 25,
-    y: 85,
-    labelX: 20
-  });
-
-											 
+  // footnotetext see below at bottom of PAGE
   doc.setFontSize(11);
 doc.endSect();
 
@@ -781,33 +755,34 @@ doc.beginSect();
   doc.endStructureElement();
 doc.endSect();
 
-																
-												
-										
-							
-					
+// --- Section 10: Footnotes at bottom of corresponding PAGE ---
+doc.beginSect();
+  // Separator line as artifact (at page bottom)
+  doc.beginArtifact({ type: 'Layout' });
+  doc.line(20, 68, 100, 68);
+  doc.endArtifact();
 
 				
-											
-					 
-				   
-			  
-				
-																													
-		  
-		  
-			  
-	 
+  // Footnotes using the new convenience API
+  doc.setFontSize(9);
+  doc.addFootnote({
+    id: 'fn1',
+    label: '¹',
+    text: 'ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility',
+    x: 25,
+    y: 75,
+    labelX: 20
+  });
 
-				   
-			  
-				
-													 
-		  
-		  
-			  
-	 
-			  
+  doc.addFootnote({
+    id: 'fn2',
+    label: '²',
+    text: 'PDF Association, Matterhorn Protocol 1.1',
+    x: 25,
+    y: 85,
+    labelX: 20
+  });
+doc.endSect();
 
 // --- Footer Artifact ---
 doc.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
