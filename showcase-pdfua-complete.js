@@ -696,7 +696,7 @@ doc.beginSect();
     type: 'text',
     title: 'Reviewer',
     contents: 'Comment: This figure shows quarterly sales distribution.',
-    bounds: { x: 180, y: 60, w: 20, h: 20 },
+    bounds: { x: 180, y: 140, w: 20, h: 20 },
     open: false
   });
   if (annotId1) doc.addAnnotationRef(annotId1);
@@ -724,7 +724,7 @@ doc.beginSect();
     type: 'text',
     title: 'Editor',
     contents: 'Note: Consider adding year-over-year comparison.',
-    bounds: { x: 180, y: 90, w: 20, h: 20 },
+    bounds: { x: 180, y: 170, w: 20, h: 20 },
     open: false
   });
   if (annotId2) doc.addAnnotationRef(annotId2);
