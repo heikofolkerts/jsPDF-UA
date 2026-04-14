@@ -1745,14 +1745,39 @@ import { jsPDF } from "../jspdf.js";
     var labelFontSize = options.fontSize || originalFontSize * 0.7;
     var yOffset = options.yOffset !== undefined ? options.yOffset : -2;
 
+    // Calculate auto-link flag early so we can wrap in Link element
+    var autoLink = options.noteId && options.link !== false;
+    var linkInternalId;
+
     this.beginReference({ noteId: options.noteId });
+
+    // Pre-create Link structure element so the annotation has a parent
+    if (autoLink) {
+      if (!this.internal.pdfuaLinkCounter) {
+        this.internal.pdfuaLinkCounter = 0;
+      }
+      linkInternalId = ++this.internal.pdfuaLinkCounter;
+      this.beginStructureElement("Link");
+      // Store internalId on the Link element for OBJR resolution and ParentTree
+      var linkElem = this.internal.structureTree.currentParent;
+      if (linkElem) {
+        if (!linkElem.annotationInternalIds) {
+          linkElem.annotationInternalIds = [];
+        }
+        linkElem.annotationInternalIds.push(linkInternalId);
+        // Register in linkParentMap for ParentTree StructParent entries
+        if (!this.internal.structureTree.linkParentMap) {
+          this.internal.structureTree.linkParentMap = {};
+        }
+        this.internal.structureTree.linkParentMap[linkInternalId] = linkElem;
+      }
+    }
 
     this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
     this.text(label, x, y + yOffset);
 
     // Calculate link bounds from text metrics while labelFontSize is active
-    var autoLink = options.noteId && options.link !== false;
     var linkWidth, linkHeight;
     if (autoLink) {
       linkWidth = this.getTextWidth(label);
@@ -1761,6 +1786,10 @@ import { jsPDF } from "../jspdf.js";
 
     this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
+
+    if (autoLink) {
+      this.endStructureElement(); // /Link
+    }
 
     this.endReference();
 
@@ -1771,7 +1800,8 @@ import { jsPDF } from "../jspdf.js";
         y + yOffset - linkHeight,
         linkWidth,
         linkHeight,
-        label
+        label,
+        linkInternalId
       );
     }
 
@@ -1788,7 +1818,14 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} height - Height of link area
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
-  jsPDFAPI.addFootnoteLink = function(x, y, width, height, label) {
+  jsPDFAPI.addFootnoteLink = function(
+    x,
+    y,
+    width,
+    height,
+    label,
+    linkInternalId
+  ) {
     if (
       !this.internal.pdfuaFootnotes ||
       !this.internal.pdfuaFootnotes.currentReferenceNoteId
@@ -1815,7 +1852,8 @@ import { jsPDF } from "../jspdf.js";
       y: y,
       width: width,
       height: height,
-      label: label || noteId // Use label for back-link text, fallback to noteId
+      label: label || noteId, // Use label for back-link text, fallback to noteId
+      linkInternalId: linkInternalId // Pre-assigned ID for Link structure element
     });
 
     // Clear current reference
@@ -2159,12 +2197,17 @@ import { jsPDF } from "../jspdf.js";
         // Get the page where the reference is located (NOT current page)
         var refPageInfo = self.internal.getPageInfo(ref.page);
 
-        // Create annotation object with PDF/UA compliance
-        // Generate unique internal ID for this annotation
-        if (!self.internal.pdfuaLinkCounter) {
-          self.internal.pdfuaLinkCounter = 0;
+        // Use pre-assigned internalId from Link structure element if available,
+        // otherwise generate a new one
+        var internalId;
+        if (ref.linkInternalId) {
+          internalId = ref.linkInternalId;
+        } else {
+          if (!self.internal.pdfuaLinkCounter) {
+            self.internal.pdfuaLinkCounter = 0;
+          }
+          internalId = ++self.internal.pdfuaLinkCounter;
         }
-        var internalId = ++self.internal.pdfuaLinkCounter;
 
         var annotation = {
           finalBounds: {
