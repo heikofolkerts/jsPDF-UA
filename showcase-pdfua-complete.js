@@ -608,7 +608,6 @@ doc.beginSect();
 
   // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
   doc.addFootnoteRef('¹', fnX, 40, { noteId: 'fn1' });
-  jsPDFAPI.addFootnoteLink();
   fnX += doc.getTextWidth('¹') * 0.7 + 1;
 
   // Continue text
