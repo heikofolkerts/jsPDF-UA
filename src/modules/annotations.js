@@ -254,8 +254,7 @@ import { jsPDF } from "../jspdf.js";
                 "/Contents (" +
                 escape(encryptorFreeText(anno.contents)) +
                 ")";
-              line +=
-                " /DS(" + escape(encryptorFreeText(defaultStyle)) + ")";
+              line += " /DS(" + escape(encryptorFreeText(defaultStyle)) + ")";
               line += " /Border [0 0 0]";
               line += " /F 4"; // Print flag for PDF/UA
               // Add StructParent for PDF/UA compliance
@@ -270,8 +269,9 @@ import { jsPDF } from "../jspdf.js";
                 if (!this.internal.pdfuaAnnotStructParentMap) {
                   this.internal.pdfuaAnnotStructParentMap = {};
                 }
-                this.internal.pdfuaAnnotStructParentMap[anno.internalId] =
-                  structParentIdx;
+                this.internal.pdfuaAnnotStructParentMap[
+                  anno.internalId
+                ] = structParentIdx;
               }
               line += " >>";
               objFreeText.content = line;
