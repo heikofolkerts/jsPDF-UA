@@ -236,6 +236,9 @@ import { jsPDF } from "../jspdf.js";
               getVerticalCoordinateString(anno.bounds.y + anno.bounds.h) +
               "] ";
             var color = anno.color || "#000000";
+            var defaultStyle =
+              "font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
+              color;
 
             // PDF/UA: Create as indirect object for OBJR reference
             if (this.isPDFUAEnabled && this.isPDFUAEnabled()) {
@@ -252,9 +255,7 @@ import { jsPDF } from "../jspdf.js";
                 escape(encryptorFreeText(anno.contents)) +
                 ")";
               line +=
-                " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
-                color +
-                ")";
+                " /DS(" + escape(encryptorFreeText(defaultStyle)) + ")";
               line += " /Border [0 0 0]";
               line += " /F 4"; // Print flag for PDF/UA
               // Add StructParent for PDF/UA compliance
@@ -269,9 +270,8 @@ import { jsPDF } from "../jspdf.js";
                 if (!this.internal.pdfuaAnnotStructParentMap) {
                   this.internal.pdfuaAnnotStructParentMap = {};
                 }
-                this.internal.pdfuaAnnotStructParentMap[
-                  anno.internalId
-                ] = structParentIdx;
+                this.internal.pdfuaAnnotStructParentMap[anno.internalId] =
+                  structParentIdx;
               }
               line += " >>";
               objFreeText.content = line;
@@ -301,10 +301,7 @@ import { jsPDF } from "../jspdf.js";
                 "/Contents (" +
                 escape(encryptor(anno.contents)) +
                 ")";
-              line +=
-                " /DS(font: Helvetica,sans-serif 12.0pt; text-align:left; color:#" +
-                color +
-                ")";
+              line += " /DS(" + escape(encryptor(defaultStyle)) + ")";
               line += " /Border [0 0 0]";
               line += " >>";
               this.internal.write(line);
