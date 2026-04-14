@@ -515,8 +515,7 @@ import { jsPDF } from "../jspdf.js";
 
     this.internal.namedDestinations[name] = {
       pageNumber:
-        options.pageNumber ||
-        this.internal.getCurrentPageInfo().pageNumber,
+        options.pageNumber || this.internal.getCurrentPageInfo().pageNumber,
       top: options.top !== undefined ? options.top : 0,
       left: options.left || 0,
       zoom: options.zoom !== undefined ? options.zoom : 0,
@@ -544,8 +543,8 @@ import { jsPDF } from "../jspdf.js";
         return;
       }
 
-      var getVerticalCoordinateString =
-        this.internal.getVerticalCoordinateString;
+      var getVerticalCoordinateString = this.internal
+        .getVerticalCoordinateString;
 
       // Write destination objects
       var destObjIds = {};
@@ -562,8 +561,7 @@ import { jsPDF } from "../jspdf.js";
             destArray += " /Fit";
             break;
           case "FitH":
-            destArray +=
-              " /FitH " + getVerticalCoordinateString(dest.top);
+            destArray += " /FitH " + getVerticalCoordinateString(dest.top);
             break;
           case "FitV":
             destArray += " /FitV " + dest.left;
@@ -599,10 +597,7 @@ import { jsPDF } from "../jspdf.js";
 
       // Create /Dests entry pointing to Names array
       var destsObjId = pdf.internal.newObject();
-      pdf.internal.write(
-        "<< /Dests " + namesObjId + " 0 R >>",
-        "endobj"
-      );
+      pdf.internal.write("<< /Dests " + namesObjId + " 0 R >>", "endobj");
 
       // Store for putCatalog
       this.internal.namedDestinationsObjId = destsObjId;

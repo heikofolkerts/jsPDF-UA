@@ -12,14 +12,14 @@ jsPDF soll neben PDF/UA (Universal Accessibility) auch den PDF/A-Standard (ISO 1
 
 ### PDF/A-Konformitaetsstufen
 
-| Stufe   | Standard    | Beschreibung                                          |
-| ------- | ----------- | ----------------------------------------------------- |
-| PDF/A-1b | ISO 19005-1 | Basis-Konformitaet (visuelle Reproduzierbarkeit)     |
-| PDF/A-1a | ISO 19005-1 | Volle Konformitaet (strukturiert + tagged)            |
-| PDF/A-2b | ISO 19005-2 | Basis, basierend auf PDF 1.7                         |
-| PDF/A-2u | ISO 19005-2 | Wie 2b + Unicode-Mapping aller Zeichen               |
-| PDF/A-2a | ISO 19005-2 | Volle Konformitaet auf PDF 1.7                       |
-| PDF/A-3b | ISO 19005-3 | Wie 2b + eingebettete Dateien beliebigen Formats     |
+| Stufe    | Standard    | Beschreibung                                     |
+| -------- | ----------- | ------------------------------------------------ |
+| PDF/A-1b | ISO 19005-1 | Basis-Konformitaet (visuelle Reproduzierbarkeit) |
+| PDF/A-1a | ISO 19005-1 | Volle Konformitaet (strukturiert + tagged)       |
+| PDF/A-2b | ISO 19005-2 | Basis, basierend auf PDF 1.7                     |
+| PDF/A-2u | ISO 19005-2 | Wie 2b + Unicode-Mapping aller Zeichen           |
+| PDF/A-2a | ISO 19005-2 | Volle Konformitaet auf PDF 1.7                   |
+| PDF/A-3b | ISO 19005-3 | Wie 2b + eingebettete Dateien beliebigen Formats |
 
 ### Technische Anforderungen
 

@@ -106,9 +106,7 @@ function buildPdfUaXmp(meta) {
   // Add custom metadata if provided (legacy support)
   if (meta.customMetadata) {
     rdf_content +=
-      "<jspdf:metadata>" +
-      escapeXml(meta.customMetadata) +
-      "</jspdf:metadata>";
+      "<jspdf:metadata>" + escapeXml(meta.customMetadata) + "</jspdf:metadata>";
   }
 
   rdf_content += "</rdf:Description></rdf:RDF>";
