@@ -1756,8 +1756,7 @@ import { jsPDF } from "../jspdf.js";
     var linkWidth, linkHeight;
     if (autoLink) {
       linkWidth = this.getTextWidth(label);
-      linkHeight =
-        this.internal.getLineHeight() / this.internal.scaleFactor;
+      linkHeight = this.internal.getLineHeight() / this.internal.scaleFactor;
     }
 
     this.setFontSize(originalFontSize);
