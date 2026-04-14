@@ -1558,7 +1558,7 @@ import { jsPDF } from "../jspdf.js";
 
     // Calculate positions
     var titleEndX = indent + titleWidth + spaceWidth;
-    var pageX = rightMargin;  // right-aligned anchor
+    var pageX = rightMargin; // right-aligned anchor
     var dotsStartX = titleEndX;
     var dotsEndX = rightMargin - pageWidth - gap;
     var dotsSpace = dotsEndX - dotsStartX;
@@ -1575,7 +1575,7 @@ import { jsPDF } from "../jspdf.js";
 
     // Line height for link rectangle
     var lineHeight = this.internal.getLineHeight() / this.internal.scaleFactor;
-    var linkText = title + ' ' + pageStr;
+    var linkText = title + " " + pageStr;
 
     // Wrap in TOCI > Link
     this.beginTOCI();
@@ -1592,7 +1592,7 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // 3. Page number right-aligned (accessible)
-    this.text(pageStr, pageX, y, { align: 'right' });
+    this.text(pageStr, pageX, y, { align: "right" });
 
     // 4. Link annotation spanning the full line
     var linkY = y + lineHeight * 0.2;
