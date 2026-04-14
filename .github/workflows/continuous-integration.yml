@@ -63,9 +63,9 @@ jobs:
       - name: npm install
         run: npm ci
       - name: Install typescript@${{ matrix.ts-version.ts }}
-        run: npm install typescript@${{ matrix.ts-version.ts }}
+        run: npm install --legacy-peer-deps typescript@${{ matrix.ts-version.ts }}
       - name: Install @types/node@${{ matrix.ts-version.types-node }}
-        run: npm install @types/node@${{ matrix.ts-version.types-node }}
+        run: npm install --legacy-peer-deps @types/node@${{ matrix.ts-version.types-node }}
       - name: Run tests
         run: npm run test-typings
 

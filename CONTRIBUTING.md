@@ -8,9 +8,9 @@ This is a maintained fork of [parallax/jsPDF](https://github.com/parallax/jsPDF)
 
 ## Branching Strategy
 
-| Branch | Purpose |
-|--------|---------|
-| `main` | **Default branch.** All PDF/UA development happens here. |
+| Branch   | Purpose                                                              |
+| -------- | -------------------------------------------------------------------- |
+| `main`   | **Default branch.** All PDF/UA development happens here.             |
 | `master` | **Upstream mirror.** Tracks `parallax/jsPDF`. Never commit directly. |
 
 ### Workflow

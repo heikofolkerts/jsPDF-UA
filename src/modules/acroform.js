@@ -3359,7 +3359,11 @@ var requiredFieldTranslations = {
 function getRequiredFieldText(doc) {
   var lang = (doc.getLanguage ? doc.getLanguage() : "en-US").toLowerCase();
   var base = lang.split("-")[0];
-  return requiredFieldTranslations[lang] || requiredFieldTranslations[base] || requiredFieldTranslations["en"];
+  return (
+    requiredFieldTranslations[lang] ||
+    requiredFieldTranslations[base] ||
+    requiredFieldTranslations["en"]
+  );
 }
 
 /**
