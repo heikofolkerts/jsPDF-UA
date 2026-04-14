@@ -1710,6 +1710,9 @@ import { jsPDF } from "../jspdf.js";
    * This is a convenience method that combines beginReference, Lbl element,
    * text rendering, and endReference into a single call.
    *
+   * When a noteId is provided, a clickable link to the corresponding footnote
+   * is automatically created. Set options.link to false to disable this.
+   *
    * @param {string} label - The label text (e.g., '¹', '²', '*', '†')
    * @param {number} x - X position for the label
    * @param {number} y - Y position (baseline) for the label
@@ -1717,12 +1720,16 @@ import { jsPDF } from "../jspdf.js";
    * @param {string} [options.noteId] - ID of the associated Note for linking
    * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
    * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
+   * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the footnote
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
-   * // Simple footnote reference
+   * // Simple footnote reference with auto-link
    * doc.text('Some important text', 20, 40);
    * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1' });
+   *
+   * // Without auto-link
+   * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1', link: false });
    *
    * // With custom formatting
    * doc.addFootnoteRef('*', 100, 50, { noteId: 'fn2', fontSize: 8, yOffset: -3 });
@@ -1739,10 +1746,31 @@ import { jsPDF } from "../jspdf.js";
     this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
     this.text(label, x, y + yOffset);
+
+    // Calculate link bounds from text metrics while labelFontSize is active
+    var autoLink = options.noteId && options.link !== false;
+    var linkWidth, linkHeight;
+    if (autoLink) {
+      linkWidth = this.getTextWidth(label);
+      linkHeight =
+        this.internal.getLineHeight() / this.internal.scaleFactor;
+    }
+
     this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
     this.endReference();
+
+    // Auto-create footnote link after endReference (currentReferenceNoteId is still set)
+    if (autoLink) {
+      this.addFootnoteLink(
+        x,
+        y + yOffset - linkHeight,
+        linkWidth,
+        linkHeight,
+        label
+      );
+    }
 
     return this;
   };
