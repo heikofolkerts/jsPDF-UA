@@ -1113,7 +1113,10 @@ import { jsPDF } from "../jspdf.js";
       linkData.options = { url: options };
     } else if (
       options &&
-      (options.url || options.pageNumber || options.destinationName || options.placement)
+      (options.url ||
+        options.pageNumber ||
+        options.destinationName ||
+        options.placement)
     ) {
       linkData.options = options;
       // Placement attribute for standalone (block-level) links
@@ -1533,14 +1536,15 @@ import { jsPDF } from "../jspdf.js";
    */
   jsPDFAPI.addTOCEntry = function(options) {
     options = options || {};
-    var title = options.title || '';
+    var title = options.title || "";
     var page = options.page || 1;
     var y = options.y;
     var level = options.level || 1;
     var baseIndent = options.indent !== undefined ? options.indent : 20;
     var subIndent = options.subIndent !== undefined ? options.subIndent : 10;
-    var rightMargin = options.rightMargin !== undefined ? options.rightMargin : 190;
-    var dotChar = options.dotChar || '.';
+    var rightMargin =
+      options.rightMargin !== undefined ? options.rightMargin : 190;
+    var dotChar = options.dotChar || ".";
     var gap = options.gap !== undefined ? options.gap : 2;
 
     var indent = baseIndent + (level - 1) * subIndent;
@@ -1550,7 +1554,7 @@ import { jsPDF } from "../jspdf.js";
     var titleWidth = this.getTextWidth(title);
     var pageWidth = this.getTextWidth(pageStr);
     var dotCharWidth = this.getTextWidth(dotChar);
-    var spaceWidth = this.getTextWidth(' ');
+    var spaceWidth = this.getTextWidth(" ");
 
     // Calculate positions
     var titleEndX = indent + titleWidth + spaceWidth;
@@ -1560,12 +1564,12 @@ import { jsPDF } from "../jspdf.js";
     var dotsSpace = dotsEndX - dotsStartX;
 
     // Build dot leaders string
-    var dotsStr = '';
+    var dotsStr = "";
     if (dotsSpace > 0 && dotCharWidth > 0) {
       var dotWithSpaceWidth = dotCharWidth + spaceWidth;
       var numDots = Math.floor(dotsSpace / dotWithSpaceWidth);
       for (var i = 0; i < numDots; i++) {
-        dotsStr += dotChar + ' ';
+        dotsStr += dotChar + " ";
       }
     }
 
@@ -2180,8 +2184,7 @@ import { jsPDF } from "../jspdf.js";
           // PDF/UA compliance properties
           needsObjId: true,
           internalId: internalId,
-          contentsText:
-            getFootnoteText(self, "forward") + " " + ref.label
+          contentsText: getFootnoteText(self, "forward") + " " + ref.label
         };
 
         // Add annotation to the REFERENCE's page, not the current page
