@@ -7,7 +7,7 @@
  * Features demonstrated:
  * - Document metadata (title, language)
  * - Structure tree with all element types
- * - Headings (H1-H6)
+ * - Headings (H1-H3)
  * - Paragraphs and text
  * - Lists (ordered and unordered)
  * - Tables with proper headers
@@ -28,7 +28,6 @@
  * - Bibliography
  * - Index
  * - Grouping elements (Sect, Art, Div, Part)
- * - CJK elements (Ruby, Warichu)
  * - NonStruct and Private
  * - Caption
  */
@@ -609,6 +608,7 @@ doc.beginSect();
 
   // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
   doc.addFootnoteRef('¹', fnX, 40, { noteId: 'fn1' });
+  jsPDFAPI.addFootnoteLink();
   fnX += doc.getTextWidth('¹') * 0.7 + 1;
 
   // Continue text
