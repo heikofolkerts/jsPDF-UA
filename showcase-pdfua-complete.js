@@ -632,6 +632,7 @@ doc.addFootnoteRef("²", fnX, 50, { noteId: "fn2" });
 
 // Third line
 doc.text("provides validation checkpoints for PDF/UA compliance.", 20, 60);
+doc.addFootnoteRef("³", fnX, 50, { noteId: "fn3" });
 doc.endStructureElement();
 
 // Separator line as artifact (at page bottom)
@@ -644,9 +645,9 @@ doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
   label: "¹",
-  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility" +
-	"ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility" +
-	"ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 265,
   labelX: 20
@@ -658,6 +659,15 @@ doc.addFootnote({
   text: "PDF Association, Matterhorn Protocol 1.1",
   x: 25,
   y: 275,
+  labelX: 20
+});
+
+doc.addFootnote({
+  id: "fn3",
+  label: "³",
+  text: "Test",
+  x: 25,
+  y: 285,
   labelX: 20
 });
 
