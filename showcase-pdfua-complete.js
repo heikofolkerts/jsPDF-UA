@@ -233,7 +233,7 @@ doc.endStructureElement();
 // Formula
 doc.beginStructureElement("P");
 doc.text("Famous equation: ", 20, 274);
-doc.beginFormula({ alt: "E equals m times c squared, where E is energy, m is mass, and c is speed of light" });
+doc.beginFormula("E equals m times c squared, where E is energy, m is mass, and c is speed of light");
 doc.text("E = mc²", 62, 274);
 doc.endFormula();
 doc.endStructureElement();
