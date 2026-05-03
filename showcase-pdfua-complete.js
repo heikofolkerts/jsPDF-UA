@@ -628,12 +628,15 @@ doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol", 
 fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
-doc.addFootnoteRef("²", fnX, 50, { noteId: "fn2" });
+//doc.addFootnoteRef("²", fnX, 50, { noteId: "fn2" });
 
 // Third line
+//fnX = 20;
 doc.text("provides validation checkpoints for PDF/UA compliance.", 20, 60);
-doc.addFootnoteRef("³", fnX, 50, { noteId: "fn3" });
-doc.endStructureElement();
+//fnX += doc.getTextWidth("provides validation checkpoints for PDF/UA compliance.");
+
+//doc.addFootnoteRef("³", fnX, 60, { noteId: "fn3" });
+//doc.endStructureElement();
 
 // Separator line as artifact (at page bottom)
 doc.beginArtifact({ type: "Layout" });
@@ -652,7 +655,7 @@ doc.addFootnote({
   y: 265,
   labelX: 20
 });
-
+/**
 doc.addFootnote({
   id: "fn2",
   label: "²",
@@ -670,7 +673,7 @@ doc.addFootnote({
   y: 285,
   labelX: 20
 });
-
+*/
 doc.setFontSize(11);
 doc.endSect();
 
