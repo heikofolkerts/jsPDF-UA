@@ -51,6 +51,27 @@ import { jsPDF } from "../jspdf.js";
   }
 
   /**
+   * Convert a text baseline Y coordinate into a footnote/reference link
+   * destination top (both in user units).
+   *
+   * A /XYZ destination aligns the viewport's top edge with the destination Y.
+   * Passing the raw text baseline scrolls the glyphs (which sit *above* the
+   * baseline) just out of view, so the reader lands roughly one line too low.
+   * Shift the destination up by about one line height plus a small margin so
+   * the target line is fully visible with a bit of context above it.
+   *
+   * @param {jsPDF} doc - jsPDF instance (for font size and unit scale)
+   * @param {number} baselineY - Text baseline Y in user units
+   * @returns {number} Destination top in user units (clamped to >= 0)
+   */
+  function footnoteDestTop(doc, baselineY) {
+    var scaleFactor = doc.internal.scaleFactor || 1;
+    var fontSizeUser = (doc.getFontSize ? doc.getFontSize() : 12) / scaleFactor;
+    var top = baselineY - fontSizeUser * 1.25;
+    return top > 0 ? top : 0;
+  }
+
+  /**
    * StructElement class - represents a structure element in the PDF structure tree
    */
   function StructElement(type, parent, api) {
@@ -1836,11 +1857,12 @@ import { jsPDF } from "../jspdf.js";
     var noteId = this.internal.pdfuaFootnotes.currentReferenceNoteId;
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
 
-    // Register named destination for back-link target (reference position)
+    // Register named destination for back-link target (reference position).
+    // Shift up by ~one line so the reference line lands fully in view.
     if (this.addNamedDestination) {
       this.addNamedDestination("noteref-" + noteId, {
         pageNumber: pageNumber,
-        top: y
+        top: footnoteDestTop(this, y)
       });
     }
 
@@ -1941,11 +1963,12 @@ import { jsPDF } from "../jspdf.js";
       y: noteTop
     };
 
-    // Auto-register named destination for this note
+    // Auto-register named destination for this note.
+    // Shift up by ~one line so the note line lands fully in view, not one line low.
     if (this.addNamedDestination) {
       this.addNamedDestination("note-" + noteId, {
         pageNumber: pageNumber,
-        top: noteTop
+        top: footnoteDestTop(this, noteTop)
       });
     }
 
