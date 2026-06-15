@@ -509,10 +509,13 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write("/ID (" + escapedId + ")");
       }
 
-      // Ref attribute (for Reference elements pointing to Note elements - PDF/UA requirement)
-      // Per ISO 14289-1, Reference elements should have /Ref pointing to the referenced structure element
+      // Ref attribute pointing to a Note element (PDF/UA requirement).
+      // Per ISO 14289-1, the referring element should have /Ref pointing to the
+      // referenced structure element. Both the Reference element and the Link
+      // element wrapping it carry it: the Reference for semantic correctness,
+      // the Link because PAC checks the Link element specifically.
       if (
-        elem.type === "Reference" &&
+        (elem.type === "Reference" || elem.type === "Link") &&
         elem.refNoteId &&
         this.internal.pdfuaFootnotes &&
         this.internal.pdfuaFootnotes.noteElements
@@ -1786,6 +1789,10 @@ import { jsPDF } from "../jspdf.js";
           linkElem.annotationInternalIds = [];
         }
         linkElem.annotationInternalIds.push(linkInternalId);
+        // PAC requires the Link element itself to reference the Note via /Ref
+        // ("Note element is referenced by no Link element"), not only the
+        // surrounding Reference element.
+        linkElem.refNoteId = options.noteId;
         // Register in linkParentMap for ParentTree StructParent entries
         if (!this.internal.structureTree.linkParentMap) {
           this.internal.structureTree.linkParentMap = {};
