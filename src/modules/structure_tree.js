@@ -71,6 +71,122 @@ import { jsPDF } from "../jspdf.js";
     return top > 0 ? top : 0;
   }
 
+  // Vertical shift (user units) applied to a captured baseline so the target
+  // line lands fully in view. Mirrors footnoteDestTop but is captured at the
+  // moment the element is armed, because the font size may differ at output.
+  function destLineShift(doc) {
+    var scaleFactor = doc.internal.scaleFactor || 1;
+    var fontSizeUser = (doc.getFontSize ? doc.getFontSize() : 12) / scaleFactor;
+    return fontSizeUser * 1.25;
+  }
+
+  /**
+   * Generic "destination by id" subsystem.
+   *
+   * An element opened with a user id (e.g. "n_1", "t_2.1") can be used as a
+   * link target. The reader-facing jump is still a classic page+position
+   * destination (PDF has no element-addressed navigation); the id is an
+   * authoring handle that is resolved to the element's captured position at
+   * output time. Position is captured automatically from the first content
+   * drawn inside the element, but an explicit {x, y} override wins.
+   */
+  function ensureDestRegistry(api) {
+    if (!api.internal.structureDestinations) {
+      api.internal.structureDestinations = {};
+    }
+    return api.internal.structureDestinations;
+  }
+
+  /**
+   * Arm position capture for a structure element identified by a user id.
+   *
+   * @param {jsPDF} api
+   * @param {StructElement} element - the structure element to capture
+   * @param {string} userId - user-facing id (the element's /ID)
+   * @param {Object} [opts]
+   * @param {string} [opts.destName] - named-destination name to register
+   *        (defaults to "__sid_" + userId)
+   * @param {number} [opts.x] - explicit X override (user units)
+   * @param {number} [opts.y] - explicit baseline Y override (user units); when
+   *        given, auto-capture is disabled for this id
+   */
+  function armDestinationCapture(api, element, userId, opts) {
+    opts = opts || {};
+    var reg = ensureDestRegistry(api);
+    var hasExplicitY = opts.y !== undefined && opts.y !== null;
+    reg[userId] = {
+      element: element,
+      destName: opts.destName || "__sid_" + userId,
+      page: api.internal.getCurrentPageInfo().pageNumber,
+      baselineY: hasExplicitY ? opts.y : Infinity,
+      x: opts.x !== undefined ? opts.x : 0,
+      lineShift: destLineShift(api),
+      explicit: hasExplicitY
+    };
+  }
+
+  /**
+   * Record the first (topmost) content position for any armed ancestor of the
+   * current structure element. Called from the text() PDF/UA hook.
+   */
+  jsPDFAPI.captureStructureDestinationPosition = function(x, y) {
+    var reg = this.internal.structureDestinations;
+    var st = this.internal.structureTree;
+    if (!reg || !st || !st.currentParent) {
+      return;
+    }
+    if (typeof x !== "number" || typeof y !== "number") {
+      return;
+    }
+    var page = this.internal.getCurrentPageInfo().pageNumber;
+    var elem = st.currentParent;
+    while (elem && elem.type !== "StructTreeRoot") {
+      var uid = elem.attributes && elem.attributes.id;
+      if (uid && reg[uid] && reg[uid].element === elem) {
+        var entry = reg[uid];
+        // Capture the first content drawn (top of the element); explicit
+        // overrides are left untouched.
+        if (!entry.explicit && entry.baselineY === Infinity) {
+          entry.baselineY = y;
+          entry.x = x;
+          entry.page = page;
+        }
+      }
+      elem = elem.parent;
+    }
+  };
+
+  /**
+   * Resolve all captured destinations into named destinations before output.
+   */
+  var finalizeStructureDestinations = function() {
+    var reg = this.internal.structureDestinations;
+    if (!reg || !this.addNamedDestination) {
+      return;
+    }
+    for (var id in reg) {
+      if (!Object.prototype.hasOwnProperty.call(reg, id)) {
+        continue;
+      }
+      var entry = reg[id];
+      if (entry.baselineY === Infinity) {
+        // No content was captured and no override was given; leave any prior
+        // (eager) registration in place rather than overwriting with garbage.
+        continue;
+      }
+      var top = entry.baselineY - entry.lineShift;
+      if (top < 0) {
+        top = 0;
+      }
+      this.addNamedDestination(entry.destName, {
+        pageNumber: entry.page,
+        top: top,
+        left: entry.x || 0
+      });
+    }
+  };
+  jsPDFAPI.events.push(["buildDocument", finalizeStructureDestinations]);
+
   /**
    * StructElement class - represents a structure element in the PDF structure tree
    */
@@ -1964,14 +2080,16 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-    var noteTop = options.y || 0;
+    var hasExplicitY = options.y !== undefined && options.y !== null;
+    var noteTop = hasExplicitY ? options.y : 0;
     this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
       page: pageNumber,
       y: noteTop
     };
 
-    // Auto-register named destination for this note.
-    // Shift up by ~one line so the note line lands fully in view, not one line low.
+    // Eagerly register the named destination so the link target name always
+    // exists. When no explicit y is given the real position is captured from
+    // the note's first content and this entry is refined at output time.
     if (this.addNamedDestination) {
       this.addNamedDestination("note-" + noteId, {
         pageNumber: pageNumber,
@@ -1990,9 +2108,17 @@ import { jsPDF } from "../jspdf.js";
     if (!this.internal.pdfuaFootnotes.noteElements) {
       this.internal.pdfuaFootnotes.noteElements = {};
     }
-    this.internal.pdfuaFootnotes.noteElements[
-      noteId
-    ] = this.internal.structureTree.currentParent;
+    var noteElem = this.internal.structureTree.currentParent;
+    this.internal.pdfuaFootnotes.noteElements[noteId] = noteElem;
+
+    // Arm position capture for this note. options.y (the draw position) acts
+    // as an explicit override; without it the destination is auto-derived
+    // from the first content drawn inside the Note.
+    armDestinationCapture(this, noteElem, noteId, {
+      destName: "note-" + noteId,
+      x: options.x,
+      y: hasExplicitY ? options.y : undefined
+    });
 
     // Screen reader announcement is disabled by default because:
     // 1. The Note structure element is already semantically correct

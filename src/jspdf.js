@@ -4152,6 +4152,11 @@ function jsPDF(options) {
           var pageInfo = scope.internal.getCurrentPageInfo();
           var pageNumber = pageInfo.pageNumber;
           scope.addMCIDToCurrentStructure(mcid, pageNumber);
+          // PDF/UA: capture the position of content drawn inside an
+          // id-tagged structure element, for "destination by id" linking.
+          if (scope.captureStructureDestinationPosition) {
+            scope.captureStructureDestinationPosition(x, y);
+          }
         }
       }
     }

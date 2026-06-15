@@ -105,4 +105,39 @@ describe("Module: Footnote links", () => {
         .toBe(noteObjNum);
     });
   });
+
+  it("auto-captures the note destination from drawn content when no y is given", () => {
+    const baselineY = 262; // mm, where the note content is actually drawn
+    const fontSizePt = 11;
+    const doc = jsPDF({ unit: "mm", format: "a4", pdfUA: true });
+    doc.setLanguage("de-DE");
+    doc.setProperties({ title: "Auto-capture note" });
+    doc.setFontSize(fontSizePt);
+
+    doc.beginStructureElement("P");
+    doc.text("Satz mit Fussnote.", 20, 40);
+    doc.addFootnoteRef("1", 70, 40, { noteId: "fn1" });
+    doc.endStructureElement();
+
+    // beginNote WITHOUT y: the author draws the content, the destination
+    // position must be derived from the first content drawn.
+    doc.beginNote({ id: "fn1" });
+    doc.beginStructureElement("Lbl");
+    doc.text("1", 16, baselineY);
+    doc.endStructureElement();
+    doc.beginStructureElement("P");
+    doc.text("Manuell gezeichneter Fussnotentext.", 20, baselineY);
+    doc.endStructureElement();
+    doc.endNote();
+
+    const top = firstXYZTop(doc.output());
+    expect(top).not.toBeNull();
+
+    const scaleFactor = doc.internal.scaleFactor;
+    const baselineTopPt = (297 - baselineY) * scaleFactor;
+    const expectedShiftPt = 1.25 * fontSizePt;
+
+    // Captured from the drawn baseline (not 0/top of page) and shifted up.
+    expect(top).toBeCloseTo(baselineTopPt + expectedShiftPt, 0);
+  });
 });
