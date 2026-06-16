@@ -620,11 +620,11 @@ doc.addFootnoteRef("¹", fnX, 40, { noteId: "fn1" });
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
-doc.text(" that ensures", fnX, 40);
+doc.text(" that ensures ", fnX, 40);
 
 // Second line: "PDFs can be read by assistive technologies. The Matterhorn Protocol²"
 fnX = 20;
-doc.text(" PDFs can be read by assistive technologies. The Matterhorn Protocol", fnX, 50);
+doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol", fnX, 50);
 fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
