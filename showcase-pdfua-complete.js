@@ -624,7 +624,7 @@ doc.text(" that ensures", fnX, 40);
 
 // Second line: "PDFs can be read by assistive technologies. The Matterhorn Protocol²"
 fnX = 20;
-doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol", fnX, 50);
+doc.text(" PDFs can be read by assistive technologies. The Matterhorn Protocol", fnX, 50);
 fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
@@ -655,7 +655,7 @@ doc.addFootnote({
   y: 265,
   labelX: 20
 });
-/**
+
 doc.addFootnote({
   id: "fn2",
   label: "²",
@@ -664,7 +664,7 @@ doc.addFootnote({
   y: 275,
   labelX: 20
 });
-
+/**
 doc.addFootnote({
   id: "fn3",
   label: "³",
@@ -682,13 +682,13 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
-doc.text("8. Figures and Captions", 20, 110);
+doc.text("8. Figures and Captions", 20, 85);
 doc.endStructureElement();
 
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Figures with alternative text and captions:", 20, 123);
+doc.text("Figures with alternative text and captions:", 20, 98);
 doc.endStructureElement();
 
 // Figure 1 - Placeholder representing an image
