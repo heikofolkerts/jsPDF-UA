@@ -1888,8 +1888,9 @@ import { jsPDF } from "../jspdf.js";
     // Calculate auto-link flag early so we can wrap in Link element
     var autoLink = options.noteId && options.link !== false;
     var linkInternalId;
+
+    this.beginReference({ noteId: options.noteId });
     this.beginStructureElement("Lbl");
-    // this.beginReference({ noteId: options.noteId });
 
     // Pre-create Link structure element so the annotation has a parent
     if (autoLink) {
@@ -1935,8 +1936,8 @@ import { jsPDF } from "../jspdf.js";
       this.endStructureElement(); // /Link
     }
 
-    // this.endReference();
     this.endStructureElement(); // /Lbl
+    this.endReference();
 
     // Auto-create footnote link after endReference (currentReferenceNoteId is still set)
     if (autoLink) {
