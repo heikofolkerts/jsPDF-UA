@@ -1586,9 +1586,11 @@ import { jsPDF } from "../jspdf.js";
 
     // 2. Dot leaders in NonStruct (screen reader skips these)
     if (dotsStr) {
-      this.beginNonStruct();
+      // this.beginNonStruct();
+      this.beginStructureElement("NonStruct");
       this.text(dotsStr, dotsStartX, y);
-      this.endNonStruct();
+      this.endStructureElement(); // /NonStruct
+      // this.endNonStruct();
     }
 
     // 3. Page number right-aligned (accessible)
