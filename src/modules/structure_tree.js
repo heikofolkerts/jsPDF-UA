@@ -87,7 +87,7 @@ import { jsPDF } from "../jspdf.js";
    * link target. The reader-facing jump is still a classic page+position
    * destination (PDF has no element-addressed navigation); the id is an
    * authoring handle that is resolved to the element's captured position at
-   * output time. Position is captured automatically from the first content
+   * output time. Position is captured matically from the first content
    * drawn inside the element, but an explicit {x, y} override wins.
    */
   function ensureDestRegistry(api) {
@@ -108,7 +108,7 @@ import { jsPDF } from "../jspdf.js";
    *        (defaults to "__sid_" + userId)
    * @param {number} [opts.x] - explicit X override (user units)
    * @param {number} [opts.y] - explicit baseline Y override (user units); when
-   *        given, auto-capture is disabled for this id
+   *        given, -capture is disabled for this id
    */
   function armDestinationCapture(api, element, userId, opts) {
     opts = opts || {};
@@ -1942,7 +1942,7 @@ import { jsPDF } from "../jspdf.js";
 
     // Auto-create footnote link after endReference (currentReferenceNoteId is still set)
     if (autoLink) {
-      this.addFootnoteLink(
+      var linkId = this.addFootnoteLink(
         x,
         y + yOffset - linkHeight,
         linkWidth,
@@ -1950,6 +1950,11 @@ import { jsPDF } from "../jspdf.js";
         label,
         linkInternalId
       );
+
+      // Connect link annotation to Link structure element
+      if (linkId && this.addLinkAnnotationRef) {
+        this.addLinkAnnotationRef(linkId);
+      }
     }
 
     return this;
