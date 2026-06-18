@@ -1898,7 +1898,8 @@ import { jsPDF } from "../jspdf.js";
         this.internal.pdfuaLinkCounter = 0;
       }
       linkInternalId = ++this.internal.pdfuaLinkCounter;
-      this.beginStructureElement("Link");
+      this.beginLink();
+      // this.beginStructureElement("Link");
       // Store internalId on the Link element for OBJR resolution and ParentTree
       var linkElem = this.internal.structureTree.currentParent;
       if (linkElem) {
@@ -1933,7 +1934,7 @@ import { jsPDF } from "../jspdf.js";
     // this.endStructureElement(); // /Lbl
 
     if (autoLink) {
-      this.endStructureElement(); // /Link
+      this.endLink(); // /Link
     }
 
     this.endStructureElement(); // /Lbl
