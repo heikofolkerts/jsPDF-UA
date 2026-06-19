@@ -765,6 +765,26 @@ declare module "jspdf" {
     placement?: "Block" | "Inline";
     /** Language code */
     lang?: string;
+    /** External URL target */
+    url?: string;
+    /** Internal page-number target (1-based) */
+    pageNumber?: number;
+    /** Named-destination target */
+    destinationName?: string;
+    /** Logical link-target id registered via markLinkTarget() (abstract linking) */
+    targetId?: string;
+    /** Accessible description for the link (PDF/UA /Contents) */
+    linkText?: string;
+  }
+
+  /** Options for markLinkTarget() */
+  export interface MarkLinkTargetOptions {
+    /** Explicit X override (user units) */
+    x?: number;
+    /** Explicit baseline Y override (user units); disables auto-capture */
+    y?: number;
+    /** Explicit named-destination name (defaults to "__sid_<id>") */
+    destName?: string;
   }
 
   /** Options for Note element (footnotes/endnotes) */
@@ -1827,6 +1847,16 @@ declare module "jspdf" {
      * @returns jsPDF instance for chaining
      */
     beginLink(options?: LinkOptions): jsPDF;
+
+    /**
+     * Mark the current structure element as a link target identified by a
+     * logical id (abstract linking). Link sources reference it via
+     * options.targetId on beginLink()/textWithLink()/link().
+     * @param id - logical id used by link sources as options.targetId
+     * @param options - optional position override / destination name
+     * @returns jsPDF instance for chaining
+     */
+    markLinkTarget(id: string, options?: MarkLinkTargetOptions): jsPDF;
 
     /**
      * End the current Link element

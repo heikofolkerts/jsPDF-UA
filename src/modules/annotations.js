@@ -91,7 +91,8 @@ import { jsPDF } from "../jspdf.js";
           case "link":
             if (
               notEmpty(anno.options.url) ||
-              notEmpty(anno.options.pageNumber)
+              notEmpty(anno.options.pageNumber) ||
+              notEmpty(anno.options.destinationName)
             ) {
               found = true;
             }
@@ -679,6 +680,18 @@ import { jsPDF } from "../jspdf.js";
    * @returns {number|undefined} - Object ID of the link annotation (for PDF/UA), or undefined
    */
   jsPDFAPI.link = function(x, y, w, h, options) {
+    options = options || {};
+
+    // Abstract linking: a logical target id is resolved to the named
+    // destination it was registered under via markLinkTarget(). The concrete
+    // page+position is resolved at output time.
+    if (options.targetId && this.resolveLinkTargetDestName) {
+      options = Object.assign({}, options, {
+        destinationName: this.resolveLinkTargetDestName(options.targetId)
+      });
+      delete options.targetId;
+    }
+
     var pageInfo = this.internal.getCurrentPageInfo();
     var getHorizontalCoordinateString = this.internal.getCoordinateString;
     var getVerticalCoordinateString = this.internal.getVerticalCoordinateString;
