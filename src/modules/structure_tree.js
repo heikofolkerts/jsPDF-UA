@@ -1794,7 +1794,11 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {Object} options - Entry options
    * @param {string} options.title - The TOC entry title text
-   * @param {number} options.page - Target page number
+   * @param {number} options.page - Target page number (shown as the entry's page
+   *        number; also the link target unless targetId/destinationName is given)
+   * @param {string} [options.targetId] - Logical id of a heading marked via
+   *        markLinkTarget(); links to its captured position (abstract linking)
+   * @param {string} [options.destinationName] - Named destination to link to
    * @param {number} options.y - Y position for this entry
    * @param {number} [options.level=1] - Heading level (1-6), controls indentation
    * @param {number} [options.indent=20] - Base left indent in mm
@@ -1846,10 +1850,21 @@ import { jsPDF } from "../jspdf.js";
     }
     fullText += pageStr;
 
-    // Wrap in TOCI > Link, single textWithLink call for one MCID
+    // Wrap in TOCI > Link, single textWithLink call for one MCID. The link
+    // target is a logical heading id (abstract linking) or a named destination
+    // when given, otherwise the target page number.
+    var linkOptions;
+    if (options.targetId) {
+      linkOptions = { targetId: options.targetId };
+    } else if (options.destinationName) {
+      linkOptions = { destinationName: options.destinationName };
+    } else {
+      linkOptions = { pageNumber: page };
+    }
+
     this.beginTOCI();
     this.beginLink();
-    this.textWithLink(fullText, indent, y, { pageNumber: page });
+    this.textWithLink(fullText, indent, y, linkOptions);
     this.endLink();
     this.endTOCI();
 
@@ -1930,8 +1945,7 @@ import { jsPDF } from "../jspdf.js";
     // addFootnoteRef via registerFootnoteReference).
     if (options.noteId && !this.internal.pdfuaFootnotes) {
       this.internal.pdfuaFootnotes = {
-        pendingReferences: [], // References recorded for back-link generation
-        pendingBackLinks: []
+        pendingReferences: [] // References recorded for back-link generation
       };
     }
 
@@ -2160,8 +2174,7 @@ import { jsPDF } from "../jspdf.js";
     // Register note destination for footnote links
     if (!this.internal.pdfuaFootnotes) {
       this.internal.pdfuaFootnotes = {
-        pendingReferences: [],
-        pendingBackLinks: []
+        pendingReferences: []
       };
     }
 
@@ -2382,109 +2395,24 @@ import { jsPDF } from "../jspdf.js";
 
     var label = ref.label;
 
-    // Render the back-link label (small, superscript-like)
+    // Render the back-link label (small, superscript-like) on the unified link
+    // path: Link > Text with the annotation + OBJR emitted by endLink. The
+    // annotation lands on the current (note) page and points to the reference's
+    // "noteref-<id>" named destination, which carries the captured position.
     var originalFontSize = this.getFontSize();
     this.setFontSize(8);
 
-    // Create Link structure element for the back-link
-    this.beginLink();
-    this.text(label, x, y);
-    this.endLink();
-
-    // Calculate link dimensions
-    var linkWidth = this.getTextWidth(label) + 2;
-    var linkHeight = 10;
-
-    // Store pending back-link info (includes target Y for precise navigation)
-    this.internal.pdfuaFootnotes.pendingBackLinks =
-      this.internal.pdfuaFootnotes.pendingBackLinks || [];
-    this.internal.pdfuaFootnotes.pendingBackLinks.push({
+    this.beginLink({
       destinationName: "noteref-" + ref.noteId,
-      targetPage: ref.page,
-      targetY: ref.y, // Y position of the reference for precise back-navigation
-      sourcePage: pageNumber,
-      x: x - 1,
-      y: y - 3,
-      width: linkWidth,
-      height: linkHeight
+      linkText: getFootnoteText(this, "back")
     });
+    this.text(label, x, y);
+    this.endLink(); // emits the back-link annotation + OBJR
 
     this.setFontSize(originalFontSize);
 
     return this;
   };
-
-  /**
-   * Create all pending footnote links and back-links
-   * Called internally before PDF output to resolve note destinations
-   */
-  var createFootnoteLinks = function() {
-    if (!this.internal.pdfuaFootnotes) {
-      return;
-    }
-
-    var footnotes = this.internal.pdfuaFootnotes;
-    var self = this;
-    var getHorizontalCoordinateString = this.internal.getCoordinateString;
-    var getVerticalCoordinateString = this.internal.getVerticalCoordinateString;
-
-    // Forward links (Reference -> Note) are created inline by addFootnoteRef via
-    // the unified link path (beginLink/endLink); nothing to do here for them.
-
-    // Create back-links (Note -> Reference)
-    if (footnotes.pendingBackLinks) {
-      footnotes.pendingBackLinks.forEach(function(backLink) {
-        // Only create back-links for cross-page references (same page has no effect)
-        if (backLink.sourcePage === backLink.targetPage) {
-          return; // Skip same-page back-links
-        }
-
-        // Get the page where the back-link is located (the note's page)
-        var notePageInfo = self.internal.getPageInfo(backLink.sourcePage);
-
-        // Create annotation object for back-link with Y position for precise navigation
-        // Generate unique internal ID for this annotation
-        if (!self.internal.pdfuaLinkCounter) {
-          self.internal.pdfuaLinkCounter = 0;
-        }
-        var backLinkInternalId = ++self.internal.pdfuaLinkCounter;
-
-        var annotation = {
-          finalBounds: {
-            x: getHorizontalCoordinateString(backLink.x),
-            y: getVerticalCoordinateString(backLink.y),
-            w: getHorizontalCoordinateString(backLink.x + backLink.width),
-            h: getVerticalCoordinateString(backLink.y + backLink.height)
-          },
-          options: {
-            destinationName: backLink.destinationName,
-            pageNumber: backLink.targetPage,
-            top: backLink.targetY // Y position of reference for precise back-navigation
-          },
-          type: "link",
-          // PDF/UA compliance properties
-          needsObjId: true,
-          internalId: backLinkInternalId,
-          contentsText: getFootnoteText(self, "back")
-        };
-
-        // Add annotation to the NOTE's page
-        notePageInfo.pageContext.annotations.push(annotation);
-      });
-
-      // Clear pending back-links
-      footnotes.pendingBackLinks = [];
-    }
-
-    // Clear pending references
-    footnotes.pendingReferences = [];
-  };
-
-  /**
-   * Hook into PDF output to create footnote links
-   * Use 'buildDocument' event which fires before pages are written
-   */
-  jsPDFAPI.events.push(["buildDocument", createFootnoteLinks]);
 
   /**
    * Add a link annotation reference (OBJR) to the current Link structure element
@@ -3163,15 +3091,23 @@ import { jsPDF } from "../jspdf.js";
         var separator = i < pageRefs.length - 1 ? ", " : "";
         var linkText = ref.page + separator;
 
-        if (ref.destinationName) {
-          this.beginLink({ destinationName: ref.destinationName });
-          this.text(ref.page, currentX, y);
-          this.endLink();
-          if (separator) {
-            this.text(separator, currentX + this.getTextWidth(ref.page), y);
-          }
+        // Build link target: logical heading id (abstract linking), named
+        // destination, or page number — in that order of precedence. linkText
+        // gives the link a meaningful accessible description (PDF/UA /Contents).
+        var refLinkOptions = null;
+        if (ref.targetId) {
+          refLinkOptions = { targetId: ref.targetId };
+        } else if (ref.destinationName) {
+          refLinkOptions = { destinationName: ref.destinationName };
         } else if (ref.pageNumber) {
-          this.beginLink({ pageNumber: ref.pageNumber });
+          refLinkOptions = { pageNumber: ref.pageNumber };
+        }
+        if (refLinkOptions) {
+          refLinkOptions.linkText = term + " " + ref.page;
+        }
+
+        if (refLinkOptions) {
+          this.beginLink(refLinkOptions);
           this.text(ref.page, currentX, y);
           this.endLink();
           if (separator) {
