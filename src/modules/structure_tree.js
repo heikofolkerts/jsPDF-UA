@@ -2042,7 +2042,7 @@ import { jsPDF } from "../jspdf.js";
       // at output time, so this works even though the reference precedes the
       // note in document order ("abstract linking").
       this.beginLink({
-        destinationName: "note-" + options.noteId,
+        targetId: options.noteId,
         linkText: getFootnoteText(this, "forward") + " " + label
       });
 
