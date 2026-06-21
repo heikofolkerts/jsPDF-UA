@@ -2873,7 +2873,7 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // Begin Formula element
-    this.beginStructureElement("Formula", attributes);
+    var element = this.beginStructureElement("Formula", attributes);
 
     // Store alt text on the current element
     if (
