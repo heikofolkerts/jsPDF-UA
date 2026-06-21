@@ -257,9 +257,7 @@ doc.endStructureElement();
 // Formula
 doc.beginStructureElement("P");
 doc.text("Famous equation: ", 20, 274);
-doc.beginFormula(
-  "E equals m times c squared, where E is energy, m is mass, and c is speed of light"
-);
+doc.beginFormula({ alt: "E equals m times c squared, where E is energy, m is mass, and c is speed of light"});
 doc.text("E = mc²", 62, 274);
 doc.endFormula();
 doc.endStructureElement();
@@ -665,7 +663,7 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
-doc.addFootnoteRef("¹", fnX, 40, { noteId: "fn1" });
+doc.addFootnoteRef("¹", fnX, 40, { id: "fnr1", noteId: "fn1" });
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
@@ -683,7 +681,7 @@ fnX += doc.getTextWidth(
 );
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
-doc.addFootnoteRef("²", fnX, 50, { noteId: "fn2" });
+doc.addFootnoteRef("²", fnX, 50, { id: "fnr2", noteId: "fn2" });
 
 // Third line
 //fnX = 20;
