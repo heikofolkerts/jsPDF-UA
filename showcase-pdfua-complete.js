@@ -712,12 +712,12 @@ doc.addFootnote({
   labelX: 20,
   link: false
 });
-
+// text: {"PDF Association, Matterhorn Protocol 1.1", "Test für eine zweite Zeile"},
 doc.addFootnote({
   id: "fn2",
   targetId: "ref2",
   label: "²",
-  text: {"PDF Association, Matterhorn Protocol 1.1", "Test für eine zweite Zeile"},
+  text: "PDF Association, Matterhorn Protocol 1.1",
   x: 25,
   y: 275,
   labelX: 20,
