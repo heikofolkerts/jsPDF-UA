@@ -2295,8 +2295,12 @@ import { jsPDF } from "../jspdf.js";
    * This is a convenience method that creates a complete footnote with
    * proper PDF/UA structure in a single call.
    *
+   * When an rId is provided, a clickable link to the corresponding reference is automatically
+   * created. Set options.link to false to disable this (or leave out rId).
+   *
    * @param {Object} options - Footnote configuration
    * @param {string} options.id - Unique ID for the Note (required for PDF/UA)
+   * @param {string} options.rId - ID for a clickable link to the corresponding reference
    * @param {string} options.label - The label text (e.g., '¹', '²', '*')
    * @param {string|string[]} options.text - The footnote text (string or array for multiline)
    * @param {number} options.x - X position for the text
@@ -2305,6 +2309,7 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} [options.lineHeight] - Line spacing for multiline text (default: 8)
    * @param {number} [options.labelFontSize] - Font size for label (default: 80% of current)
    * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Footnotes are block-level by default.
+   * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the reference
    * @param {string|null|false} [options.announceText] - Custom SR announcement (default: auto)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
@@ -2334,6 +2339,7 @@ import { jsPDF } from "../jspdf.js";
     var labelX = options.labelX !== undefined ? options.labelX : options.x - 5;
     var textArray = Array.isArray(options.text) ? options.text : [options.text];
     var lineHeight = options.lineHeight || 8;
+    var autoLink = options.rId && options.link !== false;
 
     this.beginNote({
       id: options.id,
@@ -2348,7 +2354,13 @@ import { jsPDF } from "../jspdf.js";
 
     this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
+
+    if (autoLink) {
+    this.textWithLink(options.label, labelX, options.y, options.rId);
+    } else {
     this.text(options.label, labelX, options.y);
+    }
+
     this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
@@ -2360,7 +2372,7 @@ import { jsPDF } from "../jspdf.js";
       currentY += lineHeight;
     }
     this.endStructureElement(); // /P
-
+    
     this.endNote();
 
     return this;
