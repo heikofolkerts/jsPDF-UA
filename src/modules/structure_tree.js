@@ -2353,6 +2353,9 @@ import { jsPDF } from "../jspdf.js";
     var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
     this.beginStructureElement("Lbl");
+    if (options.id) {
+      this.markLinkTarget(options.id);
+    }
     this.setFontSize(labelFontSize);
 
     if (autoLink) {
