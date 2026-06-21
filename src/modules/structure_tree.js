@@ -2295,12 +2295,12 @@ import { jsPDF } from "../jspdf.js";
    * This is a convenience method that creates a complete footnote with
    * proper PDF/UA structure in a single call.
    *
-   * When an rId is provided, a clickable link to the corresponding reference is automatically
-   * created. Set options.link to false to disable this (or leave out rId).
+   * When a targetId is provided, a clickable link to the corresponding reference is automatically
+   * created. Set options.link to false to disable this (or leave out targetId).
    *
    * @param {Object} options - Footnote configuration
    * @param {string} options.id - Unique ID for the Note (required for PDF/UA)
-   * @param {string} options.rId - ID for a clickable link to the corresponding reference
+   * @param {string} options.targetId - ID for a clickable link to the corresponding reference
    * @param {string} options.label - The label text (e.g., '¹', '²', '*')
    * @param {string|string[]} options.text - The footnote text (string or array for multiline)
    * @param {number} options.x - X position for the text
@@ -2339,7 +2339,7 @@ import { jsPDF } from "../jspdf.js";
     var labelX = options.labelX !== undefined ? options.labelX : options.x - 5;
     var textArray = Array.isArray(options.text) ? options.text : [options.text];
     var lineHeight = options.lineHeight || 8;
-    var autoLink = options.rId && options.link !== false;
+    var autoLink = options.targetId && options.link !== false;
 
     this.beginNote({
       id: options.id,
@@ -2356,7 +2356,7 @@ import { jsPDF } from "../jspdf.js";
     this.setFontSize(labelFontSize);
 
     if (autoLink) {
-    this.textWithLink(options.label, labelX, options.y, options.rId);
+    this.textWithLink(options.label, labelX, options.y, { targetId: options.targetId });
     } else {
     this.text(options.label, labelX, options.y);
     }
