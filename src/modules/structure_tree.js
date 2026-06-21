@@ -2016,6 +2016,7 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} x - X position for the label
    * @param {number} y - Y position (baseline) for the label
    * @param {Object} [options] - Optional settings
+   * @param {string} [options.id] - ID of this Reference for linking
    * @param {string} [options.noteId] - ID of the associated Note for linking
    * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
    * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
