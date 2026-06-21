@@ -1972,24 +1972,6 @@ import { jsPDF } from "../jspdf.js";
       this.internal.structureTree.currentParent.refNoteId = options.noteId;
     }
 
-    // Automatic Lbl element if label is provided with position
-    if (
-      options.label &&
-      options.labelX !== undefined &&
-      options.labelY !== undefined
-    ) {
-      var originalFontSize = this.getFontSize();
-      var labelFontSize = options.labelFontSize || originalFontSize * 0.7;
-      var labelYOffset =
-        options.labelYOffset !== undefined ? options.labelYOffset : -2;
-
-      this.beginStructureElement("Lbl");
-      this.setFontSize(labelFontSize);
-      this.text(options.label, options.labelX, options.labelY + labelYOffset);
-      this.setFontSize(originalFontSize);
-      this.endStructureElement(); // /Lbl
-    }
-
     return this;
   };
 
