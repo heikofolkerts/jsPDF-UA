@@ -663,10 +663,10 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
-//doc.beginStructureElement("Span");
-//doc.markLinkTarget("ref1");
-doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1" }); // sollte über id funktionieren, Span-Element war eine Notlösung (beides klappt nicht)
-//doc.endStructureElement();
+doc.beginStructureElement("Span"); // Notlösung
+doc.markLinkTarget("ref1");
+doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1" }); // sollte über id funktionieren
+doc.endStructureElement();
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
@@ -709,8 +709,7 @@ doc.addFootnote({
     "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 265,
-  labelX: 20,
-  link: false
+  labelX: 20
 });
 // text: {"PDF Association, Matterhorn Protocol 1.1", "Test für eine zweite Zeile"},
 doc.addFootnote({
