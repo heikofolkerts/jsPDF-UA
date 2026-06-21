@@ -663,7 +663,7 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
-doc.addFootnoteRef("¹", fnX, 40, { id: "fnr1", noteId: "fn1" });
+doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1" });
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
@@ -681,7 +681,7 @@ fnX += doc.getTextWidth(
 );
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
-doc.addFootnoteRef("²", fnX, 50, { id: "fnr2", noteId: "fn2" });
+doc.addFootnoteRef("²", fnX, 50, { id: "ref2", noteId: "fn2" });
 
 // Third line
 //fnX = 20;
@@ -700,11 +700,8 @@ doc.endArtifact();
 doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
+  rId: "ref1",
   label: "¹",
-  text:
-    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
-  text:
-    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   text:
     "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
@@ -714,8 +711,9 @@ doc.addFootnote({
 
 doc.addFootnote({
   id: "fn2",
+  rId: "ref2",
   label: "²",
-  text: "PDF Association, Matterhorn Protocol 1.1",
+  text: {"PDF Association, Matterhorn Protocol 1.1", "Test"},
   x: 25,
   y: 275,
   labelX: 20
