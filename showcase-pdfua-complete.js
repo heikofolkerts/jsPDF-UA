@@ -700,7 +700,7 @@ doc.endArtifact();
 doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
-  rId: "ref1",
+  targetId: "ref1",
   label: "¹",
   text:
     "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
@@ -711,7 +711,7 @@ doc.addFootnote({
 
 doc.addFootnote({
   id: "fn2",
-  rId: "ref2",
+  targetId: "ref2",
   label: "²",
   text: "PDF Association, Matterhorn Protocol 1.1",
   text: "Test für eine zweite Zeile",
