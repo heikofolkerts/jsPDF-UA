@@ -2356,16 +2356,18 @@ import { jsPDF } from "../jspdf.js";
     var originalFontSize = this.getFontSize();
     var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
-    this.beginStructureElement("Lbl");
-    this.setFontSize(labelFontSize);
-
     if (autoLink) {
-    this.textWithLink(options.label, labelX, options.y, { targetId: options.targetId });
+      this.beginStructureElement("Lbl");
+      this.setFontSize(labelFontSize);
+      this.textWithLink(options.label, labelX, options.y, { targetId: options.targetId });
+      this.setFontSize(originalFontSize);
     } else {
-    this.text(options.label, labelX, options.y);
+      this.beginStructureElement("Lbl");
+      this.setFontSize(labelFontSize);
+      this.text(options.label, labelX, options.y);
+      this.setFontSize(originalFontSize);
     }
 
-    this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
     // P element with text
