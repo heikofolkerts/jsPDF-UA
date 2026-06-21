@@ -709,7 +709,8 @@ doc.addFootnote({
     "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 265,
-  labelX: 20
+  labelX: 20,
+  link: false
 });
 // text: {"PDF Association, Matterhorn Protocol 1.1", "Test für eine zweite Zeile"},
 doc.addFootnote({
