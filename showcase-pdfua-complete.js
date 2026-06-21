@@ -51,34 +51,43 @@ doc.setLanguage("en-US");
 // ============================================================================
 // Bookmarks for Navigation (using outline API)
 // ============================================================================
-//doc.outline.add(null, '1. Introduction', { pageNumber: 1 });
-doc.outline.add(null, "1. Text Elements", { pageNumber: 1 });
+// Bookmarks link to the same heading targets as the TOC via destinationName
+// (resolved from the markLinkTarget ids). pageNumber stays as a fallback in
+// case a destination ever fails to resolve.
+const bm = (parent, title, sectionId, pageNumber) =>
+  doc.outline.add(parent, title, {
+    destinationName: doc.resolveLinkTargetDestName(sectionId),
+    pageNumber: pageNumber
+  });
 
-const listsBookmark = doc.outline.add(null, "2. Lists", { pageNumber: 2 });
-doc.outline.add(listsBookmark, "2.1 Unordered List", { pageNumber: 2 });
-doc.outline.add(listsBookmark, "2.2 Ordered List", { pageNumber: 2 });
+//bm(null, '1. Introduction', 'sec-0', 1);
+bm(null, "1. Text Elements", "sec-1", 1);
 
-doc.outline.add(null, "3. Tables", { pageNumber: 2 });
-doc.outline.add(null, "4. Links", { pageNumber: 2 });
-doc.outline.add(null, "5. Form Fields", { pageNumber: 3 });
+const listsBookmark = bm(null, "2. Lists", "sec-2", 2);
+bm(listsBookmark, "2.1 Unordered List", "sec-2-1", 2);
+bm(listsBookmark, "2.2 Ordered List", "sec-2-2", 2);
 
-const quotesBookmark = doc.outline.add(null, "6. Quotes and Code", { pageNumber: 3 });
-doc.outline.add(quotesBookmark, "6.1 Inline Quote", { pageNumber: 3 });
-doc.outline.add(quotesBookmark, "6.2 Block Quote", { pageNumber: 3 });
-doc.outline.add(quotesBookmark, "6.3 Code Examples", { pageNumber: 3 });
+bm(null, "3. Tables", "sec-3", 2);
+bm(null, "4. Links", "sec-4", 2);
+bm(null, "5. Form Fields", "sec-5", 3);
 
-doc.outline.add(null, "7. Footnotes and References", { pageNumber: 4 });
+const quotesBookmark = bm(null, "6. Quotes and Code", "sec-6", 3);
+bm(quotesBookmark, "6.1 Inline Quote", "sec-6-1", 3);
+bm(quotesBookmark, "6.2 Block Quote", "sec-6-2", 3);
+bm(quotesBookmark, "6.3 Code Examples", "sec-6-3", 3);
 
-const figuresBookmark = doc.outline.add(null, "8. Figures and Captions", { pageNumber: 4 });
-doc.outline.add(figuresBookmark, "8.1 Annotations", { pageNumber: 4 });
+bm(null, "7. Footnotes and References", "sec-7", 4);
 
-const advancedBookmark = doc.outline.add( null, "9. Advanced Structure Elements", { pageNumber: 5 });
-doc.outline.add(advancedBookmark, "9.1 Article (Art)", { pageNumber: 5 });
-doc.outline.add(advancedBookmark, "9.2 Division (Div)", { pageNumber: 5 });
-doc.outline.add(advancedBookmark, "9.3 NonStruct (Layout Grouping)", { pageNumber: 5 });
-doc.outline.add(advancedBookmark, "9.4 Private (Application Data)", { pageNumber: 5 });
+const figuresBookmark = bm(null, "8. Figures and Captions", "sec-8", 4);
+bm(figuresBookmark, "8.1 Annotations", "sec-8-1", 4);
 
-doc.outline.add(null, "10. Bibliography", { pageNumber: 6 });
+const advancedBookmark = bm(null, "9. Advanced Structure Elements", "sec-9", 5);
+bm(advancedBookmark, "9.1 Article (Art)", "sec-9-1", 5);
+bm(advancedBookmark, "9.2 Division (Div)", "sec-9-2", 5);
+bm(advancedBookmark, "9.3 NonStruct (Layout Grouping)", "sec-9-3", 5);
+bm(advancedBookmark, "9.4 Private (Application Data)", "sec-9-4", 5);
+
+bm(null, "10. Bibliography", "sec-10", 6);
 
 // ============================================================================
 // PAGE 1: Introduction and Text Elements
@@ -112,13 +121,21 @@ doc.beginSect();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("This document demonstrates all PDF/UA accessibility features implemented in jsPDF.", 20, 52);
+doc.text(
+  "This document demonstrates all PDF/UA accessibility features implemented in jsPDF.",
+  20,
+  52
+);
 //  doc.text('It serves as a comprehensive test case for accessibility validation tools.', 20, 59);
 doc.endStructureElement();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("It serves as a comprehensive test case for accessibility validation tools.", 20, 59);
+doc.text(
+  "It serves as a comprehensive test case for accessibility validation tools.",
+  20,
+  59
+);
 doc.endStructureElement();
 doc.endSect();
 
@@ -132,27 +149,32 @@ doc.endStructureElement();
 doc.beginTOC();
 //    { title: '1. Introduction', page: 1, level: 1 },
 const tocItems = [
-  { title: "1. Text Elements", page: 1, level: 1 },
-  { title: "2. Lists", page: 2, level: 1 },
-  { title: "2.1 Unordered List", page: 2, level: 2 },
-  { title: "2.2 Ordered List", page: 2, level: 2 },
-  { title: "3. Tables", page: 2, level: 1 },
-  { title: "4. Links", page: 2, level: 1 },
-  { title: "5. Form Fields", page: 3, level: 1 },
-  { title: "6. Quotes and Code", page: 3, level: 1 },
-  { title: "6.1 Inline Quote", page: 3, level: 2 },
-  { title: "6.2 Block Quote", page: 3, level: 2 },
-  { title: "6.3 Code Examples", page: 3, level: 2 },
-  { title: "7. Footnotes and References", page: 4, level: 1 },
-  { title: "8. Figures and Captions", page: 4, level: 1 },
-  { title: "8.1 Annotations", page: 4, level: 2 },
-  { title: "9. Advanced Structure Elements", page: 5, level: 1 },
-  { title: "9.1 Article (Art)", page: 5, level: 2 },
-  { title: "9.2 Division (Div)", page: 5, level: 2 },
-  { title: "9.3 NonStruct (Layout Grouping)", page: 5, level: 2 },
-  { title: "9.4 Private (Application Data)", page: 5, level: 2 },
-  { title: "10. Bibliography", page: 6, level: 1 },
-  { title: "11. Index", page: 6, level: 1 }
+  { title: "1. Text Elements", page: 1, level: 1, id: "sec-1" },
+  { title: "2. Lists", page: 2, level: 1, id: "sec-2" },
+  { title: "2.1 Unordered List", page: 2, level: 2, id: "sec-2-1" },
+  { title: "2.2 Ordered List", page: 2, level: 2, id: "sec-2-2" },
+  { title: "3. Tables", page: 2, level: 1, id: "sec-3" },
+  { title: "4. Links", page: 2, level: 1, id: "sec-4" },
+  { title: "5. Form Fields", page: 3, level: 1, id: "sec-5" },
+  { title: "6. Quotes and Code", page: 3, level: 1, id: "sec-6" },
+  { title: "6.1 Inline Quote", page: 3, level: 2, id: "sec-6-1" },
+  { title: "6.2 Block Quote", page: 3, level: 2, id: "sec-6-2" },
+  { title: "6.3 Code Examples", page: 3, level: 2, id: "sec-6-3" },
+  { title: "7. Footnotes and References", page: 4, level: 1, id: "sec-7" },
+  { title: "8. Figures and Captions", page: 4, level: 1, id: "sec-8" },
+  { title: "8.1 Annotations", page: 4, level: 2, id: "sec-8-1" },
+  { title: "9. Advanced Structure Elements", page: 5, level: 1, id: "sec-9" },
+  { title: "9.1 Article (Art)", page: 5, level: 2, id: "sec-9-1" },
+  { title: "9.2 Division (Div)", page: 5, level: 2, id: "sec-9-2" },
+  {
+    title: "9.3 NonStruct (Layout Grouping)",
+    page: 5,
+    level: 2,
+    id: "sec-9-3"
+  },
+  { title: "9.4 Private (Application Data)", page: 5, level: 2, id: "sec-9-4" },
+  { title: "10. Bibliography", page: 6, level: 1, id: "sec-10" },
+  { title: "11. Index", page: 6, level: 1, id: "sec-11" }
 ];
 
 let tocY = 88;
@@ -162,6 +184,7 @@ tocItems.forEach(item => {
   doc.addTOCEntry({
     title: item.title,
     page: item.page,
+    targetId: item.id,
     y: tocY,
     level: item.level,
     indent: 25,
@@ -175,6 +198,7 @@ doc.endTOC();
 // --- Section 2: Text Elements ---
 doc.beginSect();
 doc.beginStructureElement("H2");
+doc.markLinkTarget("sec-1");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
 doc.text("1. Text Elements", 20, 200); // Moved down to avoid TOC overlap
@@ -233,7 +257,9 @@ doc.endStructureElement();
 // Formula
 doc.beginStructureElement("P");
 doc.text("Famous equation: ", 20, 274);
-doc.beginFormula("E equals m times c squared, where E is energy, m is mass, and c is speed of light");
+doc.beginFormula(
+  "E equals m times c squared, where E is energy, m is mass, and c is speed of light"
+);
 doc.text("E = mc²", 62, 274);
 doc.endFormula();
 doc.endStructureElement();
@@ -267,11 +293,13 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-2");
 doc.text("2. Lists", 20, 25);
 doc.endStructureElement();
 
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
+doc.markLinkTarget("sec-2-1");
 doc.text("2.1 Unordered List", 20, 38);
 doc.endStructureElement();
 
@@ -279,7 +307,11 @@ doc.setFontSize(11);
 doc.setFont(undefined, "normal");
 
 doc.beginStructureElement("L");
-const ulItems = ["First item in the list", "Second item with more text", "Third item"];
+const ulItems = [
+  "First item in the list",
+  "Second item with more text",
+  "Third item"
+];
 let ulY = 50;
 ulItems.forEach(item => {
   doc.beginStructureElement("LI");
@@ -297,6 +329,7 @@ doc.endStructureElement();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-2-2");
 doc.text("2.2 Ordered List", 20, 88);
 doc.endStructureElement();
 
@@ -304,7 +337,11 @@ doc.setFontSize(11);
 doc.setFont(undefined, "normal");
 
 doc.beginStructureElement("L");
-const olItems = ["Step one of the process", "Step two continues here", "Step three completes it"];
+const olItems = [
+  "Step one of the process",
+  "Step two continues here",
+  "Step three completes it"
+];
 let olY = 100;
 olItems.forEach((item, idx) => {
   doc.beginStructureElement("LI");
@@ -325,6 +362,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-3");
 doc.text("3. Tables", 20, 145);
 doc.endStructureElement();
 
@@ -395,6 +433,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-4");
 doc.text("4. Links", 20, 240);
 doc.endStructureElement();
 
@@ -405,7 +444,9 @@ doc.setFont(undefined, "normal");
 doc.text("External link: ", 20, 253);
 doc.beginLink();
 doc.setTextColor(0, 0, 255);
-doc.textWithLink("jsPDF on GitHub", 52, 253, { url: "https://github.com/parallax/jsPDF" });
+doc.textWithLink("jsPDF on GitHub", 52, 253, {
+  url: "https://github.com/parallax/jsPDF"
+});
 doc.setTextColor(0, 0, 0);
 doc.endLink();
 doc.endStructureElement();
@@ -415,7 +456,9 @@ doc.beginStructureElement("P");
 doc.text("Internal link: ", 20, 265);
 doc.beginLink();
 doc.setTextColor(0, 0, 255);
-doc.textWithLink("Jump to Bibliography (Page 6)", 51, 265, { pageNumber: 6 });
+doc.textWithLink("Jump to Bibliography (Page 6)", 51, 265, {
+  targetId: "sec-10"
+});
 doc.setTextColor(0, 0, 0);
 doc.endLink();
 doc.endStructureElement();
@@ -449,6 +492,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-5");
 doc.text("5. Form Fields", 20, 25);
 doc.endStructureElement();
 
@@ -511,11 +555,13 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-6");
 doc.text("6. Quotes and Code", 20, 120);
 doc.endStructureElement();
 
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
+doc.markLinkTarget("sec-6-1");
 doc.text("6.1 Inline Quote", 20, 133);
 doc.endStructureElement();
 
@@ -533,6 +579,7 @@ doc.endStructureElement();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-6-2");
 doc.text("6.2 Block Quote", 20, 162);
 doc.endStructureElement();
 
@@ -550,6 +597,7 @@ doc.endBlockQuote();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-6-3");
 doc.text("6.3 Code Examples", 20, 215);
 doc.endStructureElement();
 
@@ -601,6 +649,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-7");
 doc.text("7. Footnotes and References", 20, 25);
 doc.endStructureElement();
 
@@ -624,8 +673,14 @@ doc.text(" that ensures ", fnX, 40);
 
 // Second line: "PDFs can be read by assistive technologies. The Matterhorn Protocol²"
 fnX = 20;
-doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol ", fnX, 50);
-fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
+doc.text(
+  "PDFs can be read by assistive technologies. The Matterhorn Protocol ",
+  fnX,
+  50
+);
+fnX += doc.getTextWidth(
+  "PDFs can be read by assistive technologies. The Matterhorn Protocol"
+);
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
 doc.addFootnoteRef("²", fnX, 50, { noteId: "fn2" });
@@ -648,9 +703,12 @@ doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
   label: "¹",
-  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
-  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
-  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text:
+    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text:
+    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text:
+    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 265,
   labelX: 20
@@ -682,6 +740,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-8");
 doc.text("8. Figures and Captions", 20, 85);
 doc.endStructureElement();
 
@@ -697,7 +756,8 @@ doc.endStructureElement();
 // BBox is recommended by PAC for better accessibility in alternate presentations
 // BBox format: [x, y, width, height] in points (PDF coordinates from bottom-left)
 doc.beginFigure({
-  alt: "A placeholder representing a bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%",
+  alt:
+    "A placeholder representing a bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%",
   bbox: [20, 640, 90, 70] // x, y (from bottom), width, height
 });
 
@@ -727,7 +787,8 @@ doc.endAnnot();
 
 // Figure 2
 doc.beginFigure({
-  alt: "A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages",
+  alt:
+    "A placeholder representing a process flow diagram with three connected boxes showing Input, Process, and Output stages",
   bbox: [120, 640, 80, 70] // x, y (from bottom), width, height
 });
 
@@ -757,20 +818,29 @@ doc.endAnnot();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-8-1");
 doc.text("8.1 Annotations", 20, 210);
 doc.endStructureElement();
 
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("This section demonstrates accessible PDF annotations (sticky notes).", 20, 225);
+doc.text(
+  "This section demonstrates accessible PDF annotations (sticky notes).",
+  20,
+  225
+);
 //doc.text('Annotations provide reviewer comments for the figures above.', 20, 235);
 doc.endStructureElement();
 
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Annotations provide reviewer comments for the figures above.", 20, 235);
+doc.text(
+  "Annotations provide reviewer comments for the figures above.",
+  20,
+  235
+);
 doc.endStructureElement();
 
 // PDF/UA requires Text annotations to be nested in Annot structure elements (ISO 14289-1, 7.18.1).
@@ -830,12 +900,14 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-9");
 doc.text("9. Advanced Structure Elements", 20, 25);
 doc.endStructureElement();
 
 // Art element
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
+doc.markLinkTarget("sec-9-1");
 doc.text("9.1 Article (Art)", 20, 40);
 doc.endStructureElement();
 
@@ -843,7 +915,11 @@ doc.beginArt();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("This is a self-contained article that could be distributed independently.", 25, 52);
+doc.text(
+  "This is a self-contained article that could be distributed independently.",
+  25,
+  52
+);
 doc.endStructureElement();
 doc.endArt();
 
@@ -851,6 +927,7 @@ doc.endArt();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-9-2");
 doc.text("9.2 Division (Div)", 20, 70);
 doc.endStructureElement();
 
@@ -858,7 +935,11 @@ doc.beginDiv();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Content grouped in a generic division container for layout purposes.", 25, 82);
+doc.text(
+  "Content grouped in a generic division container for layout purposes.",
+  25,
+  82
+);
 doc.endStructureElement();
 doc.endDiv();
 
@@ -866,6 +947,7 @@ doc.endDiv();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-9-3");
 doc.text("9.3 NonStruct (Layout Grouping)", 20, 100);
 doc.endStructureElement();
 
@@ -873,7 +955,11 @@ doc.beginNonStruct();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Content in NonStruct is read but has no semantic structure meaning.", 25, 112);
+doc.text(
+  "Content in NonStruct is read but has no semantic structure meaning.",
+  25,
+  112
+);
 doc.endStructureElement();
 doc.endNonStruct();
 
@@ -881,13 +967,18 @@ doc.endNonStruct();
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-9-4");
 doc.text("9.4 Private (Application Data)", 20, 130);
 doc.endStructureElement();
 
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Private elements contain data not intended for screen readers:", 20, 142);
+doc.text(
+  "Private elements contain data not intended for screen readers:",
+  20,
+  142
+);
 doc.endStructureElement();
 
 doc.beginPrivate();
@@ -899,7 +990,8 @@ doc.beginAnnot({ alt: "Creator comment about Private element" });
 const annotId3 = doc.createAnnotation({
   type: "text",
   title: "Reviewer",
-  contents: "Comment: This content is marked as private and therefore not presented in PDF-document nor visible for screenreader tools.",
+  contents:
+    "Comment: This content is marked as private and therefore not presented in PDF-document nor visible for screenreader tools.",
   bounds: { x: 180, y: 140, w: 20, h: 20 },
   open: false
 });
@@ -935,6 +1027,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-10");
 doc.text("10. Bibliography", 20, 25);
 doc.endStructureElement();
 
@@ -942,21 +1035,41 @@ doc.endStructureElement();
 doc.beginBibEntry();
 doc.setFontSize(10);
 doc.setFont(undefined, "normal");
-doc.text("[1] ISO 14289-1:2014. Document management — Electronic document file format", 25, 40);
-doc.text("    enhancement for accessibility — Part 1: Use of ISO 32000-1 (PDF/UA-1).", 25, 48);
+doc.text(
+  "[1] ISO 14289-1:2014. Document management — Electronic document file format",
+  25,
+  40
+);
+doc.text(
+  "    enhancement for accessibility — Part 1: Use of ISO 32000-1 (PDF/UA-1).",
+  25,
+  48
+);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[2] PDF Association. (2024). The Matterhorn Protocol 1.1. PDF Association.", 25, 62);
+doc.text(
+  "[2] PDF Association. (2024). The Matterhorn Protocol 1.1. PDF Association.",
+  25,
+  62
+);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[3] W3C. (2018). Web Content Accessibility Guidelines (WCAG) 2.1.", 25, 76);
+doc.text(
+  "[3] W3C. (2018). Web Content Accessibility Guidelines (WCAG) 2.1.",
+  25,
+  76
+);
 doc.text("    World Wide Web Consortium.", 25, 84);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[4] Adobe. (2008). PDF Reference, Sixth Edition, Version 1.7.", 25, 98);
+doc.text(
+  "[4] Adobe. (2008). PDF Reference, Sixth Edition, Version 1.7.",
+  25,
+  98
+);
 doc.text("    Adobe Systems Incorporated.", 25, 106);
 doc.endBibEntry();
 doc.endSect();
@@ -966,6 +1079,7 @@ doc.beginSect();
 doc.beginStructureElement("H2");
 doc.setFontSize(14);
 doc.setFont(undefined, "bold");
+doc.markLinkTarget("sec-11");
 doc.text("11. Index", 20, 130);
 doc.endStructureElement();
 
@@ -1063,5 +1177,7 @@ console.log("  - Ruby annotations (CJK)");
 console.log("  - Bibliography");
 console.log("  - Index");
 console.log("\nValidation:");
-console.log('  docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf');
+console.log(
+  '  docker run --rm -v "$(pwd)/examples/temp:/data" verapdf/cli --flavour ua1 /data/pdfua-complete-showcase.pdf'
+);
 console.log("\n" + "=".repeat(70));

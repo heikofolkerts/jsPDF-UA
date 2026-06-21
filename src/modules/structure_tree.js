@@ -244,6 +244,18 @@ import { jsPDF } from "../jspdf.js";
     var element = this.internal.structureTree.currentParent;
     var destName = options.destName || "__sid_" + id;
 
+    // The capture loop in captureStructureDestinationPosition matches an armed
+    // element by its attributes.id. Elements opened via beginStructureElement()
+    // without an explicit id (e.g. headings) carry none, so stamp the id here
+    // or position capture would never fire and the destination would stay at
+    // page top.
+    if (!element.attributes) {
+      element.attributes = {};
+    }
+    if (element.attributes.id === undefined || element.attributes.id === null) {
+      element.attributes.id = id;
+    }
+
     armDestinationCapture(this, element, id, {
       destName: destName,
       x: options.x,
