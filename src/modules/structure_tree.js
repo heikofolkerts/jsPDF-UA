@@ -2046,10 +2046,11 @@ import { jsPDF } from "../jspdf.js";
     // Reference element carries /Ref -> Note (semantic); beginReference sets
     // refNoteId on the Reference element.
     this.beginReference({ noteId: options.noteId });
+    
+    this.beginStructureElement("Lbl");
     if (options.id) {
       this.markLinkTarget(options.id);
     }
-    this.beginStructureElement("Lbl");
 
     if (autoLink) {
       // Structure: Reference > Lbl > Link > Text. The Link is created via the unified
