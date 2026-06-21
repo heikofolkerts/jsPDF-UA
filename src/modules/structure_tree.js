@@ -2048,9 +2048,9 @@ import { jsPDF } from "../jspdf.js";
     this.beginReference({ noteId: options.noteId });
     
     this.beginStructureElement("Lbl");
-    if (options.id) {
-      this.markLinkTarget(options.id);
-    }
+    // if (options.id) {
+    //  this.markLinkTarget(options.id);
+    // }
 
     if (autoLink) {
       // Structure: Reference > Lbl > Link > Text. The Link is created via the unified
