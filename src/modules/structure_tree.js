@@ -2016,7 +2016,7 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} x - X position for the label
    * @param {number} y - Y position (baseline) for the label
    * @param {Object} [options] - Optional settings
-   * @param {string} [options.id] - ID of this Reference for linking
+   * @param {string} [options.id] - ID of this reference for linking
    * @param {string} [options.noteId] - ID of the associated Note for linking
    * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
    * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
@@ -2046,6 +2046,9 @@ import { jsPDF } from "../jspdf.js";
     // Reference element carries /Ref -> Note (semantic); beginReference sets
     // refNoteId on the Reference element.
     this.beginReference({ noteId: options.noteId });
+    if (options.id) {
+      this.markLinkTarget(options.id);
+    }
     this.beginStructureElement("Lbl");
 
     if (autoLink) {
@@ -2353,9 +2356,6 @@ import { jsPDF } from "../jspdf.js";
     var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
     this.beginStructureElement("Lbl");
-    if (options.id) {
-      this.markLinkTarget(options.id);
-    }
     this.setFontSize(labelFontSize);
 
     if (autoLink) {
