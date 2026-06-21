@@ -2045,9 +2045,10 @@ import { jsPDF } from "../jspdf.js";
     // Reference element carries /Ref -> Note (semantic); beginReference sets
     // refNoteId on the Reference element.
     this.beginReference({ noteId: options.noteId });
+    this.beginStructureElement("Lbl");
 
     if (autoLink) {
-      // Structure: Reference > Link > Text. The Link is created via the unified
+      // Structure: Reference > Lbl > Link > Text. The Link is created via the unified
       // link path: beginLink stores the destination, the text draw captures the
       // bounds (captureLinkBounds), and endLink emits the annotation + OBJR. The
       // "note-<id>" destination is resolved to the note's auto-captured position
@@ -2081,6 +2082,7 @@ import { jsPDF } from "../jspdf.js";
       this.setFontSize(originalFontSize);
     }
 
+    this.endStructureElement(); // /Lbl
     this.endReference();
 
     return this;
