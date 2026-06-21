@@ -2814,17 +2814,17 @@ import { jsPDF } from "../jspdf.js";
    * - Physics formulas (F = ma)
    * - Statistical expressions (μ, σ, Σ)
    *
-   * @param {string} alt - Alternative text describing the formula (REQUIRED)
    * @param {Object} [options] - Optional attributes
-   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
+   * @param {string} [options.alt] - Alternative text describing the formula (REQUIRED)
    * @param {string} [options.lang] - Language code for the formula description
+   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
    * // Inline formula
    * doc.beginStructureElement('P');
    * doc.text('Die berühmte Formel ', 10, 30);
-   * doc.beginFormula('E gleich m c Quadrat');
+   * doc.beginFormula({ alt: 'E gleich m c Quadrat'});
    * doc.text('E = mc²', x, 30);
    * doc.endFormula();
    * doc.text(' von Einstein.', x, 30);
@@ -2836,24 +2836,24 @@ import { jsPDF } from "../jspdf.js";
    * doc.text('Der Satz des Pythagoras:', 10, 30);
    * doc.endStructureElement();
    *
-   * doc.beginFormula('a Quadrat plus b Quadrat gleich c Quadrat', { placement: 'Block' });
+   * doc.beginFormula({ alt: 'a Quadrat plus b Quadrat gleich c Quadrat', placement: 'Block' });
    * doc.text('a² + b² = c²', 50, 50);
    * doc.endFormula();
    *
    * @example
    * // Chemical formula
-   * doc.beginFormula('Wasser, H 2 O');
+   * doc.beginFormula({ alt: 'Wasser, H 2 O'});
    * doc.text('H₂O', x, y);
    * doc.endFormula();
    *
    * @example
    * // Complex formula with subscripts/superscripts
-   * doc.beginFormula('Summe von i gleich 1 bis n von x Index i', { placement: 'Block' });
+   * doc.beginFormula({ alt: 'Summe von i gleich 1 bis n von x Index i', placement: 'Block' });
    * doc.text('Σᵢ₌₁ⁿ xᵢ', 50, y);
    * doc.endFormula();
    */
-  jsPDFAPI.beginFormula = function(alt, options) {
-    if (!alt || typeof alt !== "string") {
+  jsPDFAPI.beginFormula = function(options) {
+    if (!options.alt || typeof options.alt !== "string") {
       throw new Error(
         "Formula requires alternative text (alt) for PDF/UA compliance"
       );
@@ -2875,12 +2875,15 @@ import { jsPDF } from "../jspdf.js";
     this.beginStructureElement("Formula", attributes);
 
     // Store alt text on the current element
-    var currentElem = this.internal.structureTree.currentParent;
-    if (currentElem) {
-      currentElem.alt = alt;
+    if (
+      options.alt &&
+      this.internal.structureTree &&
+      this.internal.structureTree.currentParent
+    ) {
+      this.internal.structureTree.currentParent.alt = options.alt;
     }
 
-    return this;
+    return element;
   };
 
   /**
