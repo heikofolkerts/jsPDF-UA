@@ -1350,6 +1350,10 @@ var AcroFormField = function() {
     },
     set: function(value) {
       _TU = value ? value.toString() : null;
+      // Remove last colon
+      if (_TU.substr(_TU.length - 2) === ".:") {
+        _TU = _TU.substr(0, _TU.length - 1);
+      }
     }
   });
 
@@ -3566,11 +3570,6 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
 
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
-
-  // Remove last colon
-  if (tooltipText.substr(tooltipText.length - 1) === ":") {
-    tooltipText = tooltipText.substr(0, tooltipText.length - 1);
-  }
 
   if (options.required) {
     tooltipText += " (" + getRequiredFieldText(this) + ")";
