@@ -1691,7 +1691,12 @@ import { jsPDF } from "../jspdf.js";
     attributes.placement =
       options.placement !== undefined ? options.placement : "Block";
 
-    return this.beginStructureElement("Figure", attributes);
+    this.beginStructureElement("Figure", attributes);
+    this.beginCaption();
+    this.text("Test Caption", 20, 188);
+    this.endCaption();
+
+    return this;
   };
 
   /**
