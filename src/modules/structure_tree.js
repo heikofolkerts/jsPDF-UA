@@ -1587,9 +1587,11 @@ import { jsPDF } from "../jspdf.js";
     // 2. Dot leaders in NonStruct (screen reader skips these)
     if (dotsStr) {
       // this.beginNonStruct();
-      this.beginStructureElement("NonStruct");
+      // this.beginStructureElement("NonStruct");
+      beginArtifact({ type: "Layout" });
       this.text(dotsStr, dotsStartX, y);
-      this.endStructureElement(); // /NonStruct
+      doc.endArtifact();
+      // this.endStructureElement(); // /NonStruct
       // this.endNonStruct();
     }
 
