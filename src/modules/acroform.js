@@ -1350,10 +1350,6 @@ var AcroFormField = function() {
     },
     set: function(value) {
       _TU = value ? value.toString() : null;
-      // Remove last colon
-      if (_TU.substr(_TU.length - 2) === ".:") {
-        _TU = _TU.substr(0, _TU.length - 1);
-      }
     }
   });
 
