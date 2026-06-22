@@ -1588,9 +1588,9 @@ import { jsPDF } from "../jspdf.js";
     if (dotsStr) {
       // this.beginNonStruct();
       // this.beginStructureElement("NonStruct");
-      beginArtifact({ type: "Layout" });
+      this.beginArtifact({ type: "Layout" });
       this.text(dotsStr, dotsStartX, y);
-      doc.endArtifact();
+      this.endArtifact();
       // this.endStructureElement(); // /NonStruct
       // this.endNonStruct();
     }
