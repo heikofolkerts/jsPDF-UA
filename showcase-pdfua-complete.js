@@ -723,8 +723,9 @@ doc.setFontSize(10);
 doc.setTextColor(89, 89, 89);
 doc.text("[Bar Chart: Q1=25%, Q2=30%, Q3=20%, Q4=25%]", 20, 158);
 doc.setTextColor(0, 0, 0);
-*/
+
 doc.addImage(sales, 'png', x, y, 292, 247);
+*/
 doc.beginCaption();
 doc.setFontSize(10);
 doc.text("Figure 1: Quarterly Sales Distribution", 20, 188);
