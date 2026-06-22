@@ -1691,12 +1691,7 @@ import { jsPDF } from "../jspdf.js";
     attributes.placement =
       options.placement !== undefined ? options.placement : "Block";
 
-    this.beginStructureElement("Figure", attributes);
-    this.beginCaption();
-    this.text("Test Caption", 20, 188);
-    this.endCaption();
-
-    return this;
+    return this.beginStructureElement("Figure", attributes);
   };
 
   /**
@@ -2035,9 +2030,6 @@ import { jsPDF } from "../jspdf.js";
     this.beginReference({ noteId: options.noteId });
     
     this.beginStructureElement("Lbl");
-    // if (options.id) {
-    //  this.markLinkTarget(options.id);
-    // }
 
     if (autoLink) {
       // Structure: Reference > Lbl > Link > Text. The Link is created via the unified
@@ -2047,7 +2039,7 @@ import { jsPDF } from "../jspdf.js";
       // at output time, so this works even though the reference precedes the
       // note in document order ("abstract linking").
       this.beginLink({
-        targetId: options.noteId,
+        destinationName: "note-" + options.noteId,
         linkText: getFootnoteText(this, "forward") + " " + label
       });
 
@@ -2318,7 +2310,7 @@ import { jsPDF } from "../jspdf.js";
    * doc.addFootnote({
    *   id: 'fn2',
    *   label: '²',
-   *   text: ['First line of the footnote.', 'Second line continues here.'],
+   *   text: ['First line of the footnote.', 'Second line continues here.'], // does not work yet
    *   x: 25,
    *   y: 275,
    *   lineHeight: 10
@@ -2330,7 +2322,8 @@ import { jsPDF } from "../jspdf.js";
     var labelX = options.labelX !== undefined ? options.labelX : options.x - 5;
     var textArray = Array.isArray(options.text) ? options.text : [options.text];
     var lineHeight = options.lineHeight || 8;
-    var autoLink = options.targetId && options.link !== false;
+    // var autoLink = options.targetId && options.link !== false;
+    var autoLink = options.link !== false;
 
     this.beginNote({
       id: options.id,
@@ -2343,18 +2336,10 @@ import { jsPDF } from "../jspdf.js";
     var originalFontSize = this.getFontSize();
     var labelFontSize = options.labelFontSize || originalFontSize * 0.8;
 
-    if (autoLink) {
-      this.beginStructureElement("Lbl");
-      this.setFontSize(labelFontSize);
-      this.textWithLink(options.label, labelX, options.y, { targetId: options.targetId });
-      this.setFontSize(originalFontSize);
-    } else {
-      this.beginStructureElement("Lbl");
-      this.setFontSize(labelFontSize);
-      this.text(options.label, labelX, options.y);
-      this.setFontSize(originalFontSize);
-    }
-
+    this.beginStructureElement("Lbl");
+    this.setFontSize(labelFontSize);
+    this.text(options.label, labelX, options.y);
+    this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
     // P element with text
@@ -2365,6 +2350,10 @@ import { jsPDF } from "../jspdf.js";
       currentY += lineHeight;
     }
     this.endStructureElement(); // /P
+    
+    if (autoLink) {
+      this.addNoteBackLink(labelX, options.y);
+    }
     
     this.endNote();
 
