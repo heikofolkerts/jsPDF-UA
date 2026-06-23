@@ -3566,6 +3566,7 @@ jsPDFAPI.addAccessibleCheckBox = function(options) {
 
   // Set tooltip for screen readers
   var tooltipText = options.tooltip;
+
   if (options.required) {
     tooltipText += " (" + getRequiredFieldText(this) + ")";
   }

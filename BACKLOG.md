@@ -257,3 +257,51 @@ Das Skript zur Erstellung des Showcase-Dokuments ist sehr lang und unuebersichtl
 - [ ] Gemeinsame Muster sind in Hilfsfunktionen ausgelagert
 - [ ] Das erzeugte PDF ist identisch zum bisherigen
 - [ ] veraPDF-Validierung besteht weiterhin
+
+---
+
+## Barrierefreie Fussnoten-Links (Destination-by-id-Subsystem)
+
+**Prioritaet:** Hoch
+**Status:** In Arbeit (Branch `feature/auto-footnote-link`)
+**Erstellt:** 2026-06-17
+
+### Beschreibung
+
+Fussnoten-Verweise (`addFootnoteRef()`) sollen automatisch zu einem barrierefreien Link auf die zugehoerige Fussnote werden. Dafuer wurde in `src/modules/structure_tree.js` ein generisches "Destination-by-id"-Subsystem aufgebaut: Eine Element-"id" ist ein Autoren-Handle, das beim Erzeugen des PDFs auf die tatsaechliche Position (Seite + Koordinaten) des Strukturelements aufgeloest wird. PDF kennt keine element-adressierte Navigation, daher werden klassische Seiten-/Positions-Ziele erzeugt.
+
+Kernbausteine:
+
+- Registry `internal.structureDestinations` (id -> Element, Seite, baselineY, x, lineShift ...)
+- `armDestinationCapture()` bewaffnet ein Strukturelement zur Positionserfassung; explizite `{x,y}` deaktivieren die Auto-Erfassung
+- `captureStructureDestinationPosition()` wird aus dem PDF/UA-Hook in `text()` aufgerufen und erfasst die erste/oberste Inhaltsposition
+- `finalizeStructureDestinations` (Event `buildDocument`) wandelt erfasste Positionen in benannte Ziele um (inkl. ~1.25-Zeilen-Korrektur nach oben)
+
+### Akzeptanzkriterien
+
+- [ ] `addFootnoteRef()` erzeugt einen Link auf die zugehoerige Fussnote (Auto-Capture der Zielposition)
+- [ ] Link ist als `Link`-Strukturelement getaggt, mit `/Ref` auf das `Note`-Element (PAC-konform)
+- [ ] Sprungziel landet auf der richtigen Zeile (kein Versatz nach unten)
+- [ ] veraPDF- und PAC-Validierung bestehen
+- [ ] Unit-Tests fuer Auto-Capture und Link-Erzeugung
+
+---
+
+## Inhaltsverzeichnis nutzt Destination-by-id-Subsystem (Phase 2)
+
+**Prioritaet:** Mittel
+**Status:** Offen (abhaengig von "Barrierefreie Fussnoten-Links")
+**Erstellt:** 2026-06-17
+
+### Beschreibung
+
+Die abstrakte "Destination-by-id"-Konstruktion (siehe Eintrag oben), die zunaechst nur fuer Fussnoten verdrahtet wurde (Phase 1: `beginNote`), soll generalisiert und auch fuer das Inhaltsverzeichnis (TOC) verwendet werden. Statt eigener Sprungziel-Logik sollen TOC-Eintraege (TOCI) ueber denselben Kern auf die jeweilige Ueberschrift verlinken.
+
+### Akzeptanzkriterien
+
+- [ ] Oeffentliche API zum Markieren/Verlinken von Zielen (`markStructureDestination` / `linkToStructureId` o.ae.)
+- [ ] TOCI-Eintraege verlinken automatisch auf die zugehoerige Ueberschrift ueber das gemeinsame Subsystem
+- [ ] Keine doppelte/eigene Sprungziel-Logik mehr im TOC-Code
+- [ ] Sprungziele landen auf der korrekten Zeile (gleiche Korrektur wie bei Fussnoten)
+- [ ] PDF/UA-Tagging (TOC/TOCI) bleibt erhalten
+- [ ] veraPDF- und PAC-Validierung bestehen

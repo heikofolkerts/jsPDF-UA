@@ -51,6 +51,269 @@ import { jsPDF } from "../jspdf.js";
   }
 
   /**
+   * Convert a text baseline Y coordinate into a footnote/reference link
+   * destination top (both in user units).
+   *
+   * A /XYZ destination aligns the viewport's top edge with the destination Y.
+   * Passing the raw text baseline scrolls the glyphs (which sit *above* the
+   * baseline) just out of view, so the reader lands roughly one line too low.
+   * Shift the destination up by about one line height plus a small margin so
+   * the target line is fully visible with a bit of context above it.
+   *
+   * @param {jsPDF} doc - jsPDF instance (for font size and unit scale)
+   * @param {number} baselineY - Text baseline Y in user units
+   * @returns {number} Destination top in user units (clamped to >= 0)
+   */
+  function footnoteDestTop(doc, baselineY) {
+    var scaleFactor = doc.internal.scaleFactor || 1;
+    var fontSizeUser = (doc.getFontSize ? doc.getFontSize() : 12) / scaleFactor;
+    var top = baselineY - fontSizeUser * 1.25;
+    return top > 0 ? top : 0;
+  }
+
+  // Vertical shift (user units) applied to a captured baseline so the target
+  // line lands fully in view. Mirrors footnoteDestTop but is captured at the
+  // moment the element is armed, because the font size may differ at output.
+  function destLineShift(doc) {
+    var scaleFactor = doc.internal.scaleFactor || 1;
+    var fontSizeUser = (doc.getFontSize ? doc.getFontSize() : 12) / scaleFactor;
+    return fontSizeUser * 1.25;
+  }
+
+  /**
+   * Generic "destination by id" subsystem.
+   *
+   * An element opened with a user id (e.g. "n_1", "t_2.1") can be used as a
+   * link target. The reader-facing jump is still a classic page+position
+   * destination (PDF has no element-addressed navigation); the id is an
+   * authoring handle that is resolved to the element's captured position at
+   * output time. Position is captured matically from the first content
+   * drawn inside the element, but an explicit {x, y} override wins.
+   */
+  function ensureDestRegistry(api) {
+    if (!api.internal.structureDestinations) {
+      api.internal.structureDestinations = {};
+    }
+    return api.internal.structureDestinations;
+  }
+
+  /**
+   * Arm position capture for a structure element identified by a user id.
+   *
+   * @param {jsPDF} api
+   * @param {StructElement} element - the structure element to capture
+   * @param {string} userId - user-facing id (the element's /ID)
+   * @param {Object} [opts]
+   * @param {string} [opts.destName] - named-destination name to register
+   *        (defaults to "__sid_" + userId)
+   * @param {number} [opts.x] - explicit X override (user units)
+   * @param {number} [opts.y] - explicit baseline Y override (user units); when
+   *        given, -capture is disabled for this id
+   */
+  function armDestinationCapture(api, element, userId, opts) {
+    opts = opts || {};
+    var reg = ensureDestRegistry(api);
+    var hasExplicitY = opts.y !== undefined && opts.y !== null;
+    reg[userId] = {
+      element: element,
+      destName: opts.destName || "__sid_" + userId,
+      page: api.internal.getCurrentPageInfo().pageNumber,
+      baselineY: hasExplicitY ? opts.y : Infinity,
+      x: opts.x !== undefined ? opts.x : 0,
+      lineShift: destLineShift(api),
+      explicit: hasExplicitY
+    };
+  }
+
+  /**
+   * Record the first (topmost) content position for any armed ancestor of the
+   * current structure element. Called from the text() PDF/UA hook.
+   */
+  jsPDFAPI.captureStructureDestinationPosition = function(x, y) {
+    var reg = this.internal.structureDestinations;
+    var st = this.internal.structureTree;
+    if (!reg || !st || !st.currentParent) {
+      return;
+    }
+    if (typeof x !== "number" || typeof y !== "number") {
+      return;
+    }
+    var page = this.internal.getCurrentPageInfo().pageNumber;
+    var elem = st.currentParent;
+    while (elem && elem.type !== "StructTreeRoot") {
+      var uid = elem.attributes && elem.attributes.id;
+      if (uid && reg[uid] && reg[uid].element === elem) {
+        var entry = reg[uid];
+        // Capture the first content drawn (top of the element); explicit
+        // overrides are left untouched.
+        if (!entry.explicit && entry.baselineY === Infinity) {
+          entry.baselineY = y;
+          entry.x = x;
+          entry.page = page;
+        }
+      }
+      elem = elem.parent;
+    }
+  };
+
+  /**
+   * Resolve all captured destinations into named destinations before output.
+   */
+  var finalizeStructureDestinations = function() {
+    var reg = this.internal.structureDestinations;
+    if (!reg || !this.addNamedDestination) {
+      return;
+    }
+    for (var id in reg) {
+      if (!Object.prototype.hasOwnProperty.call(reg, id)) {
+        continue;
+      }
+      var entry = reg[id];
+      if (entry.baselineY === Infinity) {
+        // No content was captured and no override was given; leave any prior
+        // (eager) registration in place rather than overwriting with garbage.
+        continue;
+      }
+      var top = entry.baselineY - entry.lineShift;
+      if (top < 0) {
+        top = 0;
+      }
+      this.addNamedDestination(entry.destName, {
+        pageNumber: entry.page,
+        top: top,
+        left: entry.x || 0
+      });
+    }
+  };
+  jsPDFAPI.events.push(["buildDocument", finalizeStructureDestinations]);
+
+  /**
+   * Resolve a logical link-target id to the named destination it was registered
+   * under via markLinkTarget() / armDestinationCapture(). This is the source
+   * side of the "abstract linking" mechanism: links reference a logical id and
+   * the concrete page+position is resolved at output time.
+   *
+   * Falls back to the deterministic "__sid_<id>" name when the target has not
+   * been armed yet (e.g. a forward reference armed later with the default
+   * destination name). Targets armed with a custom destName must be marked
+   * before the link is created, or the link should pass destinationName
+   * directly.
+   *
+   * @param {string} targetId - logical id passed as options.targetId
+   * @returns {string} the named-destination name to link to
+   */
+  jsPDFAPI.resolveLinkTargetDestName = function(targetId) {
+    var reg = this.internal.structureDestinations;
+    if (reg && reg[targetId] && reg[targetId].destName) {
+      return reg[targetId].destName;
+    }
+    return "__sid_" + targetId;
+  };
+
+  /**
+   * Mark the current structure element as a link target identified by a logical
+   * id. This is the target side of the "abstract linking" mechanism: the
+   * element's position is captured automatically from its first content (or an
+   * explicit {x, y} override) and resolved into a named destination at output
+   * time. Link sources reference the same id via options.targetId.
+   *
+   * The matching link is created with { targetId: id }; see beginLink(),
+   * textWithLink() and link().
+   *
+   * @param {string} id - logical id used by link sources as options.targetId
+   * @param {Object} [options]
+   * @param {number} [options.x] - explicit X override (user units)
+   * @param {number} [options.y] - explicit baseline Y override (user units);
+   *        when given, auto-capture is disabled for this id
+   * @param {string} [options.destName] - explicit named-destination name
+   *        (defaults to "__sid_<id>"). Use the default unless an existing name
+   *        must be preserved; custom names are not forward-reference safe.
+   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   */
+  jsPDFAPI.markLinkTarget = function(id, options) {
+    options = options || {};
+
+    if (
+      !this.internal.structureTree ||
+      !this.internal.structureTree.currentParent
+    ) {
+      console.warn("markLinkTarget must be called inside a structure element");
+      return this;
+    }
+
+    var element = this.internal.structureTree.currentParent;
+    var destName = options.destName || "__sid_" + id;
+
+    // The capture loop in captureStructureDestinationPosition matches an armed
+    // element by its attributes.id. Elements opened via beginStructureElement()
+    // without an explicit id (e.g. headings) carry none, so stamp the id here
+    // or position capture would never fire and the destination would stay at
+    // page top.
+    if (!element.attributes) {
+      element.attributes = {};
+    }
+    if (element.attributes.id === undefined || element.attributes.id === null) {
+      element.attributes.id = id;
+    }
+
+    armDestinationCapture(this, element, id, {
+      destName: destName,
+      x: options.x,
+      y: options.y
+    });
+
+    // Eagerly register the named destination so the target name always exists,
+    // even before any content position is captured. The real position is
+    // refined at output time by finalizeStructureDestinations.
+    if (this.addNamedDestination) {
+      var hasExplicitY = options.y !== undefined && options.y !== null;
+      this.addNamedDestination(destName, {
+        pageNumber: this.internal.getCurrentPageInfo().pageNumber,
+        top: footnoteDestTop(this, hasExplicitY ? options.y : 0)
+      });
+    }
+
+    return this;
+  };
+
+  /**
+   * Accumulate the bounding box of text drawn inside the currently open Link
+   * structure element. Called from the text() PDF/UA hook so that endLink() can
+   * create the link annotation from the real rendered bounds.
+   *
+   * @param {number} x - baseline X of the drawn text (user units)
+   * @param {number} y - baseline Y of the drawn text (user units)
+   * @param {number} w - rendered width of the text (user units)
+   * @param {number} h - line height (user units)
+   */
+  jsPDFAPI.captureLinkBounds = function(x, y, w, h) {
+    var state = this.internal.pdfuaLinkState;
+    if (!state || state.length === 0) {
+      return;
+    }
+    if (typeof x !== "number" || typeof y !== "number") {
+      return;
+    }
+    var top = state[state.length - 1];
+    var left = x;
+    var right = x + (typeof w === "number" ? w : 0);
+    var lineH = typeof h === "number" ? h : 0;
+    if (!top.bounds) {
+      top.bounds = {
+        left: left,
+        right: right,
+        baselineTop: y,
+        lineHeight: lineH
+      };
+    } else {
+      top.bounds.left = Math.min(top.bounds.left, left);
+      top.bounds.right = Math.max(top.bounds.right, right);
+      top.bounds.baselineTop = Math.max(top.bounds.baselineTop, y);
+      top.bounds.lineHeight = Math.max(top.bounds.lineHeight, lineH);
+    }
+  };
+
+  /**
    * StructElement class - represents a structure element in the PDF structure tree
    */
   function StructElement(type, parent, api) {
@@ -488,10 +751,13 @@ import { jsPDF } from "../jspdf.js";
         this.internal.write("/ID (" + escapedId + ")");
       }
 
-      // Ref attribute (for Reference elements pointing to Note elements - PDF/UA requirement)
-      // Per ISO 14289-1, Reference elements should have /Ref pointing to the referenced structure element
+      // Ref attribute pointing to a Note element (PDF/UA requirement).
+      // Per ISO 14289-1, the referring element should have /Ref pointing to the
+      // referenced structure element. Both the Reference element and the Link
+      // element wrapping it carry it: the Reference for semantic correctness,
+      // the Link because PAC checks the Link element specifically.
       if (
-        elem.type === "Reference" &&
+        (elem.type === "Reference" || elem.type === "Link") &&
         elem.refNoteId &&
         this.internal.pdfuaFootnotes &&
         this.internal.pdfuaFootnotes.noteElements
@@ -1116,6 +1382,7 @@ import { jsPDF } from "../jspdf.js";
       (options.url ||
         options.pageNumber ||
         options.destinationName ||
+        options.targetId ||
         options.placement)
     ) {
       linkData.options = options;
@@ -1142,16 +1409,32 @@ import { jsPDF } from "../jspdf.js";
     if (linkState && linkState.length > 0) {
       var linkData = linkState.pop();
 
-      // Create link annotation if we have options and text bounds
-      if (linkData.options && linkData.textBounds) {
-        var bounds = linkData.textBounds;
-        this.link(
-          bounds.x,
-          bounds.y,
-          bounds.width,
-          bounds.height,
+      // Create the link annotation from the bounds captured while the Link was
+      // open (see captureLinkBounds, called from the text() hook). The OBJR is
+      // attached to the Link structure element below, before it is closed.
+      if (linkData.options && linkData.bounds) {
+        var b = linkData.bounds;
+        var width = b.right - b.left;
+        var height = b.lineHeight;
+        var linkId = this.link(
+          b.left,
+          b.baselineTop - b.lineHeight,
+          width,
+          height,
           linkData.options
         );
+
+        // Connect the annotation to the current Link structure element via OBJR
+        // (required for PDF/UA). currentParent is still the Link element here.
+        if (
+          linkId &&
+          this.addLinkAnnotationRef &&
+          this.internal.structureTree &&
+          this.internal.structureTree.currentParent &&
+          this.internal.structureTree.currentParent.type === "Link"
+        ) {
+          this.addLinkAnnotationRef(linkId);
+        }
       }
     }
 
@@ -1523,7 +1806,11 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {Object} options - Entry options
    * @param {string} options.title - The TOC entry title text
-   * @param {number} options.page - Target page number
+   * @param {number} options.page - Target page number (shown as the entry's page
+   *        number; also the link target unless targetId/destinationName is given)
+   * @param {string} [options.targetId] - Logical id of a heading marked via
+   *        markLinkTarget(); links to its captured position (abstract linking)
+   * @param {string} [options.destinationName] - Named destination to link to
    * @param {number} options.y - Y position for this entry
    * @param {number} [options.level=1] - Heading level (1-6), controls indentation
    * @param {number} [options.indent=20] - Base left indent in mm
@@ -1575,10 +1862,21 @@ import { jsPDF } from "../jspdf.js";
     }
     fullText += pageStr;
 
-    // Wrap in TOCI > Link, single textWithLink call for one MCID
+    // Wrap in TOCI > Link, single textWithLink call for one MCID. The link
+    // target is a logical heading id (abstract linking) or a named destination
+    // when given, otherwise the target page number.
+    var linkOptions;
+    if (options.targetId) {
+      linkOptions = { targetId: options.targetId };
+    } else if (options.destinationName) {
+      linkOptions = { destinationName: options.destinationName };
+    } else {
+      linkOptions = { pageNumber: page };
+    }
+
     this.beginTOCI();
     this.beginLink();
-    this.textWithLink(fullText, indent, y, { pageNumber: page });
+    this.textWithLink(fullText, indent, y, linkOptions);
     this.endLink();
     this.endTOCI();
 
@@ -1655,15 +1953,12 @@ import { jsPDF } from "../jspdf.js";
     options = options || {};
     var attributes = {};
 
-    // Store noteId for creating link in endReference
-    if (options.noteId) {
-      if (!this.internal.pdfuaFootnotes) {
-        this.internal.pdfuaFootnotes = {
-          noteDestinations: {}, // Maps noteId -> { page, y }
-          pendingReferences: [] // References waiting for link creation
-        };
-      }
-      this.internal.pdfuaFootnotes.currentReferenceNoteId = options.noteId;
+    // Ensure footnote bookkeeping exists (back-link references are recorded by
+    // addFootnoteRef via registerFootnoteReference).
+    if (options.noteId && !this.internal.pdfuaFootnotes) {
+      this.internal.pdfuaFootnotes = {
+        pendingReferences: [] // References recorded for back-link generation
+      };
     }
 
     this.beginStructureElement("Reference", attributes);
@@ -1675,24 +1970,6 @@ import { jsPDF } from "../jspdf.js";
       this.internal.structureTree.currentParent
     ) {
       this.internal.structureTree.currentParent.refNoteId = options.noteId;
-    }
-
-    // Automatic Lbl element if label is provided with position
-    if (
-      options.label &&
-      options.labelX !== undefined &&
-      options.labelY !== undefined
-    ) {
-      var originalFontSize = this.getFontSize();
-      var labelFontSize = options.labelFontSize || originalFontSize * 0.7;
-      var labelYOffset =
-        options.labelYOffset !== undefined ? options.labelYOffset : -2;
-
-      this.beginStructureElement("Lbl");
-      this.setFontSize(labelFontSize);
-      this.text(options.label, options.labelX, options.labelY + labelYOffset);
-      this.setFontSize(originalFontSize);
-      this.endStructureElement(); // /Lbl
     }
 
     return this;
@@ -1714,19 +1991,27 @@ import { jsPDF } from "../jspdf.js";
    * This is a convenience method that combines beginReference, Lbl element,
    * text rendering, and endReference into a single call.
    *
+   * When a noteId is provided, a clickable link to the corresponding footnote
+   * is automatically created. Set options.link to false to disable this.
+   *
    * @param {string} label - The label text (e.g., '¹', '²', '*', '†')
    * @param {number} x - X position for the label
    * @param {number} y - Y position (baseline) for the label
    * @param {Object} [options] - Optional settings
+   * @param {string} [options.id] - ID of this reference for linking
    * @param {string} [options.noteId] - ID of the associated Note for linking
    * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
    * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
+   * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the footnote
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
-   * // Simple footnote reference
+   * // Simple footnote reference with auto-link
    * doc.text('Some important text', 20, 40);
    * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1' });
+   *
+   * // Without auto-link
+   * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1', link: false });
    *
    * // With custom formatting
    * doc.addFootnoteRef('*', 100, 50, { noteId: 'fn2', fontSize: 8, yOffset: -3 });
@@ -1737,65 +2022,89 @@ import { jsPDF } from "../jspdf.js";
     var originalFontSize = this.getFontSize();
     var labelFontSize = options.fontSize || originalFontSize * 0.7;
     var yOffset = options.yOffset !== undefined ? options.yOffset : -2;
+    var autoLink = options.noteId && options.link !== false;
+    var refBaselineY = y + yOffset;
 
+    // Reference element carries /Ref -> Note (semantic); beginReference sets
+    // refNoteId on the Reference element.
     this.beginReference({ noteId: options.noteId });
-
+    
     this.beginStructureElement("Lbl");
-    this.setFontSize(labelFontSize);
-    this.text(label, x, y + yOffset);
-    this.setFontSize(originalFontSize);
-    this.endStructureElement(); // /Lbl
 
+    if (autoLink) {
+      // Structure: Reference > Lbl > Link > Text. The Link is created via the unified
+      // link path: beginLink stores the destination, the text draw captures the
+      // bounds (captureLinkBounds), and endLink emits the annotation + OBJR. The
+      // "note-<id>" destination is resolved to the note's auto-captured position
+      // at output time, so this works even though the reference precedes the
+      // note in document order ("abstract linking").
+      this.beginLink({
+        destinationName: "note-" + options.noteId,
+        linkText: getFootnoteText(this, "forward") + " " + label
+      });
+
+      // PAC requires the Link element itself to reference the Note via /Ref
+      // ("Note element is referenced by no Link element"), in addition to the
+      // surrounding Reference element.
+      var linkElem = this.internal.structureTree.currentParent;
+      if (linkElem) {
+        linkElem.refNoteId = options.noteId;
+      }
+
+      this.setFontSize(labelFontSize);
+      this.text(label, x, refBaselineY);
+      this.setFontSize(originalFontSize);
+
+      this.endLink(); // emits the forward-link annotation + OBJR
+
+      // Register the reference position as the back-link target and record the
+      // reference so addNoteBackLink can build a cross-page back-link.
+      registerFootnoteReference(this, options.noteId, x, refBaselineY, label);
+    } else {
+      this.setFontSize(labelFontSize);
+      this.text(label, x, refBaselineY);
+      this.setFontSize(originalFontSize);
+    }
+
+    this.endStructureElement(); // /Lbl
     this.endReference();
 
     return this;
   };
 
   /**
-   * Add a link from the current Reference to its Note
-   * Call this after adding the reference content (e.g., the superscript number)
+   * Register a footnote reference for back-link generation and as a named
+   * destination ("noteref-<id>") at the reference position.
    *
-   * @param {number} x - X coordinate of link area
-   * @param {number} y - Y coordinate of link area
-   * @param {number} width - Width of link area
-   * @param {number} height - Height of link area
-   * @returns {jsPDF} - Returns jsPDF instance for method chaining
+   * @param {jsPDF} api
+   * @param {string} noteId
+   * @param {number} x - reference X (user units)
+   * @param {number} y - reference baseline Y (user units)
+   * @param {string} label - reference label (used as back-link text)
    */
-  jsPDFAPI.addFootnoteLink = function(x, y, width, height, label) {
-    if (
-      !this.internal.pdfuaFootnotes ||
-      !this.internal.pdfuaFootnotes.currentReferenceNoteId
-    ) {
-      return this;
+  function registerFootnoteReference(api, noteId, x, y, label) {
+    if (!api.internal.pdfuaFootnotes) {
+      return;
     }
+    var pageNumber = api.internal.getCurrentPageInfo().pageNumber;
 
-    var noteId = this.internal.pdfuaFootnotes.currentReferenceNoteId;
-    var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-
-    // Register named destination for back-link target (reference position)
-    if (this.addNamedDestination) {
-      this.addNamedDestination("noteref-" + noteId, {
+    // Back-link target: the reference position. Shift up by ~one line so the
+    // reference line lands fully in view.
+    if (api.addNamedDestination) {
+      api.addNamedDestination("noteref-" + noteId, {
         pageNumber: pageNumber,
-        top: y
+        top: footnoteDestTop(api, y)
       });
     }
 
-    // Store pending reference link info (includes label for back-link)
-    this.internal.pdfuaFootnotes.pendingReferences.push({
+    api.internal.pdfuaFootnotes.pendingReferences.push({
       noteId: noteId,
       page: pageNumber,
       x: x,
       y: y,
-      width: width,
-      height: height,
       label: label || noteId // Use label for back-link text, fallback to noteId
     });
-
-    // Clear current reference
-    this.internal.pdfuaFootnotes.currentReferenceNoteId = null;
-
-    return this;
-  };
+  }
 
   /**
    * Begin a Note element (footnote/endnote content)
@@ -1863,24 +2172,21 @@ import { jsPDF } from "../jspdf.js";
     // Register note destination for footnote links
     if (!this.internal.pdfuaFootnotes) {
       this.internal.pdfuaFootnotes = {
-        noteDestinations: {},
-        pendingReferences: [],
-        pendingBackLinks: []
+        pendingReferences: []
       };
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-    var noteTop = options.y || 0;
-    this.internal.pdfuaFootnotes.noteDestinations[noteId] = {
-      page: pageNumber,
-      y: noteTop
-    };
+    var hasExplicitY = options.y !== undefined && options.y !== null;
+    var noteTop = hasExplicitY ? options.y : 0;
 
-    // Auto-register named destination for this note
+    // Eagerly register the named destination so the link target name always
+    // exists. When no explicit y is given the real position is captured from
+    // the note's first content and this entry is refined at output time.
     if (this.addNamedDestination) {
       this.addNamedDestination("note-" + noteId, {
         pageNumber: pageNumber,
-        top: noteTop
+        top: footnoteDestTop(this, noteTop)
       });
     }
 
@@ -1895,9 +2201,17 @@ import { jsPDF } from "../jspdf.js";
     if (!this.internal.pdfuaFootnotes.noteElements) {
       this.internal.pdfuaFootnotes.noteElements = {};
     }
-    this.internal.pdfuaFootnotes.noteElements[
-      noteId
-    ] = this.internal.structureTree.currentParent;
+    var noteElem = this.internal.structureTree.currentParent;
+    this.internal.pdfuaFootnotes.noteElements[noteId] = noteElem;
+
+    // Arm position capture for this note. options.y (the draw position) acts
+    // as an explicit override; without it the destination is auto-derived
+    // from the first content drawn inside the Note.
+    armDestinationCapture(this, noteElem, noteId, {
+      destName: "note-" + noteId,
+      x: options.x,
+      y: hasExplicitY ? options.y : undefined
+    });
 
     // Screen reader announcement is disabled by default because:
     // 1. The Note structure element is already semantically correct
@@ -1964,8 +2278,12 @@ import { jsPDF } from "../jspdf.js";
    * This is a convenience method that creates a complete footnote with
    * proper PDF/UA structure in a single call.
    *
+   * When a targetId is provided, a clickable link to the corresponding reference is automatically
+   * created. Set options.link to false to disable this (or leave out targetId).
+   *
    * @param {Object} options - Footnote configuration
    * @param {string} options.id - Unique ID for the Note (required for PDF/UA)
+   * @param {string} options.targetId - ID for a clickable link to the corresponding reference
    * @param {string} options.label - The label text (e.g., '¹', '²', '*')
    * @param {string|string[]} options.text - The footnote text (string or array for multiline)
    * @param {number} options.x - X position for the text
@@ -1974,6 +2292,7 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} [options.lineHeight] - Line spacing for multiline text (default: 8)
    * @param {number} [options.labelFontSize] - Font size for label (default: 80% of current)
    * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Footnotes are block-level by default.
+   * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the reference
    * @param {string|null|false} [options.announceText] - Custom SR announcement (default: auto)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
@@ -1991,7 +2310,7 @@ import { jsPDF } from "../jspdf.js";
    * doc.addFootnote({
    *   id: 'fn2',
    *   label: '²',
-   *   text: ['First line of the footnote.', 'Second line continues here.'],
+   *   text: ['First line of the footnote.', 'Second line continues here.'], // does not work yet
    *   x: 25,
    *   y: 275,
    *   lineHeight: 10
@@ -2003,6 +2322,8 @@ import { jsPDF } from "../jspdf.js";
     var labelX = options.labelX !== undefined ? options.labelX : options.x - 5;
     var textArray = Array.isArray(options.text) ? options.text : [options.text];
     var lineHeight = options.lineHeight || 8;
+    // var autoLink = options.targetId && options.link !== false;
+    var autoLink = options.link !== false;
 
     this.beginNote({
       id: options.id,
@@ -2029,7 +2350,11 @@ import { jsPDF } from "../jspdf.js";
       currentY += lineHeight;
     }
     this.endStructureElement(); // /P
-
+    
+    if (autoLink) {
+      this.addNoteBackLink(labelX, options.y);
+    }
+    
     this.endNote();
 
     return this;
@@ -2079,143 +2404,24 @@ import { jsPDF } from "../jspdf.js";
 
     var label = ref.label;
 
-    // Render the back-link label (small, superscript-like)
+    // Render the back-link label (small, superscript-like) on the unified link
+    // path: Link > Text with the annotation + OBJR emitted by endLink. The
+    // annotation lands on the current (note) page and points to the reference's
+    // "noteref-<id>" named destination, which carries the captured position.
     var originalFontSize = this.getFontSize();
     this.setFontSize(8);
 
-    // Create Link structure element for the back-link
-    this.beginLink();
-    this.text(label, x, y);
-    this.endLink();
-
-    // Calculate link dimensions
-    var linkWidth = this.getTextWidth(label) + 2;
-    var linkHeight = 10;
-
-    // Store pending back-link info (includes target Y for precise navigation)
-    this.internal.pdfuaFootnotes.pendingBackLinks =
-      this.internal.pdfuaFootnotes.pendingBackLinks || [];
-    this.internal.pdfuaFootnotes.pendingBackLinks.push({
+    this.beginLink({
       destinationName: "noteref-" + ref.noteId,
-      targetPage: ref.page,
-      targetY: ref.y, // Y position of the reference for precise back-navigation
-      sourcePage: pageNumber,
-      x: x - 1,
-      y: y - 3,
-      width: linkWidth,
-      height: linkHeight
+      linkText: getFootnoteText(this, "back")
     });
+    this.text(label, x, y);
+    this.endLink(); // emits the back-link annotation + OBJR
 
     this.setFontSize(originalFontSize);
 
     return this;
   };
-
-  /**
-   * Create all pending footnote links and back-links
-   * Called internally before PDF output to resolve note destinations
-   */
-  var createFootnoteLinks = function() {
-    if (!this.internal.pdfuaFootnotes) {
-      return;
-    }
-
-    var footnotes = this.internal.pdfuaFootnotes;
-    var self = this;
-    var getHorizontalCoordinateString = this.internal.getCoordinateString;
-    var getVerticalCoordinateString = this.internal.getVerticalCoordinateString;
-
-    // Create forward links (Reference -> Note)
-    footnotes.pendingReferences.forEach(function(ref) {
-      var dest = footnotes.noteDestinations[ref.noteId];
-      if (dest) {
-        // Get the page where the reference is located (NOT current page)
-        var refPageInfo = self.internal.getPageInfo(ref.page);
-
-        // Create annotation object with PDF/UA compliance
-        // Generate unique internal ID for this annotation
-        if (!self.internal.pdfuaLinkCounter) {
-          self.internal.pdfuaLinkCounter = 0;
-        }
-        var internalId = ++self.internal.pdfuaLinkCounter;
-
-        var annotation = {
-          finalBounds: {
-            x: getHorizontalCoordinateString(ref.x),
-            y: getVerticalCoordinateString(ref.y),
-            w: getHorizontalCoordinateString(ref.x + ref.width),
-            h: getVerticalCoordinateString(ref.y + ref.height)
-          },
-          options: {
-            destinationName: "note-" + ref.noteId,
-            pageNumber: dest.page
-          },
-          type: "link",
-          // PDF/UA compliance properties
-          needsObjId: true,
-          internalId: internalId,
-          contentsText: getFootnoteText(self, "forward") + " " + ref.label
-        };
-
-        // Add annotation to the REFERENCE's page, not the current page
-        refPageInfo.pageContext.annotations.push(annotation);
-      }
-    });
-
-    // Create back-links (Note -> Reference)
-    if (footnotes.pendingBackLinks) {
-      footnotes.pendingBackLinks.forEach(function(backLink) {
-        // Only create back-links for cross-page references (same page has no effect)
-        if (backLink.sourcePage === backLink.targetPage) {
-          return; // Skip same-page back-links
-        }
-
-        // Get the page where the back-link is located (the note's page)
-        var notePageInfo = self.internal.getPageInfo(backLink.sourcePage);
-
-        // Create annotation object for back-link with Y position for precise navigation
-        // Generate unique internal ID for this annotation
-        if (!self.internal.pdfuaLinkCounter) {
-          self.internal.pdfuaLinkCounter = 0;
-        }
-        var backLinkInternalId = ++self.internal.pdfuaLinkCounter;
-
-        var annotation = {
-          finalBounds: {
-            x: getHorizontalCoordinateString(backLink.x),
-            y: getVerticalCoordinateString(backLink.y),
-            w: getHorizontalCoordinateString(backLink.x + backLink.width),
-            h: getVerticalCoordinateString(backLink.y + backLink.height)
-          },
-          options: {
-            destinationName: backLink.destinationName,
-            pageNumber: backLink.targetPage,
-            top: backLink.targetY // Y position of reference for precise back-navigation
-          },
-          type: "link",
-          // PDF/UA compliance properties
-          needsObjId: true,
-          internalId: backLinkInternalId,
-          contentsText: getFootnoteText(self, "back")
-        };
-
-        // Add annotation to the NOTE's page
-        notePageInfo.pageContext.annotations.push(annotation);
-      });
-
-      // Clear pending back-links
-      footnotes.pendingBackLinks = [];
-    }
-
-    // Clear pending references
-    footnotes.pendingReferences = [];
-  };
-
-  /**
-   * Hook into PDF output to create footnote links
-   * Use 'buildDocument' event which fires before pages are written
-   */
-  jsPDFAPI.events.push(["buildDocument", createFootnoteLinks]);
 
   /**
    * Add a link annotation reference (OBJR) to the current Link structure element
@@ -2603,17 +2809,17 @@ import { jsPDF } from "../jspdf.js";
    * - Physics formulas (F = ma)
    * - Statistical expressions (μ, σ, Σ)
    *
-   * @param {string} alt - Alternative text describing the formula (REQUIRED)
    * @param {Object} [options] - Optional attributes
-   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
+   * @param {string} [options.alt] - Alternative text describing the formula (REQUIRED)
    * @param {string} [options.lang] - Language code for the formula description
+   * @param {string} [options.placement] - 'Block' for block-level, omit for inline
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
    * // Inline formula
    * doc.beginStructureElement('P');
    * doc.text('Die berühmte Formel ', 10, 30);
-   * doc.beginFormula('E gleich m c Quadrat');
+   * doc.beginFormula({ alt: 'E gleich m c Quadrat'});
    * doc.text('E = mc²', x, 30);
    * doc.endFormula();
    * doc.text(' von Einstein.', x, 30);
@@ -2625,24 +2831,24 @@ import { jsPDF } from "../jspdf.js";
    * doc.text('Der Satz des Pythagoras:', 10, 30);
    * doc.endStructureElement();
    *
-   * doc.beginFormula('a Quadrat plus b Quadrat gleich c Quadrat', { placement: 'Block' });
+   * doc.beginFormula({ alt: 'a Quadrat plus b Quadrat gleich c Quadrat', placement: 'Block' });
    * doc.text('a² + b² = c²', 50, 50);
    * doc.endFormula();
    *
    * @example
    * // Chemical formula
-   * doc.beginFormula('Wasser, H 2 O');
+   * doc.beginFormula({ alt: 'Wasser, H 2 O'});
    * doc.text('H₂O', x, y);
    * doc.endFormula();
    *
    * @example
    * // Complex formula with subscripts/superscripts
-   * doc.beginFormula('Summe von i gleich 1 bis n von x Index i', { placement: 'Block' });
+   * doc.beginFormula({ alt: 'Summe von i gleich 1 bis n von x Index i', placement: 'Block' });
    * doc.text('Σᵢ₌₁ⁿ xᵢ', 50, y);
    * doc.endFormula();
    */
-  jsPDFAPI.beginFormula = function(alt, options) {
-    if (!alt || typeof alt !== "string") {
+  jsPDFAPI.beginFormula = function(options) {
+    if (!options.alt || typeof options.alt !== "string") {
       throw new Error(
         "Formula requires alternative text (alt) for PDF/UA compliance"
       );
@@ -2661,15 +2867,18 @@ import { jsPDF } from "../jspdf.js";
     }
 
     // Begin Formula element
-    this.beginStructureElement("Formula", attributes);
+    var element = this.beginStructureElement("Formula", attributes);
 
     // Store alt text on the current element
-    var currentElem = this.internal.structureTree.currentParent;
-    if (currentElem) {
-      currentElem.alt = alt;
+    if (
+      options.alt &&
+      this.internal.structureTree &&
+      this.internal.structureTree.currentParent
+    ) {
+      this.internal.structureTree.currentParent.alt = options.alt;
     }
 
-    return this;
+    return element;
   };
 
   /**
@@ -2894,15 +3103,23 @@ import { jsPDF } from "../jspdf.js";
         var separator = i < pageRefs.length - 1 ? ", " : "";
         var linkText = ref.page + separator;
 
-        if (ref.destinationName) {
-          this.beginLink({ destinationName: ref.destinationName });
-          this.text(ref.page, currentX, y);
-          this.endLink();
-          if (separator) {
-            this.text(separator, currentX + this.getTextWidth(ref.page), y);
-          }
+        // Build link target: logical heading id (abstract linking), named
+        // destination, or page number — in that order of precedence. linkText
+        // gives the link a meaningful accessible description (PDF/UA /Contents).
+        var refLinkOptions = null;
+        if (ref.targetId) {
+          refLinkOptions = { targetId: ref.targetId };
+        } else if (ref.destinationName) {
+          refLinkOptions = { destinationName: ref.destinationName };
         } else if (ref.pageNumber) {
-          this.beginLink({ pageNumber: ref.pageNumber });
+          refLinkOptions = { pageNumber: ref.pageNumber };
+        }
+        if (refLinkOptions) {
+          refLinkOptions.linkText = term + " " + ref.page;
+        }
+
+        if (refLinkOptions) {
+          this.beginLink(refLinkOptions);
           this.text(ref.page, currentX, y);
           this.endLink();
           if (separator) {

@@ -3580,6 +3580,10 @@ function jsPDF(options) {
       return scope;
     }
 
+    // PDF/UA: keep the original text for link-bounds computation in the
+    // marked-content hook below; `text` is reassigned during processing.
+    var pdfuaOriginalText = text;
+
     var xtra = "";
     var isHex = false;
     var lineHeight =
@@ -4152,6 +4156,26 @@ function jsPDF(options) {
           var pageInfo = scope.internal.getCurrentPageInfo();
           var pageNumber = pageInfo.pageNumber;
           scope.addMCIDToCurrentStructure(mcid, pageNumber);
+          // PDF/UA: capture the position of content drawn inside an
+          // id-tagged structure element, for "destination by id" linking.
+          if (scope.captureStructureDestinationPosition) {
+            scope.captureStructureDestinationPosition(x, y);
+          }
+          // PDF/UA: accumulate text bounds for an open Link element so that
+          // endLink() can create the link annotation from the real bounds.
+          if (
+            scope.captureLinkBounds &&
+            scope.internal.pdfuaLinkState &&
+            scope.internal.pdfuaLinkState.length > 0
+          ) {
+            var linkBoundsStr = Array.isArray(pdfuaOriginalText)
+              ? pdfuaOriginalText.join("")
+              : String(pdfuaOriginalText);
+            var linkBoundsWidth = scope.getTextWidth(linkBoundsStr);
+            var linkBoundsHeight =
+              scope.internal.getLineHeight() / scope.internal.scaleFactor;
+            scope.captureLinkBounds(x, y, linkBoundsWidth, linkBoundsHeight);
+          }
         }
       }
     }
