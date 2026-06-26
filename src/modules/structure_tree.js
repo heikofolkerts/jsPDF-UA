@@ -1800,6 +1800,7 @@ import { jsPDF } from "../jspdf.js";
    * - Title is left-aligned at indent position
    * - Page number is right-aligned at rightMargin
    * - Dot leaders fill the space between title and page number
+   * - Dot leaders are wrapped in NonStruct so screen readers skip them
    *
    * Automatically wraps the entry in TOCI > Link structure elements
    * and creates a clickable link to the target page.
@@ -1817,7 +1818,6 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} [options.subIndent=10] - Additional indent per sub-level in mm
    * @param {number} [options.rightMargin=190] - Right edge for page numbers in mm
    * @param {string} [options.dotChar='.'] - Character used for dot leaders
-   * @param {number} [options.dotSpacing=1.5] - Spacing between dot characters in mm
    * @param {number} [options.gap=2] - Minimum gap between title/dots and page number in mm
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
@@ -1843,28 +1843,30 @@ import { jsPDF } from "../jspdf.js";
     var dotCharWidth = this.getTextWidth(dotChar);
     var spaceWidth = this.getTextWidth(" ");
 
-    // Calculate available space for dots between title and page number
-    var titleEnd = titleWidth + spaceWidth;
-    var pageStart = rightMargin - indent - pageWidth - spaceWidth;
-    var dotsSpace = pageStart - titleEnd;
+    // Calculate positions
+    var titleEndX = indent + titleWidth + spaceWidth;
+    var pageX = rightMargin; // right-aligned anchor
+    var dotsStartX = titleEndX;
+    var dotsEndX = rightMargin - pageWidth - gap;
+    var dotsSpace = dotsEndX - dotsStartX;
 
-    // Build single string: title + space + dots + space + pageNumber
-    // Use space characters between dots for even visual spacing
-    var fullText = title + " ";
+    // Build dot leaders string
+    var dotsStr = "";
     if (dotsSpace > 0 && dotCharWidth > 0) {
       var dotWithSpaceWidth = dotCharWidth + spaceWidth;
       var numDots = Math.floor(dotsSpace / dotWithSpaceWidth);
-      if (numDots > 0) {
-        for (var i = 0; i < numDots; i++) {
-          fullText += dotChar + " ";
-        }
+      for (var i = 0; i < numDots; i++) {
+        dotsStr += dotChar + " ";
       }
     }
-    fullText += pageStr;
 
-    // Wrap in TOCI > Link, single textWithLink call for one MCID. The link
-    // target is a logical heading id (abstract linking) or a named destination
-    // when given, otherwise the target page number.
+    // Line height for link rectangle
+    var lineHeight = this.internal.getLineHeight() / this.internal.scaleFactor;
+    var linkText = title + " " + pageStr;
+
+    // Resolve the link target: a logical heading id (abstract linking) or a
+    // named destination when given, otherwise the target page number. The
+    // accessible Contents key is always supplied via linkText.
     var linkOptions;
     if (options.targetId) {
       linkOptions = { targetId: options.targetId };
@@ -1873,10 +1875,40 @@ import { jsPDF } from "../jspdf.js";
     } else {
       linkOptions = { pageNumber: page };
     }
+    linkOptions.linkText = linkText;
 
+    // Wrap in TOCI > Link
     this.beginTOCI();
     this.beginLink();
-    this.textWithLink(fullText, indent, y, linkOptions);
+
+    // 1. Title text (accessible)
+    this.text(title, indent, y);
+
+    // 2. Dot leaders as a Layout artifact (screen reader skips these)
+    if (dotsStr) {
+      this.beginArtifact({ type: "Layout" });
+      this.text(dotsStr, dotsStartX, y);
+      this.endArtifact();
+    }
+
+    // 3. Page number right-aligned (accessible)
+    this.text(pageStr, pageX, y, { align: "right" });
+
+    // 4. Link annotation spanning the full line
+    var linkY = y + lineHeight * 0.2;
+    var linkId = this.link(
+      indent,
+      linkY - lineHeight,
+      rightMargin - indent,
+      lineHeight,
+      linkOptions
+    );
+
+    // Connect link annotation to Link structure element
+    if (linkId && this.addLinkAnnotationRef) {
+      this.addLinkAnnotationRef(linkId);
+    }
+
     this.endLink();
     this.endTOCI();
 
@@ -2028,7 +2060,7 @@ import { jsPDF } from "../jspdf.js";
     // Reference element carries /Ref -> Note (semantic); beginReference sets
     // refNoteId on the Reference element.
     this.beginReference({ noteId: options.noteId });
-    
+
     this.beginStructureElement("Lbl");
 
     if (autoLink) {
@@ -2350,11 +2382,11 @@ import { jsPDF } from "../jspdf.js";
       currentY += lineHeight;
     }
     this.endStructureElement(); // /P
-    
+
     if (autoLink) {
       this.addNoteBackLink(labelX, options.y);
     }
-    
+
     this.endNote();
 
     return this;
