@@ -34,5 +34,29 @@ describe("Module: Outline", () => {
     comparePdf(doc.output(), "bookmark-mm.pdf", "outline");
   });
 
+  it("should resolve a bookmark targetId to a named destination", () => {
+    var doc = new jsPDF({ unit: "mm", floatPrecision: 2 });
+    // targetId is the abstract markLinkTarget handle; the outline resolves it
+    // to a named destination at render time (here the deterministic fallback
+    // name, since no explicit destName was registered).
+    doc.outline.add(null, "Section 1", { targetId: "sec-1" });
+    doc.addPage();
+
+    expect(doc.output().indexOf("/Dest (__sid_sec-1)")).toBeGreaterThan(-1);
+  });
+
+  it("should prefer targetId over destinationName for bookmarks", () => {
+    var doc = new jsPDF({ unit: "mm", floatPrecision: 2 });
+    doc.outline.add(null, "Section 1", {
+      targetId: "sec-1",
+      destinationName: "ignored-name"
+    });
+    doc.addPage();
+
+    var out = doc.output();
+    expect(out.indexOf("/Dest (__sid_sec-1)")).toBeGreaterThan(-1);
+    expect(out.indexOf("ignored-name")).toBe(-1);
+  });
+
   // @TODO: Document
 });
