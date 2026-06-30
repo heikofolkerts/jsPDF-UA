@@ -64,7 +64,9 @@ describe("Module: addimage", () => {
       canvas.width = 0;
       canvas.height = 100;
 
-      var expectedError = new Error("Given canvas must have data. Canvas width: 0, height: 100");
+      var expectedError = new Error(
+        "Given canvas must have data. Canvas width: 0, height: 100"
+      );
 
       expect(function() {
         doc.addImage(canvas, 10, 10);
@@ -92,4 +94,91 @@ describe("Module: addimage", () => {
       }).not.toThrow();
     });
   }
+
+  describe("PDF/UA Figure handling", () => {
+    function figureCount(doc) {
+      var els =
+        (doc.internal.structureTree && doc.internal.structureTree.elements) ||
+        [];
+      return els.filter(function(e) {
+        return e.type === "Figure";
+      }).length;
+    }
+
+    it("attaches an image to an open Figure instead of nesting a second one", () => {
+      var doc = new jsPDF({ pdfUA: true });
+      doc.setLanguage("en-US");
+      doc.beginStructureElement("Document");
+      doc.beginFigure({ alt: "A chart" });
+      doc.addImage({
+        imageData: jpg,
+        format: "JPEG",
+        x: 10,
+        y: 10,
+        width: 50,
+        height: 40,
+        alt: "A chart"
+      });
+      doc.endFigure();
+      doc.endStructureElement();
+
+      expect(figureCount(doc)).toBe(1);
+    });
+
+    it("does not require alt on addImage when inside a Figure", () => {
+      var doc = new jsPDF({ pdfUA: true });
+      doc.setLanguage("en-US");
+      doc.beginStructureElement("Document");
+      doc.beginFigure({ alt: "A chart" });
+      expect(function() {
+        doc.addImage({
+          imageData: jpg,
+          format: "JPEG",
+          x: 10,
+          y: 10,
+          width: 50,
+          height: 40
+        });
+      }).not.toThrow();
+      doc.endFigure();
+      doc.endStructureElement();
+
+      expect(figureCount(doc)).toBe(1);
+    });
+
+    it("still creates its own Figure for a stand-alone image with alt", () => {
+      var doc = new jsPDF({ pdfUA: true });
+      doc.setLanguage("en-US");
+      doc.beginStructureElement("Document");
+      doc.addImage({
+        imageData: jpg,
+        format: "JPEG",
+        x: 10,
+        y: 10,
+        width: 50,
+        height: 40,
+        alt: "Solo chart"
+      });
+      doc.endStructureElement();
+
+      expect(figureCount(doc)).toBe(1);
+    });
+
+    it("still throws for a stand-alone image without alt", () => {
+      var doc = new jsPDF({ pdfUA: true });
+      doc.setLanguage("en-US");
+      doc.beginStructureElement("Document");
+      expect(function() {
+        doc.addImage({
+          imageData: jpg,
+          format: "JPEG",
+          x: 10,
+          y: 10,
+          width: 50,
+          height: 40
+        });
+      }).toThrow();
+      doc.endStructureElement();
+    });
+  });
 });
