@@ -51,12 +51,12 @@ doc.setLanguage("en-US");
 // ============================================================================
 // Bookmarks for Navigation (using outline API)
 // ============================================================================
-// Bookmarks link to the same heading targets as the TOC via destinationName
-// (resolved from the markLinkTarget ids). pageNumber stays as a fallback in
-// case a destination ever fails to resolve.
+// Bookmarks link to the same heading targets as the TOC via the abstract targetId 
+// resolved from the markLinkTarget ids to a named destination by the outline at render time.
+// pageNumber stays as a fallback in case a destination ever fails to resolve.
 const bm = (parent, title, sectionId, pageNumber) =>
   doc.outline.add(parent, title, {
-    destinationName: doc.resolveLinkTargetDestName(sectionId),
+    targetId: sectionId,
     pageNumber: pageNumber
   });
 
@@ -84,10 +84,10 @@ bm(figuresBookmark, "8.1 Annotations", "sec-8-1", 4);
 const advancedBookmark = bm(null, "9. Advanced Structure Elements", "sec-9", 5);
 bm(advancedBookmark, "9.1 Article (Art)", "sec-9-1", 5);
 bm(advancedBookmark, "9.2 Division (Div)", "sec-9-2", 5);
-bm(advancedBookmark, "9.3 NonStruct (Layout Grouping)", "sec-9-3", 5);
-bm(advancedBookmark, "9.4 Private (Application Data)", "sec-9-4", 5);
+bm(advancedBookmark, "9.3 Private (Application Data)", "sec-9-3", 5);
 
 bm(null, "10. Bibliography", "sec-10", 6);
+bm(null, "11. Index", "sec-11", 6);
 
 // ============================================================================
 // PAGE 1: Introduction and Text Elements
@@ -139,34 +139,28 @@ doc.text("Table of Contents", 20, 75);
 doc.endStructureElement();
 
 doc.beginTOC();
-//    { title: '1. Introduction', page: 1, level: 1 },
+//    { title: '1. Introduction ', page: 1, level: 1 },
 const tocItems = [
-  { title: "1. Text Elements", page: 1, level: 1, id: "sec-1" },
-  { title: "2. Lists", page: 2, level: 1, id: "sec-2" },
-  { title: "2.1 Unordered List", page: 2, level: 2, id: "sec-2-1" },
-  { title: "2.2 Ordered List", page: 2, level: 2, id: "sec-2-2" },
-  { title: "3. Tables", page: 2, level: 1, id: "sec-3" },
-  { title: "4. Links", page: 2, level: 1, id: "sec-4" },
-  { title: "5. Form Fields", page: 3, level: 1, id: "sec-5" },
-  { title: "6. Quotes and Code", page: 3, level: 1, id: "sec-6" },
-  { title: "6.1 Inline Quote", page: 3, level: 2, id: "sec-6-1" },
-  { title: "6.2 Block Quote", page: 3, level: 2, id: "sec-6-2" },
-  { title: "6.3 Code Examples", page: 3, level: 2, id: "sec-6-3" },
-  { title: "7. Footnotes and References", page: 4, level: 1, id: "sec-7" },
-  { title: "8. Figures and Captions", page: 4, level: 1, id: "sec-8" },
-  { title: "8.1 Annotations", page: 4, level: 2, id: "sec-8-1" },
-  { title: "9. Advanced Structure Elements", page: 5, level: 1, id: "sec-9" },
-  { title: "9.1 Article (Art)", page: 5, level: 2, id: "sec-9-1" },
-  { title: "9.2 Division (Div)", page: 5, level: 2, id: "sec-9-2" },
-  {
-    title: "9.3 NonStruct (Layout Grouping)",
-    page: 5,
-    level: 2,
-    id: "sec-9-3"
-  },
-  { title: "9.4 Private (Application Data)", page: 5, level: 2, id: "sec-9-4" },
-  { title: "10. Bibliography", page: 6, level: 1, id: "sec-10" },
-  { title: "11. Index", page: 6, level: 1, id: "sec-11" }
+  { title: "1. Text Elements ", page: 1, level: 1, id: "sec-1" },
+  { title: "2. Lists ", page: 2, level: 1, id: "sec-2" },
+  { title: "2.1 Unordered List ", page: 2, level: 2, id: "sec-2-1" },
+  { title: "2.2 Ordered List ", page: 2, level: 2, id: "sec-2-2" },
+  { title: "3. Tables ", page: 2, level: 1, id: "sec-3" },
+  { title: "4. Links ", page: 2, level: 1, id: "sec-4" },
+  { title: "5. Form Fields ", page: 3, level: 1, id: "sec-5" },
+  { title: "6. Quotes and Code ", page: 3, level: 1, id: "sec-6" },
+  { title: "6.1 Inline Quote ", page: 3, level: 2, id: "sec-6-1" },
+  { title: "6.2 Block Quote ", page: 3, level: 2, id: "sec-6-2" },
+  { title: "6.3 Code Examples ", page: 3, level: 2, id: "sec-6-3" },
+  { title: "7. Footnotes and References ", page: 4, level: 1, id: "sec-7" },
+  { title: "8. Figures and Captions ", page: 4, level: 1, id: "sec-8" },
+  { title: "8.1 Annotations ", page: 4, level: 2, id: "sec-8-1" },
+  { title: "9. Advanced Structure Elements ", page: 5, level: 1, id: "sec-9" },
+  { title: "9.1 Article (Art) ", page: 5, level: 2, id: "sec-9-1" },
+  { title: "9.2 Division (Div) ", page: 5, level: 2, id: "sec-9-2" },
+  { title: "9.3 Private (Application Data) ", page: 5, level: 2, id: "sec-9-3" },
+  { title: "10. Bibliography ", page: 6, level: 1, id: "sec-10" },
+  { title: "11. Index ", page: 6, level: 1, id: "sec-11" }
 ];
 
 let tocY = 88;
@@ -706,26 +700,32 @@ doc.setFont(undefined, "normal");
 doc.text("Figures with alternative text and captions:", 20, 98);
 doc.endStructureElement();
 
-// Figure 1 - Placeholder representing an image
-// Note: Graphics (rect) are omitted because jsPDF doesn't yet support
-// marked content for graphical operations. Using text placeholder instead.
-// BBox is recommended by PAC for better accessibility in alternate presentations
-// BBox format: [x, y, width, height] in points (PDF coordinates from bottom-left)
+// Figure 1 - image (sales.png, 292x247 px bar chart)
+// The image is drawn inside beginFigure()/endFigure(), so addImage() attaches
+// its marked content to this Figure instead of creating a second one. The Alt
+// text comes from beginFigure(), so it is not repeated on addImage().
+// BBox is recommended by PAC and describes the image rectangle in points
+// BBox format: [x, y, width, height] in points (PDF coordinates, from the bottom-left of the page).
+// Layout (default unit mm): image at x=20, y=110, 80x67.7 mm.
+// In points: x=20*2.835=57, width=80*2.835=227, height=67.7*2.835=192,
+// y-from-bottom = (297-(110+67.7))*2.835 = 338.
+const salesPng = fs.readFileSync(path.join(__dirname, "sales.png"));
+const salesDataUrl = "data:image/png;base64," + salesPng.toString("base64");
+const salesWidth = 80;
+const salesHeight = (salesWidth * 247) / 292; // keep aspect ratio (~67.7 mm)
 doc.beginFigure({
   alt:
     "A bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%",
-  bbox: [20, 640, 90, 70] // x, y (from bottom), width, height
+  bbox: [57, 338, 227, 192] // x, y (from bottom), width, height
 });
-
-// Text placeholder for image (graphics can't be tagged yet)
-/**
-doc.setFontSize(10);
-doc.setTextColor(89, 89, 89);
-doc.text("[Bar Chart: Q1=25%, Q2=30%, Q3=20%, Q4=25%]", 20, 158);
-doc.setTextColor(0, 0, 0);
-
-doc.addImage(sales, 'png', x, y, 292, 247);
-*/
+doc.addImage({
+  imageData: salesDataUrl,
+  format: "PNG",
+  x: 20,
+  y: 110,
+  width: salesWidth,
+  height: salesHeight
+});
 doc.beginCaption();
 doc.setFontSize(10);
 doc.text("Figure 1: Quarterly Sales Distribution", 20, 188); // Caption is not visible on Screenreader preview yet
@@ -903,42 +903,22 @@ doc.text(
 doc.endStructureElement();
 doc.endDiv();
 
-// NonStruct element
-doc.beginStructureElement("H3");
-doc.setFontSize(12);
-doc.setFont(undefined, "bold");
-doc.markLinkTarget("sec-9-3");
-doc.text("9.3 NonStruct (Layout Grouping)", 20, 100);
-doc.endStructureElement();
-
-doc.beginNonStruct();
-doc.beginStructureElement("P");
-doc.setFontSize(11);
-doc.setFont(undefined, "normal");
-doc.text("Content in NonStruct is read but has no semantic structure meaning.", 25, 112);
-doc.endStructureElement();
-doc.endNonStruct();
-
 // Private element
 doc.beginStructureElement("H3");
 doc.setFontSize(12);
 doc.setFont(undefined, "bold");
-doc.markLinkTarget("sec-9-4");
-doc.text("9.4 Private (Application Data)", 20, 130);
+doc.markLinkTarget("sec-9-3");
+doc.text("9.3 Private (Application Data)", 20, 100);
 doc.endStructureElement();
 
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text(
-  "Private elements contain data not intended for screen readers:",
-  20,
-  142
-);
+doc.text("Private elements contain data not intended for screen readers:", 20, 112);
 doc.endStructureElement();
 
 doc.beginPrivate();
-doc.text("[Internal metadata: doc-version=1.0, author-id=42]", 25, 154);
+doc.text("[Internal metadata: doc-version=1.0, author-id=42]", 25, 124);
 doc.endPrivate();
 
 // Annot element goes here for explanation of Private element
@@ -948,7 +928,7 @@ const annotId3 = doc.createAnnotation({
   title: "Reviewer",
   contents:
     "Comment: This content is marked as private and therefore not presented in PDF-document nor visible for screenreader tools.",
-  bounds: { x: 180, y: 140, w: 20, h: 20 },
+  bounds: { x: 180, y: 110, w: 20, h: 20 },
   open: false
 });
 if (annotId3) doc.addAnnotationRef(annotId3);
