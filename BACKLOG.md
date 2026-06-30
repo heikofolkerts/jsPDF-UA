@@ -305,3 +305,32 @@ Die abstrakte "Destination-by-id"-Konstruktion (siehe Eintrag oben), die zunaech
 - [ ] Sprungziele landen auf der korrekten Zeile (gleiche Korrektur wie bei Fussnoten)
 - [ ] PDF/UA-Tagging (TOC/TOCI) bleibt erhalten
 - [ ] veraPDF- und PAC-Validierung bestehen
+
+---
+
+## Lesezeichen nutzen Destination-by-id-Subsystem (Phase 3)
+
+**Prioritaet:** Mittel
+**Status:** Umgesetzt (Branch `feature/bookmark-id-links`)
+**Erstellt:** 2026-06-26
+
+### Beschreibung
+
+Die abstrakte "Destination-by-id"-Verlinkung (siehe Eintraege oben) soll nicht
+nur im Inhaltsverzeichnis, sondern auch fuer Lesezeichen (Outline) verfuegbar
+sein. Bisher kannte `doc.outline.add()` nur `destinationName` und `pageNumber`;
+eine ID-basierte Verlinkung war nur ueber den manuellen Workaround
+`destinationName: doc.resolveLinkTargetDestName(id)` moeglich.
+
+`outline.add()` akzeptiert jetzt eine `targetId`-Option, die – wie bei `link()`
+und `addTOCEntry()` – auf die benannte Zieldestination aufgeloest wird. Die
+Aufloesung erfolgt zur Render-Zeit in `outline.renderItems`, sodass die
+Reihenfolge (Lesezeichen vor/nach der Ueberschrift) keine Rolle spielt.
+
+### Akzeptanzkriterien
+
+- [x] `outline.add()` akzeptiert `targetId` und loest es auf das benannte Ziel auf
+- [x] Reihenfolge-unabhaengig (Aufloesung zur Render-Zeit)
+- [x] `destinationName`/`pageNumber` bleiben als Optionen erhalten (Fallback)
+- [x] Showcase nutzt `targetId` statt manuellem `resolveLinkTargetDestName`
+- [x] veraPDF-Validierung besteht (Showcase weiterhin PDF/UA-1-konform)
