@@ -706,17 +706,17 @@ doc.endStructureElement();
 // text comes from beginFigure(), so it is not repeated on addImage().
 // BBox is recommended by PAC and describes the image rectangle in points
 // BBox format: [x, y, width, height] in points (PDF coordinates, from the bottom-left of the page).
-// Layout (default unit mm): image at x=20, y=110, 80x67.7 mm.
-// In points: x=20*2.835=57, width=80*2.835=227, height=67.7*2.835=192,
+// Layout (default unit mm): image at x=20, y=110, 80x67.7 mm. | 77.3x65.3 mm
+// In points: x=20*2.835=57, width=80*2.835=227, height=67.7*2.835=192, | width=219, height=185
 // y-from-bottom = (297-(110+67.7))*2.835 = 338.
 const salesPng = fs.readFileSync(path.join(__dirname, "sales.png"));
 const salesDataUrl = "data:image/png;base64," + salesPng.toString("base64");
-const salesWidth = 80;
+const salesWidth = 77.3; // 80
 const salesHeight = (salesWidth * 247) / 292; // keep aspect ratio (~67.7 mm)
 doc.beginFigure({
   alt:
     "A bar chart showing quarterly sales data with Q1 at 25%, Q2 at 30%, Q3 at 20%, and Q4 at 25%",
-  bbox: [57, 338, 227, 192] // x, y (from bottom), width, height
+  bbox: [57, 338, 219, 185] // x, y (from bottom), width, height
 });
 doc.addImage({
   imageData: salesDataUrl,
@@ -747,17 +747,18 @@ doc.endAnnot();
 // Figure 2 - image (IPO.png, 295x247 px process flow diagram)
 const ipoPng = fs.readFileSync(path.join(__dirname, "IPO.png"));
 const ipoDataUrl = "data:image/png;base64," + ipoPng.toString("base64");
+const ipoWidth = 78;
 doc.beginFigure({
   alt:
     "A process flow diagram with three connected boxes showing Input, Process, and Output stages",
-  bbox: [341, 338, 227, 192] // x, y (from bottom), width, height
+  bbox: [341, 338, 221, 185] // x, y (from bottom), width, height
 });
 doc.addImage({
   imageData: ipoDataUrl,
   format: "PNG",
   x: 120,
   y: 110,
-  width: salesWidth,
+  width: ipoWidth,
   height: salesHeight
 });
 doc.beginCaption();
@@ -771,7 +772,7 @@ const annotId2 = doc.createAnnotation({
   type: "text",
   title: "Editor",
   contents: "Note: Consider adding year-over-year comparison.",
-  bounds: { x: 180, y: 180, w: 20, h: 20 },
+  bounds: { x: 190, y: 180, w: 20, h: 20 },
   open: false
 });
 if (annotId2) doc.addAnnotationRef(annotId2);
