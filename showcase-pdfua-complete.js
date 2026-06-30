@@ -744,19 +744,22 @@ const annotId1 = doc.createAnnotation({
 if (annotId1) doc.addAnnotationRef(annotId1);
 doc.endAnnot();
 
-// Figure 2
+// Figure 2 - image (IPO.png, 295x247 px process flow diagram)
+const ipoPng = fs.readFileSync(path.join(__dirname, "IPO.png"));
+const ipoDataUrl = "data:image/png;base64," + ipoPng.toString("base64");
 doc.beginFigure({
   alt:
     "A process flow diagram with three connected boxes showing Input, Process, and Output stages",
-  bbox: [120, 640, 80, 70] // x, y (from bottom), width, height
+  bbox: [341, 338, 227, 192] // x, y (from bottom), width, height
 });
-
-// Text placeholder for image (graphics can't be tagged yet)
-/**
-doc.setTextColor(89, 89, 89);
-doc.text("[Flow: Input -> Process -> Output]", 120, 158);
-doc.setTextColor(0, 0, 0);
-*/
+doc.addImage({
+  imageData: ipoDataUrl,
+  format: "PNG",
+  x: 120,
+  y: 110,
+  width: salesWidth,
+  height: salesHeight
+});
 doc.beginCaption();
 doc.text("Figure 2: Process Flow Diagram", 120, 188); // Caption is not visible on Screenreader preview yet
 doc.endCaption();
