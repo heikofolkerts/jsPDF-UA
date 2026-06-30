@@ -121,7 +121,19 @@ import { jsPDF } from "../jspdf.js";
       };
 
       /**
-       * Options: pageNumber
+       * Add a bookmark (outline) item.
+       *
+       * Destination options (in order of precedence):
+       * - targetId: logical id of a structure element marked with
+       *   markLinkTarget(); resolved to its named destination at render time.
+       *   Same abstract handle used by link() and addTOCEntry().
+       * - destinationName: an explicit named destination.
+       * - pageNumber: fallback explicit destination (top of the given page).
+       *
+       * @param {Object|null} parent - parent outline item, or null for top level
+       * @param {string} title - bookmark label
+       * @param {Object} [options] - { targetId | destinationName | pageNumber }
+       * @returns {Object} the created outline item (usable as parent)
        */
       pdf.outline.add = function(parent, title, options) {
         var item = {
@@ -210,12 +222,21 @@ import { jsPDF } from "../jspdf.js";
           }
 
           if (item.options) {
-            if (item.options.destinationName) {
+            // Abstract linking: a logical target id (markLinkTarget) is
+            // resolved to the named destination it was registered under, the
+            // same handle used by link() and addTOCEntry(). Resolved here at
+            // render time so it works regardless of whether the bookmark was
+            // added before or after its target heading.
+            var destinationName = item.options.destinationName;
+            if (item.options.targetId && pdf.resolveLinkTargetDestName) {
+              destinationName = pdf.resolveLinkTargetDestName(
+                item.options.targetId
+              );
+            }
+            if (destinationName) {
               // Named Destination
               this.line(
-                "/Dest (" +
-                  pdf.internal.pdfEscape(item.options.destinationName) +
-                  ")"
+                "/Dest (" + pdf.internal.pdfEscape(destinationName) + ")"
               );
             } else if (item.options.pageNumber) {
               // Explicit Destination
