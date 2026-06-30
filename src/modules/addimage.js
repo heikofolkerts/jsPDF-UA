@@ -478,8 +478,19 @@ import { atob } from "../libs/AtobBtoa.js";
     var mcid = null;
 
     if (isPDFUA) {
-      // PDF/UA STRICT MODE: Images MUST have alt text OR be explicitly decorative
-      if (!altText && !isDecorative) {
+      var currentParent =
+        this.internal.structureTree &&
+        this.internal.structureTree.currentParent;
+
+      // If the image is drawn inside an existing Figure (opened via
+      // beginFigure()), attach the image content to that Figure instead of
+      // creating a second, nested Figure. The surrounding Figure already
+      // carries the Alt text, so alt on addImage() is optional in that case.
+      var insideFigure = !!(currentParent && currentParent.type === "Figure");
+
+      // PDF/UA STRICT MODE: Images MUST have alt text, OR be explicitly
+      // decorative, OR be wrapped in a Figure that supplies the alt text.
+      if (!altText && !isDecorative && !insideFigure) {
         throw new Error(
           "PDF/UA Error: Images must have alternative text or be marked as decorative.\n" +
             'Use: addImage({..., alt: "Description"}) or addImage({..., decorative: true})'
@@ -501,19 +512,24 @@ import { atob } from "../libs/AtobBtoa.js";
         // Create marked content with MCID for accessible image
         mcid = this.getNextMCID ? this.getNextMCID() : 0;
         var lang = this.getLanguage();
+        var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
 
         this.internal.write(
           "/Figure <</Lang (" + lang + ")/MCID " + mcid + ">> BDC"
         );
 
-        // Add to structure tree
-        var currentParent =
-          this.internal.structureTree &&
-          this.internal.structureTree.currentParent;
-        if (currentParent) {
-          var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-
-          // Create Figure structure element
+        if (insideFigure) {
+          // Reuse the open Figure: register this content's MCID on it rather
+          // than creating a nested Figure. If the Figure has no Alt yet but one
+          // was passed to addImage(), keep it so nothing is silently lost.
+          if (altText && !currentParent.alt) {
+            currentParent.alt = altText;
+          }
+          if (this.addMCIDToCurrentStructure) {
+            this.addMCIDToCurrentStructure(mcid, pageNumber);
+          }
+        } else if (currentParent) {
+          // Stand-alone image: create its own Figure structure element.
           var figureElement = {
             type: "Figure",
             alt: altText,
