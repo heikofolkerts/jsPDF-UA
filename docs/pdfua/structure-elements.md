@@ -149,6 +149,15 @@ doc.endCaption();
 doc.endStructureElement();
 ```
 
+> **Accessibility note:** A `Figure` requires an `/Alt` attribute, and `/Alt`
+> replaces the element's entire subtree for assistive technology
+> (ISO 32000-1, 14.9.4). A caption left as a child of the Figure is therefore
+> drawn on the page but never reaches screen readers or PAC's screen-reader
+> preview. jsPDF handles this automatically: when a `Caption` is closed inside
+> an `/Alt`-bearing `Figure`, it is re-homed as the following sibling of the
+> Figure — no change to the authoring code above is required. Captions inside
+> elements without `/Alt` (e.g. `Table`) remain children, as expected.
+
 ### Form
 
 For form fields:

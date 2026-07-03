@@ -354,6 +354,70 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Move a Caption element out of an /Alt-bearing parent (typically a Figure)
+   * so that it becomes a sibling positioned directly after that parent.
+   *
+   * An /Alt entry provides an alternate description for a structure element AND
+   * all of its children (ISO 32000-1, 14.9.4). When a Caption is a child of a
+   * Figure that carries /Alt, assistive technology and PAC's "screen-reader
+   * preview" substitute the Figure's Alt text for the whole subtree and never
+   * descend into the Caption. The caption is therefore drawn on the page but
+   * stays invisible to screen readers. Re-homing the Caption as the following
+   * sibling of the Alt-bearing element keeps the correct visual reading order
+   * while exposing the caption text to assistive technology.
+   *
+   * @param {StructElement} caption - the Caption element being closed
+   */
+  var moveCaptionOutOfAltParent = function(caption) {
+    var altParent = caption.parent;
+    var grandParent = altParent && altParent.parent;
+    if (!grandParent) {
+      return;
+    }
+
+    // Detach from the Alt-bearing parent (children list + ordered kItems).
+    var ci = altParent.children.indexOf(caption);
+    if (ci !== -1) {
+      altParent.children.splice(ci, 1);
+    }
+    if (altParent.kItems) {
+      altParent.kItems = altParent.kItems.filter(function(item) {
+        return !(item.type === "child" && item.data === caption);
+      });
+    }
+
+    // Re-home under the grandparent, directly after the Alt-bearing element so
+    // the reading order stays "Figure, then Caption".
+    var gi = grandParent.children.indexOf(altParent);
+    if (gi === -1) {
+      grandParent.children.push(caption);
+    } else {
+      grandParent.children.splice(gi + 1, 0, caption);
+    }
+
+    if (grandParent.kItems) {
+      var kIndex = -1;
+      for (var i = 0; i < grandParent.kItems.length; i++) {
+        if (
+          grandParent.kItems[i].type === "child" &&
+          grandParent.kItems[i].data === altParent
+        ) {
+          kIndex = i;
+          break;
+        }
+      }
+      var captionItem = { type: "child", data: caption };
+      if (kIndex === -1) {
+        grandParent.kItems.push(captionItem);
+      } else {
+        grandParent.kItems.splice(kIndex + 1, 0, captionItem);
+      }
+    }
+
+    caption.parent = grandParent;
+  };
+
+  /**
    * Initialize the structure tree
    * This is called automatically when PDF/UA mode is enabled
    */
@@ -454,6 +518,21 @@ import { jsPDF } from "../jspdf.js";
       this.internal.structureTree.stack.length === 0
     ) {
       return this;
+    }
+
+    // PDF/UA fix: a Caption nested inside an /Alt-bearing element (e.g. a
+    // Figure) is hidden from assistive technology, because /Alt replaces the
+    // element's entire subtree (ISO 32000-1, 14.9.4). Move it out to become a
+    // following sibling so its text reaches screen readers / PAC's
+    // screen-reader preview while keeping the visual reading order.
+    var closing = this.internal.structureTree.currentParent;
+    if (
+      closing &&
+      closing.type === "Caption" &&
+      closing.parent &&
+      closing.parent.alt
+    ) {
+      moveCaptionOutOfAltParent(closing);
     }
 
     // Pop parent from stack
@@ -1608,6 +1687,15 @@ import { jsPDF } from "../jspdf.js";
    *   ├── Caption
    *   │   └── "Tabelle 1: Übersicht der Ergebnisse"
    *   └── (table content)
+   *
+   * Accessibility note: If a Caption is written inside a Figure that carries an
+   * /Alt attribute, the caption is automatically re-homed as a following
+   * sibling of the Figure when it is closed. This is required because an /Alt
+   * entry replaces the entire subtree of its element for assistive technology
+   * (ISO 32000-1, 14.9.4); a caption left as a child of the Figure would be
+   * drawn on the page but never read by screen readers or shown in PAC's
+   * screen-reader preview. Captions inside elements without /Alt (e.g. Tables)
+   * remain children, as intended.
    *
    * @param {Object} [options] - Optional attributes
    * @param {string} [options.lang] - Language code for caption text
