@@ -657,7 +657,7 @@ doc.endStructureElement();
 
 // Separator line as artifact (at page bottom)
 doc.beginArtifact({ type: "Layout" });
-doc.line(20, 258, 100, 253);
+doc.line(20, 253, 100, 253);
 doc.endArtifact();
 
 // Footnotes using the new convenience API
