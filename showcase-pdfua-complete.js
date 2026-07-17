@@ -637,7 +637,7 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
-doc.addFootnoteRef("¹", fnX, 40, { noteId: "fn1" });
+doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1", xNote: "25", yNote: "260" });
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
@@ -649,7 +649,7 @@ doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol ",
 fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
-doc.addFootnoteRef("²", fnX, 50, { id: "ref2", noteId: "fn2" });
+doc.addFootnoteRef("²", fnX, 50, { id: "ref2", noteId: "fn2", xNote: "25", yNote: "270" });
 
 // Third line
 doc.text("provides validation checkpoints for PDF/UA compliance.", 20, 60);
@@ -657,7 +657,7 @@ doc.endStructureElement();
 
 // Separator line as artifact (at page bottom)
 doc.beginArtifact({ type: "Layout" });
-doc.line(20, 258, 100, 258);
+doc.line(20, 258, 100, 253);
 doc.endArtifact();
 
 // Footnotes using the new convenience API
@@ -667,7 +667,7 @@ doc.addFootnote({
   label: "¹",
   text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
-  y: 265,
+  y: 260,
   labelX: 20,
   link: true
 });
@@ -675,9 +675,11 @@ doc.addFootnote({
 doc.addFootnote({
   id: "fn2",
   label: "²",
-  text: "PDF Association, Matterhorn Protocol 1.1",
+  text: ['PDF Association, Matterhorn Protocol 1.1', 'Second line continues here.'],
   x: 25,
-  y: 275,
+  y: 270,
+  xRef: fnX,
+  yRef: 50,
   labelX: 20,
   link: true
 });
@@ -832,7 +834,7 @@ doc.endStructureElement();
   doc.endAnnot();
 */
 doc.beginStructureElement("P");
-doc.text("Note: Annotation icons appear near the figures above.", 20, 250);
+doc.text("Note: Annotation icons appear near the figures above.", 20, 245);
 doc.endStructureElement();
 doc.endSect();
 
