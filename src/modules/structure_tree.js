@@ -2430,7 +2430,7 @@ import { jsPDF } from "../jspdf.js";
    * doc.addFootnote({
    *   id: 'fn2',
    *   label: '²',
-   *   text: ['First line of the footnote.', 'Second line continues here.'], // does not work yet
+   *   text: ['First line of the footnote.', 'Second line continues here.'],
    *   x: 25,
    *   y: 275,
    *   lineHeight: 10
