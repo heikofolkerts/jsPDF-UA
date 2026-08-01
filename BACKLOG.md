@@ -287,6 +287,44 @@ Kernbausteine:
 
 ---
 
+## Fussnoten-Sprungziele mit X-Position (Vergroesserung)
+
+**Prioritaet:** Hoch
+**Status:** Umgesetzt (Branch `feature/footnote-jump-horizontal`)
+**Erstellt:** 2026-08-01
+
+### Beschreibung
+
+Der Sprung zur Fussnote landete auf der richtigen Zeile, aber am linken
+Seitenrand: `/XYZ`-Ziele richten die linke obere Ecke des Viewports aus, und
+ohne X-Wert faellt der Reader auf den Seitenrand zurueck. Bei starker
+Vergroesserung ist das Ziel damit ausserhalb des Sichtfensters.
+
+Umgesetzt:
+
+- Ziel-Registry erfasst X und Y unabhaengig voneinander; nicht gesetzte Achsen
+  werden weiter automatisch aus dem ersten Inhalt erfasst
+- `addFootnoteRef({ xNote, yNote })` verankert das Vorwaerts-Sprungziel, auch
+  wenn die Fussnote erst spaeter gezeichnet wird
+- `addFootnote({ xRef, yRef })` / `addNoteBackLink(x, y, { xRef, yRef })`
+  verankern das Rueckwaerts-Sprungziel
+- Rueckverlinkung: das Fussnoten-Label ist selbst der Link
+  (`Note > Lbl > Link`), wird also nur einmal gezeichnet und vorgelesen; bei
+  gleicher Seite wird sie ueber `xRef`/`yRef` aktiviert
+- `left` benannter Ziele wird wie `top` von Nutzer-Einheiten in Punkte skaliert
+  (bisher unskaliert geschrieben)
+
+### Akzeptanzkriterien
+
+- [x] Vorwaerts- und Rueckwaerts-Sprung landen an X **und** Y der Zielstelle
+- [x] Explizite Angaben (`xNote`/`yNote`, `xRef`/`yRef`) haben Vorrang
+- [x] Label wird nicht doppelt gezeichnet/vorgelesen
+- [x] Unit-Tests fuer X-Ziel, Pinning und Rueckverlinkung
+- [x] veraPDF-Validierung besteht (Showcase)
+- [ ] PAC-Validierung (manuell unter Windows)
+
+---
+
 ## Inhaltsverzeichnis nutzt Destination-by-id-Subsystem (Phase 2)
 
 **Prioritaet:** Mittel

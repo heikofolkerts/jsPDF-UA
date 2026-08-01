@@ -51,7 +51,7 @@ doc.setLanguage("en-US");
 // ============================================================================
 // Bookmarks for Navigation (using outline API)
 // ============================================================================
-// Bookmarks link to the same heading targets as the TOC via the abstract targetId 
+// Bookmarks link to the same heading targets as the TOC via the abstract targetId
 // resolved from the markLinkTarget ids to a named destination by the outline at render time.
 // pageNumber stays as a fallback in case a destination ever fails to resolve.
 const bm = (parent, title, sectionId, pageNumber) =>
@@ -121,13 +121,21 @@ doc.beginSect();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("This document demonstrates all PDF/UA accessibility features implemented in jsPDF.", 20, 52);
+doc.text(
+  "This document demonstrates all PDF/UA accessibility features implemented in jsPDF.",
+  20,
+  52
+);
 //  doc.text('It serves as a comprehensive test case for accessibility validation tools.', 20, 59);
 doc.endStructureElement();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("It serves as a comprehensive test case for accessibility validation tools.", 20, 59);
+doc.text(
+  "It serves as a comprehensive test case for accessibility validation tools.",
+  20,
+  59
+);
 doc.endStructureElement();
 doc.endSect();
 
@@ -158,7 +166,12 @@ const tocItems = [
   { title: "9. Advanced Structure Elements ", page: 5, level: 1, id: "sec-9" },
   { title: "9.1 Article (Art) ", page: 5, level: 2, id: "sec-9-1" },
   { title: "9.2 Division (Div) ", page: 5, level: 2, id: "sec-9-2" },
-  { title: "9.3 Private (Application Data) ", page: 5, level: 2, id: "sec-9-3" },
+  {
+    title: "9.3 Private (Application Data) ",
+    page: 5,
+    level: 2,
+    id: "sec-9-3"
+  },
   { title: "10. Bibliography ", page: 6, level: 1, id: "sec-10" },
   { title: "11. Index ", page: 6, level: 1, id: "sec-11" }
 ];
@@ -243,7 +256,10 @@ doc.endStructureElement();
 // Formula
 doc.beginStructureElement("P");
 doc.text("Famous equation: ", 20, 274);
-doc.beginFormula({ alt: "E equals m times c squared, where E is energy, m is mass, and c is speed of light"});
+doc.beginFormula({
+  alt:
+    "E equals m times c squared, where E is energy, m is mass, and c is speed of light"
+});
 doc.text("E = mc²", 62, 274);
 doc.endFormula();
 doc.endStructureElement();
@@ -291,7 +307,11 @@ doc.setFontSize(11);
 doc.setFont(undefined, "normal");
 
 doc.beginStructureElement("L");
-const ulItems = ["First item in the list", "Second item with more text", "Third item"];
+const ulItems = [
+  "First item in the list",
+  "Second item with more text",
+  "Third item"
+];
 let ulY = 50;
 ulItems.forEach(item => {
   doc.beginStructureElement("LI");
@@ -317,7 +337,11 @@ doc.setFontSize(11);
 doc.setFont(undefined, "normal");
 
 doc.beginStructureElement("L");
-const olItems = ["Step one of the process", "Step two continues here", "Step three completes it"];
+const olItems = [
+  "Step one of the process",
+  "Step two continues here",
+  "Step three completes it"
+];
 let olY = 100;
 olItems.forEach((item, idx) => {
   doc.beginStructureElement("LI");
@@ -420,7 +444,9 @@ doc.setFont(undefined, "normal");
 doc.text("External link: ", 20, 253);
 doc.beginLink();
 doc.setTextColor(0, 0, 255);
-doc.textWithLink("jsPDF on GitHub", 52, 253, { url: "https://github.com/parallax/jsPDF"});
+doc.textWithLink("jsPDF on GitHub", 52, 253, {
+  url: "https://github.com/parallax/jsPDF"
+});
 doc.setTextColor(0, 0, 0);
 doc.endLink();
 doc.endStructureElement();
@@ -430,7 +456,9 @@ doc.beginStructureElement("P");
 doc.text("Internal link: ", 20, 265);
 doc.beginLink();
 doc.setTextColor(0, 0, 255);
-doc.textWithLink("Jump to Bibliography (Page 6)", 51, 265, { targetId: "sec-10"});
+doc.textWithLink("Jump to Bibliography (Page 6)", 51, 265, {
+  targetId: "sec-10"
+});
 doc.setTextColor(0, 0, 0);
 doc.endLink();
 doc.endStructureElement();
@@ -637,7 +665,15 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
-doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1", xNote: "25", yNote: "260" });
+// xNote/yNote pin where the forward jump lands, so the reader arrives at the
+// footnote itself instead of the left page edge (matters with magnification).
+const ref1X = fnX;
+doc.addFootnoteRef("¹", fnX, 40, {
+  id: "ref1",
+  noteId: "fn1",
+  xNote: 25,
+  yNote: 260
+});
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
 // Continue text
@@ -645,11 +681,23 @@ doc.text(" that ensures ", fnX, 40);
 
 // Second line: "PDFs can be read by assistive technologies. The Matterhorn Protocol²"
 fnX = 20;
-doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol ", fnX, 50);
-fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
+doc.text(
+  "PDFs can be read by assistive technologies. The Matterhorn Protocol ",
+  fnX,
+  50
+);
+fnX += doc.getTextWidth(
+  "PDFs can be read by assistive technologies. The Matterhorn Protocol"
+);
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
-doc.addFootnoteRef("²", fnX, 50, { id: "ref2", noteId: "fn2", xNote: "25", yNote: "270" });
+const ref2X = fnX;
+doc.addFootnoteRef("²", fnX, 50, {
+  id: "ref2",
+  noteId: "fn2",
+  xNote: 25,
+  yNote: 270
+});
 
 // Third line
 doc.text("provides validation checkpoints for PDF/UA compliance.", 20, 60);
@@ -660,14 +708,19 @@ doc.beginArtifact({ type: "Layout" });
 doc.line(20, 253, 100, 253);
 doc.endArtifact();
 
-// Footnotes using the new convenience API
+// Footnotes using the new convenience API.
+// xRef/yRef pin where the back jump lands (the reference in the running text)
+// and turn the footnote label into the back-link, even on the same page.
 doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
   label: "¹",
-  text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
+  text:
+    "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 260,
+  xRef: ref1X,
+  yRef: 40,
   labelX: 20,
   link: true
 });
@@ -675,10 +728,13 @@ doc.addFootnote({
 doc.addFootnote({
   id: "fn2",
   label: "²",
-  text: ['PDF Association, Matterhorn Protocol 1.1', 'Second line continues here.'],
+  text: [
+    "PDF Association, Matterhorn Protocol 1.1",
+    "Second line continues here."
+  ],
   x: 25,
   y: 270,
-  xRef: fnX,
+  xRef: ref2X,
   yRef: 50,
   labelX: 20,
   link: true
@@ -920,7 +976,11 @@ doc.endStructureElement();
 doc.beginStructureElement("P");
 doc.setFontSize(11);
 doc.setFont(undefined, "normal");
-doc.text("Private elements contain data not intended for screen readers:", 20, 112);
+doc.text(
+  "Private elements contain data not intended for screen readers:",
+  20,
+  112
+);
 doc.endStructureElement();
 
 doc.beginPrivate();
@@ -977,21 +1037,41 @@ doc.endStructureElement();
 doc.beginBibEntry();
 doc.setFontSize(10);
 doc.setFont(undefined, "normal");
-doc.text("[1] ISO 14289-1:2014. Document management — Electronic document file format", 25, 40);
-doc.text("    enhancement for accessibility — Part 1: Use of ISO 32000-1 (PDF/UA-1).", 25, 48);
+doc.text(
+  "[1] ISO 14289-1:2014. Document management — Electronic document file format",
+  25,
+  40
+);
+doc.text(
+  "    enhancement for accessibility — Part 1: Use of ISO 32000-1 (PDF/UA-1).",
+  25,
+  48
+);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[2] PDF Association. (2024). The Matterhorn Protocol 1.1. PDF Association.", 25, 62);
+doc.text(
+  "[2] PDF Association. (2024). The Matterhorn Protocol 1.1. PDF Association.",
+  25,
+  62
+);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[3] W3C. (2018). Web Content Accessibility Guidelines (WCAG) 2.1.", 25, 76);
+doc.text(
+  "[3] W3C. (2018). Web Content Accessibility Guidelines (WCAG) 2.1.",
+  25,
+  76
+);
 doc.text("    World Wide Web Consortium.", 25, 84);
 doc.endBibEntry();
 
 doc.beginBibEntry();
-doc.text("[4] Adobe. (2008). PDF Reference, Sixth Edition, Version 1.7.", 25, 98);
+doc.text(
+  "[4] Adobe. (2008). PDF Reference, Sixth Edition, Version 1.7.",
+  25,
+  98
+);
 doc.text("    Adobe Systems Incorporated.", 25, 106);
 doc.endBibEntry();
 doc.endSect();

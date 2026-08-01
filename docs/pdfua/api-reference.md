@@ -13,7 +13,7 @@ const doc = new jsPDF({ pdfUA: true });
 Sets the document title (required for PDF/UA).
 
 ```javascript
-doc.setDocumentTitle('My Document Title');
+doc.setDocumentTitle("My Document Title");
 ```
 
 ### setLanguage(lang)
@@ -21,9 +21,9 @@ doc.setDocumentTitle('My Document Title');
 Sets the document language (required for PDF/UA).
 
 ```javascript
-doc.setLanguage('en-US');  // English (US)
-doc.setLanguage('de-DE');  // German
-doc.setLanguage('fr-FR');  // French
+doc.setLanguage("en-US"); // English (US)
+doc.setLanguage("de-DE"); // German
+doc.setLanguage("fr-FR"); // French
 ```
 
 ---
@@ -35,12 +35,13 @@ doc.setLanguage('fr-FR');  // French
 Creates a structure element. All content must be within structure elements.
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('Paragraph text', 10, 20);
+doc.beginStructureElement("P");
+doc.text("Paragraph text", 10, 20);
 doc.endStructureElement();
 ```
 
 **Available types:**
+
 - Document structure: `Document`, `Part`, `Art`, `Sect`, `Div`
 - Headings: `H1`, `H2`, `H3`, `H4`, `H5`, `H6`
 - Block elements: `P`, `L`, `LI`, `Lbl`, `LBody`
@@ -50,6 +51,7 @@ doc.endStructureElement();
 - PDF 2.0: `DocumentFragment`, `Aside`
 
 **Attributes:**
+
 - `alt`: Alternative text (for Figure, Formula)
 - `lang`: Language override
 - `expansion`: Expansion text (for abbreviations)
@@ -62,7 +64,7 @@ doc.endStructureElement();
 
 ```javascript
 // These are equivalent:
-doc.beginStructureElement('H1');
+doc.beginStructureElement("H1");
 // ... content ...
 doc.endStructureElement();
 ```
@@ -70,49 +72,49 @@ doc.endStructureElement();
 ### Lists
 
 ```javascript
-doc.beginStructureElement('L');          // List
-  doc.beginStructureElement('LI');       // List Item
-    doc.beginStructureElement('Lbl');    // Label (bullet/number)
-    doc.text('1.', 10, 20);
-    doc.endStructureElement();
-    doc.beginStructureElement('LBody');  // List Body
-    doc.text('First item', 20, 20);
-    doc.endStructureElement();
-  doc.endStructureElement();
+doc.beginStructureElement("L"); // List
+doc.beginStructureElement("LI"); // List Item
+doc.beginStructureElement("Lbl"); // Label (bullet/number)
+doc.text("1.", 10, 20);
+doc.endStructureElement();
+doc.beginStructureElement("LBody"); // List Body
+doc.text("First item", 20, 20);
+doc.endStructureElement();
+doc.endStructureElement();
 doc.endStructureElement();
 ```
 
 ### Tables
 
 ```javascript
-doc.beginStructureElement('Table');
-  doc.beginTableHead();
-    doc.beginStructureElement('TR');
-      doc.beginStructureElement('TH', { scope: 'Column' });
-      doc.text('Header', 10, 20);
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endTableHead();
-  doc.beginTableBody();
-    doc.beginStructureElement('TR');
-      doc.beginStructureElement('TD');
-      doc.text('Data', 10, 35);
-      doc.endStructureElement();
-    doc.endStructureElement();
-  doc.endTableBody();
+doc.beginStructureElement("Table");
+doc.beginTableHead();
+doc.beginStructureElement("TR");
+doc.beginStructureElement("TH", { scope: "Column" });
+doc.text("Header", 10, 20);
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endTableHead();
+doc.beginTableBody();
+doc.beginStructureElement("TR");
+doc.beginStructureElement("TD");
+doc.text("Data", 10, 35);
+doc.endStructureElement();
+doc.endStructureElement();
+doc.endTableBody();
 doc.endStructureElement();
 ```
 
 ### Links
 
 ```javascript
-doc.beginLink('https://example.com');
-doc.text('Click here', 10, 20);
+doc.beginLink("https://example.com");
+doc.text("Click here", 10, 20);
 doc.endLink();
 
 // Internal link
 doc.beginLink({ pageNumber: 2, top: 100 });
-doc.text('Go to page 2', 10, 35);
+doc.text("Go to page 2", 10, 35);
 doc.endLink();
 ```
 
@@ -120,26 +122,26 @@ doc.endLink();
 
 ```javascript
 // Using convenience method (recommended)
-doc.beginFigure({ alt: 'Description of the image' });
-doc.addImage(imageData, 'PNG', x, y, width, height);
+doc.beginFigure({ alt: "Description of the image" });
+doc.addImage(imageData, "PNG", x, y, width, height);
 doc.endFigure();
 
 // With caption
-doc.beginFigure({ alt: 'Chart showing sales data' });
-doc.addImage(chartImage, 'PNG', 10, 50, 100, 80);
+doc.beginFigure({ alt: "Chart showing sales data" });
+doc.addImage(chartImage, "PNG", 10, 50, 100, 80);
 doc.beginCaption();
-doc.text('Figure 1: Quarterly Sales', 10, 135);
+doc.text("Figure 1: Quarterly Sales", 10, 135);
 doc.endCaption();
 doc.endFigure();
 ```
 
 **beginFigure options:**
 
-| Parameter | Description |
-|-----------|-------------|
-| `alt` | Alternative text (required for accessibility) |
-| `lang` | Language override |
-| `placement` | `'Block'` (default) or `'Inline'` |
+| Parameter   | Description                                   |
+| ----------- | --------------------------------------------- |
+| `alt`       | Alternative text (required for accessibility) |
+| `lang`      | Language override                             |
+| `placement` | `'Block'` (default) or `'Inline'`             |
 
 ---
 
@@ -148,12 +150,12 @@ doc.endFigure();
 ### Span (with language change)
 
 ```javascript
-doc.beginStructureElement('P');
-doc.text('This is English text with ', 10, 20);
-doc.beginSpan({ lang: 'fr-FR' });
-doc.text('un peu de français', 80, 20);
+doc.beginStructureElement("P");
+doc.text("This is English text with ", 10, 20);
+doc.beginSpan({ lang: "fr-FR" });
+doc.text("un peu de français", 80, 20);
 doc.endSpan();
-doc.text(' mixed in.', 140, 20);
+doc.text(" mixed in.", 140, 20);
 doc.endStructureElement();
 ```
 
@@ -161,11 +163,11 @@ doc.endStructureElement();
 
 ```javascript
 doc.beginStrong();
-doc.text('Important text', 10, 20);
+doc.text("Important text", 10, 20);
 doc.endStrong();
 
 doc.beginEm();
-doc.text('Emphasized text', 10, 35);
+doc.text("Emphasized text", 10, 35);
 doc.endEm();
 ```
 
@@ -174,13 +176,13 @@ doc.endEm();
 ```javascript
 // Inline quote
 doc.beginQuote();
-doc.text('To be or not to be', 10, 20);
+doc.text("To be or not to be", 10, 20);
 doc.endQuote();
 
 // Block quote
 doc.beginBlockQuote();
-doc.beginStructureElement('P');
-doc.text('A longer quotation...', 10, 35);
+doc.beginStructureElement("P");
+doc.text("A longer quotation...", 10, 35);
 doc.endStructureElement();
 doc.endBlockQuote();
 ```
@@ -190,37 +192,37 @@ doc.endBlockQuote();
 ```javascript
 // Inline code
 doc.beginCode();
-doc.text('const x = 42;', 10, 20);
+doc.text("const x = 42;", 10, 20);
 doc.endCode();
 
 // Block-level code (with Placement attribute for PAC compliance)
-doc.beginCode({ placement: 'Block' });
-doc.text('function hello() {', 10, 35);
+doc.beginCode({ placement: "Block" });
+doc.text("function hello() {", 10, 35);
 doc.text('  console.log("Hi");', 10, 45);
-doc.text('}', 10, 55);
+doc.text("}", 10, 55);
 doc.endCode();
 ```
 
 **beginCode options:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `lang` | - | Language override |
-| `placement` | - | `'Block'` for block-level code (PAC requirement) |
+| Parameter   | Default | Description                                      |
+| ----------- | ------- | ------------------------------------------------ |
+| `lang`      | -       | Language override                                |
+| `placement` | -       | `'Block'` for block-level code (PAC requirement) |
 
 ### Abbreviations
 
 ```javascript
-doc.beginAbbreviation('World Wide Web');
-doc.text('WWW', 10, 20);
+doc.beginAbbreviation("World Wide Web");
+doc.text("WWW", 10, 20);
 doc.endAbbreviation();
 ```
 
 ### Formulas
 
 ```javascript
-doc.beginFormula({ alt: 'E equals m times c squared' });
-doc.text('E = mc²', 10, 20);
+doc.beginFormula({ alt: "E equals m times c squared" });
+doc.text("E = mc²", 10, 20);
 doc.endFormula();
 ```
 
@@ -228,27 +230,87 @@ doc.endFormula();
 
 ## Footnotes and References
 
-### addFootnote(options)
-
-High-level method that creates a complete footnote with reference mark, note text, and back-link:
-
-```javascript
-doc.addFootnote({
-  refMark: '1',           // Reference mark shown in text
-  refX: 80, refY: 40,     // Position of reference mark
-  noteText: '1 Source: Einstein, 1905',
-  noteX: 20, noteY: 270,  // Position of footnote text
-  noteId: 'fn1'           // Unique ID for linking
-});
-```
+A footnote consists of two calls: `addFootnoteRef()` for the superscript mark in
+the running text (structure `Reference > Lbl > Link`) and `addFootnote()` for the
+note itself at the page bottom (structure `Note > Lbl > P`). The forward link is
+created automatically from the reference to the note.
 
 ### addFootnoteRef(label, x, y, options)
 
-Adds just the superscript reference mark in the text body:
+Adds the superscript reference mark in the text body and links it to the note:
 
 ```javascript
-doc.addFootnoteRef('1', 80, 40, { noteId: 'fn1', fontSize: 8, yOffset: -3 });
+doc.addFootnoteRef("1", 80, 40, { noteId: "fn1", fontSize: 8, yOffset: -3 });
 ```
+
+| Parameter  | Default        | Description                                       |
+| ---------- | -------------- | ------------------------------------------------- |
+| `noteId`   | -              | ID of the `Note` this reference points to         |
+| `link`     | `true`         | Create the clickable forward link                 |
+| `fontSize` | 70% of current | Font size of the mark                             |
+| `yOffset`  | `-2`           | Superscript offset                                |
+| `xNote`    | derived        | X the forward jump lands on (user units)          |
+| `yNote`    | derived        | Y baseline the forward jump lands on (user units) |
+
+### addFootnote(options)
+
+Renders the complete note with label, text and (optionally) the back-link:
+
+```javascript
+doc.addFootnote({
+  id: "fn1", // must match the reference's noteId
+  label: "1",
+  text: "Source: Einstein, 1905",
+  x: 25,
+  y: 270, // note text position
+  labelX: 20, // label position (default: x - 5)
+  xRef: 80,
+  yRef: 40 // where the back-link jumps to
+});
+```
+
+| Parameter    | Default        | Description                                    |
+| ------------ | -------------- | ---------------------------------------------- |
+| `id`         | auto           | Unique note ID (`Note` `/ID`)                  |
+| `label`      | -              | Label text (`Lbl`)                             |
+| `text`       | -              | Note text; array for multiple lines            |
+| `x`, `y`     | -              | Position of the note text                      |
+| `labelX`     | `x - 5`        | Position of the label                          |
+| `lineHeight` | `8`            | Line spacing for multiline text                |
+| `placement`  | `'Block'`      | PAC requirement for block-level notes          |
+| `link`       | `true`         | Create the back-link                           |
+| `xRef`       | recorded ref X | X the back-link jumps to (user units)          |
+| `yRef`       | recorded ref Y | Y baseline the back-link jumps to (user units) |
+
+### Jump positions (X and Y)
+
+Both jumps are `/XYZ` destinations, which position the viewport by its **top left
+corner**. A destination without an X makes the viewer fall back to the left page
+edge — the reader lands on the right line but scrolled to the margin, which hides
+the target for anyone using strong magnification.
+
+Both directions therefore carry an X and a Y:
+
+- **Forward jump (reference → note):** derived from the note's label position.
+  Pin it explicitly with `xNote`/`yNote` on `addFootnoteRef()` — useful when the
+  note is laid out by hand or drawn after the reference.
+- **Back jump (note → reference):** derived from the recorded reference
+  position. Pin it explicitly with `xRef`/`yRef` on `addFootnote()`.
+
+Both destinations are shifted up and left by about one line height so the target
+keeps a little context instead of touching the viewport edge.
+
+The back-link turns the note's label into a link (`Note > Lbl > Link`), so the
+label is rendered once and announced once. It is created automatically when the
+reference sits on another page. For a reference on the **same page** it is only
+created when `xRef` or `yRef` is given — without magnification a same-page jump
+has no visible effect, with magnification it does.
+
+### addNoteBackLink(x, y, options)
+
+Low-level back-link for manually authored notes. Call it inside
+`beginNote()`/`endNote()`; `options.xRef`/`options.yRef` pin the jump target as
+above.
 
 ### Manual footnotes (low-level)
 
@@ -256,16 +318,16 @@ For full control over footnote structure:
 
 ```javascript
 // In main text
-doc.beginStructureElement('P');
-doc.text('Einstein developed relativity', 10, 20);
+doc.beginStructureElement("P");
+doc.text("Einstein developed relativity", 10, 20);
 doc.beginReference();
-doc.text('¹', 95, 20);
+doc.text("¹", 95, 20);
 doc.endReference();
 doc.endStructureElement();
 
 // Footnote at page bottom
 doc.beginNote();
-doc.text('¹ Albert Einstein, 1905', 10, 250);
+doc.text("¹ Albert Einstein, 1905", 10, 250);
 doc.endNote();
 ```
 
@@ -282,17 +344,17 @@ and dot leaders. Automatically wraps in TOCI > Link structure.
 doc.beginTOC();
 
 doc.addTOCEntry({
-  title: 'Chapter 1: Introduction',
+  title: "Chapter 1: Introduction",
   page: 1,
   y: 30,
-  level: 1        // Heading level (1-6), controls indentation
+  level: 1 // Heading level (1-6), controls indentation
 });
 
 doc.addTOCEntry({
-  title: '1.1 Background',
+  title: "1.1 Background",
   page: 3,
   y: 37,
-  level: 2        // Indented sub-entry
+  level: 2 // Indented sub-entry
 });
 
 doc.endTOC();
@@ -300,17 +362,17 @@ doc.endTOC();
 
 **Options:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `title` | `''` | Entry title text |
-| `page` | `1` | Target page number |
-| `y` | - | Y position (mm) |
-| `level` | `1` | Heading level (1-6) |
-| `indent` | `20` | Base left indent (mm) |
-| `subIndent` | `10` | Additional indent per sub-level (mm) |
-| `rightMargin` | `190` | Right edge for page numbers (mm) |
-| `dotChar` | `'.'` | Dot leader character |
-| `gap` | `2` | Min gap between title/page number (mm) |
+| Parameter     | Default | Description                            |
+| ------------- | ------- | -------------------------------------- |
+| `title`       | `''`    | Entry title text                       |
+| `page`        | `1`     | Target page number                     |
+| `y`           | -       | Y position (mm)                        |
+| `level`       | `1`     | Heading level (1-6)                    |
+| `indent`      | `20`    | Base left indent (mm)                  |
+| `subIndent`   | `10`    | Additional indent per sub-level (mm)   |
+| `rightMargin` | `190`   | Right edge for page numbers (mm)       |
+| `dotChar`     | `'.'`   | Dot leader character                   |
+| `gap`         | `2`     | Min gap between title/page number (mm) |
 
 ### Manual TOC (low-level)
 
@@ -318,11 +380,11 @@ For full control over TOC entry rendering:
 
 ```javascript
 doc.beginTOC();
-  doc.beginTOCI();
-  doc.beginLink({ pageNumber: 1 });
-  doc.text('Chapter 1 ..... 1', 10, 20);
-  doc.endLink();
-  doc.endTOCI();
+doc.beginTOCI();
+doc.beginLink({ pageNumber: 1 });
+doc.text("Chapter 1 ..... 1", 10, 20);
+doc.endLink();
+doc.endTOCI();
 doc.endTOC();
 ```
 
@@ -337,25 +399,25 @@ Use these elements to organize document content hierarchically:
 ```javascript
 // Part - Major division (books, volumes)
 doc.beginPart();
-  // Part content...
+// Part content...
 doc.endPart();
 
 // Art - Self-contained article
 doc.beginArt();
-  // Article content...
+// Article content...
 doc.endArt();
 
 // Sect - Section within a part
 doc.beginSect();
-  doc.beginStructureElement('H2');
-  doc.text('Section Title', 10, 20);
-  doc.endStructureElement();
-  // Section content...
+doc.beginStructureElement("H2");
+doc.text("Section Title", 10, 20);
+doc.endStructureElement();
+// Section content...
 doc.endSect();
 
 // Div - Generic container for layout grouping
 doc.beginDiv();
-  // Grouped content...
+// Grouped content...
 doc.endDiv();
 ```
 
@@ -363,10 +425,10 @@ doc.endDiv();
 
 ```javascript
 doc.beginSect();
-  doc.beginStructureElement('H2');
-  doc.text('Section Title', 10, 20);
-  doc.endStructureElement();
-  // Section content...
+doc.beginStructureElement("H2");
+doc.text("Section Title", 10, 20);
+doc.endStructureElement();
+// Section content...
 doc.endSect();
 ```
 
@@ -375,10 +437,10 @@ doc.endSect();
 For excerpts from other documents:
 
 ```javascript
-doc.beginDocumentFragment({ lang: 'en-US' });
-  doc.beginStructureElement('P');
-  doc.text('Excerpt from another document...', 10, 20);
-  doc.endStructureElement();
+doc.beginDocumentFragment({ lang: "en-US" });
+doc.beginStructureElement("P");
+doc.text("Excerpt from another document...", 10, 20);
+doc.endStructureElement();
 doc.endDocumentFragment();
 ```
 
@@ -388,12 +450,12 @@ For sidebars and tangentially related content:
 
 ```javascript
 doc.beginAside();
-  doc.beginStructureElement('H3');
-  doc.text('Did You Know?', 120, 20);
-  doc.endStructureElement();
-  doc.beginStructureElement('P');
-  doc.text('Interesting fact...', 120, 35);
-  doc.endStructureElement();
+doc.beginStructureElement("H3");
+doc.text("Did You Know?", 120, 20);
+doc.endStructureElement();
+doc.beginStructureElement("P");
+doc.text("Interesting fact...", 120, 35);
+doc.endStructureElement();
 doc.endAside();
 ```
 
@@ -403,10 +465,10 @@ For grouping elements without semantic meaning. Content IS read by screen reader
 
 ```javascript
 doc.beginNonStruct();
-  // Layout-grouped content that should be read
-  doc.beginStructureElement('P');
-  doc.text('This content is read normally', 10, 20);
-  doc.endStructureElement();
+// Layout-grouped content that should be read
+doc.beginStructureElement("P");
+doc.text("This content is read normally", 10, 20);
+doc.endStructureElement();
 doc.endNonStruct();
 ```
 
@@ -416,8 +478,8 @@ For content that should be ignored by screen readers:
 
 ```javascript
 doc.beginPrivate();
-  // Internal processing content - NOT read by screen readers
-  doc.text('Internal metadata', 10, 20);
+// Internal processing content - NOT read by screen readers
+doc.text("Internal metadata", 10, 20);
 doc.endPrivate();
 ```
 
@@ -432,16 +494,16 @@ For decorative content not meant for screen readers:
 ```javascript
 // Simple artifact
 doc.beginArtifact();
-doc.text('Page decoration', 10, 290);
+doc.text("Page decoration", 10, 290);
 doc.endArtifact();
 
 // Typed artifact (header/footer)
-doc.beginArtifact({ type: 'Pagination', subtype: 'Header' });
-doc.text('Company Name', 10, 10);
+doc.beginArtifact({ type: "Pagination", subtype: "Header" });
+doc.text("Company Name", 10, 10);
 doc.endArtifact();
 
-doc.beginArtifact({ type: 'Pagination', subtype: 'Footer' });
-doc.text('Page 1', 100, 290);
+doc.beginArtifact({ type: "Pagination", subtype: "Footer" });
+doc.text("Page 1", 100, 290);
 doc.endArtifact();
 ```
 
@@ -451,11 +513,11 @@ Shorthand for pagination artifacts:
 
 ```javascript
 doc.beginHeader();
-doc.text('Document Title', 20, 10);
+doc.text("Document Title", 20, 10);
 doc.endHeader();
 
 doc.beginFooter();
-doc.text('Page ' + pageNum, 100, 290);
+doc.text("Page " + pageNum, 100, 290);
 doc.endFooter();
 ```
 
@@ -468,27 +530,27 @@ doc.endFooter();
 Wraps form fields in a `Form` structure element for PDF/UA compliance:
 
 ```javascript
-doc.beginFormField({ label: 'Full Name', required: true, placement: 'Block' });
-doc.createTextField('name', 50, 100, 100, 20, {
-  value: '',
+doc.beginFormField({ label: "Full Name", required: true, placement: "Block" });
+doc.createTextField("name", 50, 100, 100, 20, {
+  value: "",
   required: true
 });
 doc.endFormField();
 
 // Checkbox
-doc.beginFormField({ label: 'I agree to the terms' });
-doc.createCheckBox('agree', 50, 130, 15, 15, {});
+doc.beginFormField({ label: "I agree to the terms" });
+doc.createCheckBox("agree", 50, 130, 15, 15, {});
 doc.endFormField();
 ```
 
 **beginFormField options:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `label` | - | Accessible label for the field |
-| `required` | `false` | Whether the field is required |
-| `placement` | `'Block'` | `'Block'` or `'Inline'` |
-| `lang` | - | Language override |
+| Parameter   | Default   | Description                    |
+| ----------- | --------- | ------------------------------ |
+| `label`     | -         | Accessible label for the field |
+| `required`  | `false`   | Whether the field is required  |
+| `placement` | `'Block'` | `'Block'` or `'Inline'`        |
+| `lang`      | -         | Language override              |
 
 ---
 
@@ -496,11 +558,11 @@ doc.endFormField();
 
 ```javascript
 // Text annotation (sticky note)
-doc.beginAnnot({ alt: 'Comment about this section' });
+doc.beginAnnot({ alt: "Comment about this section" });
 const annotId = doc.createAnnotation({
-  type: 'text',
-  title: 'Reviewer',
-  contents: 'Please verify this information',
+  type: "text",
+  title: "Reviewer",
+  contents: "Please verify this information",
   bounds: { x: 180, y: 35, w: 20, h: 20 }
 });
 if (annotId) doc.addAnnotationRef(annotId);
@@ -515,9 +577,9 @@ doc.endAnnot();
 
 ```javascript
 // Add bookmarks for navigation
-doc.addBookmark('Chapter 1', 1, 0);      // Page 1, top
-doc.addBookmark('Section 1.1', 1, 100);  // Page 1, y=100
-doc.addBookmark('Chapter 2', 2, 0);      // Page 2, top
+doc.addBookmark("Chapter 1", 1, 0); // Page 1, top
+doc.addBookmark("Section 1.1", 1, 100); // Page 1, y=100
+doc.addBookmark("Chapter 2", 2, 0); // Page 2, top
 ```
 
 ---
@@ -526,18 +588,18 @@ doc.addBookmark('Chapter 2', 2, 0);      // Page 2, top
 
 ```javascript
 doc.beginBibliography();
-  doc.beginBibEntry({ placement: 'Block' });
-  doc.text('[1] Smith, J. (2024). Title. Publisher.', 10, 20);
-  doc.endBibEntry();
+doc.beginBibEntry({ placement: "Block" });
+doc.text("[1] Smith, J. (2024). Title. Publisher.", 10, 20);
+doc.endBibEntry();
 doc.endBibliography();
 ```
 
 **beginBibEntry options:**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
+| Parameter   | Default   | Description                                        |
+| ----------- | --------- | -------------------------------------------------- |
 | `placement` | `'Block'` | `'Block'` for standalone entries (PAC requirement) |
-| `lang` | - | Language override |
+| `lang`      | -         | Language override                                  |
 
 ---
 
@@ -549,8 +611,8 @@ Convenience method that renders a formatted index entry:
 
 ```javascript
 doc.beginIndex();
-doc.addIndexEntry('Accessibility', '12, 45, 67', 20, 30);
-doc.addIndexEntry('PDF/UA', '1, 5', 20, 37, { lang: 'en-US' });
+doc.addIndexEntry("Accessibility", "12, 45, 67", 20, 30);
+doc.addIndexEntry("PDF/UA", "1, 5", 20, 37, { lang: "en-US" });
 doc.endIndex();
 ```
 
@@ -558,9 +620,9 @@ doc.endIndex();
 
 ```javascript
 doc.beginIndex();
-  doc.beginStructureElement('P');
-  doc.text('Accessibility, 12, 45, 67', 10, 20);
-  doc.endStructureElement();
+doc.beginStructureElement("P");
+doc.text("Accessibility, 12, 45, 67", 10, 20);
+doc.endStructureElement();
 doc.endIndex();
 ```
 
@@ -573,24 +635,24 @@ For East Asian typography:
 ```javascript
 // Ruby (pronunciation guide)
 doc.beginRuby();
-  doc.beginRubyBaseText();
-  doc.text('漢字', 10, 20);
-  doc.endRubyBaseText();
-  doc.beginRubyText();
-  doc.text('かんじ', 10, 15);
-  doc.endRubyText();
+doc.beginRubyBaseText();
+doc.text("漢字", 10, 20);
+doc.endRubyBaseText();
+doc.beginRubyText();
+doc.text("かんじ", 10, 15);
+doc.endRubyText();
 doc.endRuby();
 
 // Warichu (inline annotation)
 doc.beginWarichu();
-  doc.beginWarichuPunctuation();
-  doc.text('(', 10, 20);
-  doc.endWarichuPunctuation();
-  doc.beginWarichuText();
-  doc.text('annotation', 15, 20);
-  doc.endWarichuText();
-  doc.beginWarichuPunctuation();
-  doc.text(')', 50, 20);
-  doc.endWarichuPunctuation();
+doc.beginWarichuPunctuation();
+doc.text("(", 10, 20);
+doc.endWarichuPunctuation();
+doc.beginWarichuText();
+doc.text("annotation", 15, 20);
+doc.endWarichuText();
+doc.beginWarichuPunctuation();
+doc.text(")", 50, 20);
+doc.endWarichuPunctuation();
 doc.endWarichu();
 ```
