@@ -637,6 +637,8 @@ doc.text("PDF/UA (Universal Accessibility) is an ISO standard", fnX, 40);
 fnX += doc.getTextWidth("PDF/UA (Universal Accessibility) is an ISO standard");
 
 // Footnote reference ¹ - directly after "ISO standard" (explains the ISO standard)
+// xNote/yNote pin where the forward jump lands, so the reader arrives at the footnote itself
+const ref1X = fnX;
 doc.addFootnoteRef("¹", fnX, 40, { id: "ref1", noteId: "fn1", xNote: "25", yNote: "260" });
 fnX += doc.getTextWidth("¹") * 0.7 + 1;
 
@@ -649,6 +651,7 @@ doc.text("PDFs can be read by assistive technologies. The Matterhorn Protocol ",
 fnX += doc.getTextWidth("PDFs can be read by assistive technologies. The Matterhorn Protocol");
 
 // Footnote reference ² - directly after "Matterhorn Protocol" (explains the protocol)
+const ref2X = fnX;
 doc.addFootnoteRef("²", fnX, 50, { id: "ref2", noteId: "fn2", xNote: "25", yNote: "270" });
 
 // Third line
@@ -661,6 +664,8 @@ doc.line(20, 253, 100, 253);
 doc.endArtifact();
 
 // Footnotes using the new convenience API
+// xRef/yRef pin where the back jump lands (the reference in the running text)
+// and turn the footnote label into the back-link, even on the same page.
 doc.setFontSize(9);
 doc.addFootnote({
   id: "fn1",
@@ -668,6 +673,8 @@ doc.addFootnote({
   text: "ISO 14289-1:2014, Document management — Electronic document file format enhancement for accessibility",
   x: 25,
   y: 260,
+  xRef: ref1X,
+  yRef: 40,
   labelX: 20,
   link: true
 });
@@ -678,7 +685,7 @@ doc.addFootnote({
   text: ['PDF Association, Matterhorn Protocol 1.1', 'Second line continues here.'],
   x: 25,
   y: 270,
-  xRef: fnX,
+  xRef: ref2X,
   yRef: 50,
   labelX: 20,
   link: true
