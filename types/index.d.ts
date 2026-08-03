@@ -797,6 +797,32 @@ declare module "jspdf" {
     placement?: "Block" | "Inline";
     /** Language code */
     lang?: string;
+    /** X position of the note (link destination); omit to auto-capture */
+    x?: number;
+    /** Y baseline of the note (link destination); omit to auto-capture */
+    y?: number;
+    /** Disable the automatic back-link to the reference */
+    noBackLink?: boolean;
+    /** Screen reader announcement text (null/false to disable) */
+    announceText?: string | null | false;
+  }
+
+  /** Options for addFootnoteRef convenience method */
+  export interface FootnoteRefOptions {
+    /** ID of this reference */
+    id?: string;
+    /** ID of the Note this reference points to */
+    noteId?: string;
+    /** Font size for the label (default: 70% of current) */
+    fontSize?: number;
+    /** Y offset for the superscript effect (default: -2) */
+    yOffset?: number;
+    /** Create the clickable forward link (default: true) */
+    link?: boolean;
+    /** X position the forward jump lands on (user units) */
+    xNote?: number;
+    /** Y baseline the forward jump lands on (user units) */
+    yNote?: number;
   }
 
   /** Options for addFootnote convenience method */
@@ -805,8 +831,8 @@ declare module "jspdf" {
     id?: string;
     /** Footnote label (e.g., '1', '*', '†') */
     label: string;
-    /** Footnote text content */
-    text: string;
+    /** Footnote text content (array for multiple lines) */
+    text: string | string[];
     /** X position for footnote text */
     x: number;
     /** Y position for footnote text */
@@ -815,10 +841,28 @@ declare module "jspdf" {
     labelX?: number;
     /** Y position for label in text (defaults to current y) */
     labelY?: number;
+    /** Font size for the label (default: 80% of current) */
+    labelFontSize?: number;
+    /** Line spacing for multiline text (default: 8) */
+    lineHeight?: number;
     /** Placement attribute */
     placement?: "Block" | "Inline";
+    /** Create the back-link to the reference (default: true) */
+    link?: boolean;
+    /** X position the back-link jumps to (user units) */
+    xRef?: number;
+    /** Y baseline the back-link jumps to (user units) */
+    yRef?: number;
     /** Screen reader announcement text (null to disable) */
     announceText?: string | null;
+  }
+
+  /** Options for addNoteBackLink */
+  export interface NoteBackLinkOptions {
+    /** X position the back-link jumps to (user units) */
+    xRef?: number;
+    /** Y baseline the back-link jumps to (user units) */
+    yRef?: number;
   }
 
   /** Options for Caption element */
@@ -1891,11 +1935,35 @@ declare module "jspdf" {
     endReference(): jsPDF;
 
     /**
+     * Add a footnote reference mark (Reference > Lbl > Link) in the text body
+     * @param label - Label text (e.g., '1', '*', '†')
+     * @param x - X position of the label
+     * @param y - Y baseline of the label
+     * @param options - Optional reference settings
+     * @returns jsPDF instance for chaining
+     */
+    addFootnoteRef(
+      label: string,
+      x: number,
+      y: number,
+      options?: FootnoteRefOptions
+    ): jsPDF;
+
+    /**
      * Add a complete footnote with reference and note
      * @param options - Footnote options
      * @returns jsPDF instance for chaining
      */
     addFootnote(options: FootnoteOptions): jsPDF;
+
+    /**
+     * Add a back-link from the current Note to its reference
+     * @param x - X position of the back-link label
+     * @param y - Y baseline of the back-link label
+     * @param options - Optional jump-target overrides
+     * @returns jsPDF instance for chaining
+     */
+    addNoteBackLink(x: number, y: number, options?: NoteBackLinkOptions): jsPDF;
 
     // Caption element
     /**

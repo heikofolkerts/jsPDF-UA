@@ -81,6 +81,42 @@ import { jsPDF } from "../jspdf.js";
   }
 
   /**
+   * Convert a target X coordinate into a link destination left edge (both in
+   * user units).
+   *
+   * A /XYZ destination aligns the viewport's left edge with the destination X.
+   * Without an X the viewer falls back to the left page edge, which scrolls the
+   * target out of view for readers using strong magnification. Shift the
+   * destination left by the same amount used vertically so the target keeps a
+   * little context (e.g. the footnote label preceding the note text).
+   *
+   * @param {jsPDF} doc - jsPDF instance (for font size and unit scale)
+   * @param {number} x - Target X in user units
+   * @returns {number} Destination left in user units (clamped to >= 0)
+   */
+  function footnoteDestLeft(doc, x) {
+    var left = (x || 0) - destLineShift(doc);
+    return left > 0 ? left : 0;
+  }
+
+  /**
+   * Coerce a user-supplied coordinate to a number.
+   * Positions are frequently authored as strings (e.g. xNote: "25"); a string
+   * would survive the arithmetic but break the isNaN/undefined checks further
+   * down, so normalize once at the API boundary.
+   *
+   * @param {number|string} value
+   * @returns {number|undefined} the number, or undefined if not usable
+   */
+  function toCoordinate(value) {
+    if (value === undefined || value === null || value === "") {
+      return undefined;
+    }
+    var num = typeof value === "number" ? value : parseFloat(value);
+    return isNaN(num) ? undefined : num;
+  }
+
+  /**
    * Generic "destination by id" subsystem.
    *
    * An element opened with a user id (e.g. "n_1", "t_2.1") can be used as a
@@ -106,22 +142,96 @@ import { jsPDF } from "../jspdf.js";
    * @param {Object} [opts]
    * @param {string} [opts.destName] - named-destination name to register
    *        (defaults to "__sid_" + userId)
-   * @param {number} [opts.x] - explicit X override (user units)
+   * @param {number} [opts.x] - explicit X override (user units); when given,
+   *        auto-capture of X is disabled for this id
    * @param {number} [opts.y] - explicit baseline Y override (user units); when
-   *        given, -capture is disabled for this id
+   *        given, auto-capture of Y is disabled for this id
+   *
+   * X and Y are independent: an element may pin one axis and auto-capture the
+   * other. Overrides seeded before the element existed (see
+   * seedDestinationOverride, used for addFootnoteRef's xNote/yNote) win over
+   * the values passed here, because they are the more specific statement about
+   * where the jump should land.
    */
   function armDestinationCapture(api, element, userId, opts) {
     opts = opts || {};
     var reg = ensureDestRegistry(api);
-    var hasExplicitY = opts.y !== undefined && opts.y !== null;
+    var prev = reg[userId];
+    var x = toCoordinate(opts.x);
+    var y = toCoordinate(opts.y);
+
+    // Carry over overrides seeded before this element was armed.
+    if (prev && prev.seeded) {
+      if (prev.explicitX) {
+        x = prev.x;
+      }
+      if (prev.explicitY) {
+        y = prev.baselineY;
+      }
+    }
+
     reg[userId] = {
       element: element,
       destName: opts.destName || "__sid_" + userId,
       page: api.internal.getCurrentPageInfo().pageNumber,
-      baselineY: hasExplicitY ? opts.y : Infinity,
-      x: opts.x !== undefined ? opts.x : 0,
+      baselineY: y !== undefined ? y : Infinity,
+      x: x !== undefined ? x : 0,
       lineShift: destLineShift(api),
-      explicit: hasExplicitY
+      explicitX: x !== undefined,
+      explicitY: y !== undefined,
+      captured: false
+    };
+  }
+
+  /**
+   * Pre-seed an explicit position override for a destination id whose structure
+   * element does not exist yet (forward reference).
+   *
+   * Used by addFootnoteRef({ xNote, yNote }): the reference is authored before
+   * the Note, and the note's own layout values must not silently overrule the
+   * position the author pinned here.
+   *
+   * @param {jsPDF} api
+   * @param {string} userId - destination id (the note's id)
+   * @param {string} destName - named-destination name to register under
+   * @param {number} [x] - explicit X override (user units)
+   * @param {number} [y] - explicit baseline Y override (user units)
+   */
+  function seedDestinationOverride(api, userId, destName, x, y) {
+    x = toCoordinate(x);
+    y = toCoordinate(y);
+    if (x === undefined && y === undefined) {
+      return;
+    }
+    var reg = ensureDestRegistry(api);
+    var entry = reg[userId];
+
+    if (entry) {
+      // The element is already armed (note authored before the reference):
+      // tighten the existing entry instead of dropping its element link.
+      if (x !== undefined) {
+        entry.x = x;
+        entry.explicitX = true;
+      }
+      if (y !== undefined) {
+        entry.baselineY = y;
+        entry.explicitY = true;
+      }
+      entry.seeded = true;
+      return;
+    }
+
+    reg[userId] = {
+      element: null,
+      destName: destName,
+      page: api.internal.getCurrentPageInfo().pageNumber,
+      baselineY: y !== undefined ? y : Infinity,
+      x: x !== undefined ? x : 0,
+      lineShift: destLineShift(api),
+      explicitX: x !== undefined,
+      explicitY: y !== undefined,
+      captured: false,
+      seeded: true
     };
   }
 
@@ -144,12 +254,18 @@ import { jsPDF } from "../jspdf.js";
       var uid = elem.attributes && elem.attributes.id;
       if (uid && reg[uid] && reg[uid].element === elem) {
         var entry = reg[uid];
-        // Capture the first content drawn (top of the element); explicit
-        // overrides are left untouched.
-        if (!entry.explicit && entry.baselineY === Infinity) {
-          entry.baselineY = y;
-          entry.x = x;
-          entry.page = page;
+        // Capture the first content drawn (top of the element); each axis is
+        // filled only when it carries no explicit override, so a note may pin
+        // its Y and still take its X from the content (or vice versa).
+        if (!entry.captured) {
+          entry.captured = true;
+          if (!entry.explicitY) {
+            entry.baselineY = y;
+            entry.page = page;
+          }
+          if (!entry.explicitX) {
+            entry.x = x;
+          }
         }
       }
       elem = elem.parent;
@@ -178,10 +294,16 @@ import { jsPDF } from "../jspdf.js";
       if (top < 0) {
         top = 0;
       }
+      // Same shift horizontally: the viewport's left edge lands slightly left
+      // of the target so it stays visible under strong magnification.
+      var left = (entry.x || 0) - entry.lineShift;
+      if (left < 0) {
+        left = 0;
+      }
       this.addNamedDestination(entry.destName, {
         pageNumber: entry.page,
         top: top,
-        left: entry.x || 0
+        left: left
       });
     }
   };
@@ -266,10 +388,12 @@ import { jsPDF } from "../jspdf.js";
     // even before any content position is captured. The real position is
     // refined at output time by finalizeStructureDestinations.
     if (this.addNamedDestination) {
-      var hasExplicitY = options.y !== undefined && options.y !== null;
+      var eagerY = toCoordinate(options.y);
+      var eagerX = toCoordinate(options.x);
       this.addNamedDestination(destName, {
         pageNumber: this.internal.getCurrentPageInfo().pageNumber,
-        top: footnoteDestTop(this, hasExplicitY ? options.y : 0)
+        top: footnoteDestTop(this, eagerY !== undefined ? eagerY : 0),
+        left: footnoteDestLeft(this, eagerX !== undefined ? eagerX : 0)
       });
     }
 
@@ -2123,6 +2247,11 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} [options.fontSize] - Font size for the label (default: 70% of current)
    * @param {number} [options.yOffset] - Y offset for superscript effect (default: -2)
    * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the footnote
+   * @param {number} [options.xNote] - X position of the note the link jumps to
+   *        (user units). Pins the horizontal landing position of the forward
+   *        jump instead of deriving it from the note's own content.
+   * @param {number} [options.yNote] - Y baseline of the note the link jumps to
+   *        (user units). Pins the vertical landing position.
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
    * @example
@@ -2135,6 +2264,9 @@ import { jsPDF } from "../jspdf.js";
    *
    * // With custom formatting
    * doc.addFootnoteRef('*', 100, 50, { noteId: 'fn2', fontSize: 8, yOffset: -3 });
+   *
+   * // Pin the exact landing position of the jump (X and Y of the note)
+   * doc.addFootnoteRef('¹', 80, 40, { noteId: 'fn1', xNote: 25, yNote: 260 });
    */
   jsPDFAPI.addFootnoteRef = function(label, x, y, options) {
     options = options || {};
@@ -2144,6 +2276,18 @@ import { jsPDF } from "../jspdf.js";
     var yOffset = options.yOffset !== undefined ? options.yOffset : -2;
     var autoLink = options.noteId && options.link !== false;
     var refBaselineY = y + yOffset;
+
+    // Pin the landing position of the forward jump when the author states it.
+    // Seeded before the Note exists, so the note's own layout values do not
+    // overrule it (see seedDestinationOverride).
+    if (options.noteId) {
+      seedFootnoteDestination(
+        this,
+        options.noteId,
+        options.xNote,
+        options.yNote
+      );
+    }
 
     // Reference element carries /Ref -> Note (semantic); beginReference sets
     // refNoteId on the Reference element.
@@ -2193,6 +2337,37 @@ import { jsPDF } from "../jspdf.js";
   };
 
   /**
+   * Pin the landing position of a footnote forward jump ("note-<id>").
+   *
+   * Called from addFootnoteRef with the author-supplied xNote/yNote. The
+   * override is seeded into the destination registry (so it survives beginNote
+   * arming the same id) and registered eagerly so the destination name exists
+   * even if the Note is never created.
+   *
+   * @param {jsPDF} api
+   * @param {string} noteId
+   * @param {number} [x] - note X (user units)
+   * @param {number} [y] - note baseline Y (user units)
+   */
+  function seedFootnoteDestination(api, noteId, x, y) {
+    var noteX = toCoordinate(x);
+    var noteY = toCoordinate(y);
+    if (noteX === undefined && noteY === undefined) {
+      return;
+    }
+    var destName = "note-" + noteId;
+    seedDestinationOverride(api, noteId, destName, noteX, noteY);
+
+    if (api.addNamedDestination) {
+      api.addNamedDestination(destName, {
+        pageNumber: api.internal.getCurrentPageInfo().pageNumber,
+        top: footnoteDestTop(api, noteY !== undefined ? noteY : 0),
+        left: footnoteDestLeft(api, noteX !== undefined ? noteX : 0)
+      });
+    }
+  }
+
+  /**
    * Register a footnote reference for back-link generation and as a named
    * destination ("noteref-<id>") at the reference position.
    *
@@ -2208,12 +2383,14 @@ import { jsPDF } from "../jspdf.js";
     }
     var pageNumber = api.internal.getCurrentPageInfo().pageNumber;
 
-    // Back-link target: the reference position. Shift up by ~one line so the
-    // reference line lands fully in view.
+    // Back-link target: the reference position. Shifted up by ~one line and
+    // left by the same amount so the reference lands fully in view instead of
+    // at the left page edge (relevant with strong magnification).
     if (api.addNamedDestination) {
       api.addNamedDestination("noteref-" + noteId, {
         pageNumber: pageNumber,
-        top: footnoteDestTop(api, y)
+        top: footnoteDestTop(api, y),
+        left: footnoteDestLeft(api, x)
       });
     }
 
@@ -2222,8 +2399,64 @@ import { jsPDF } from "../jspdf.js";
       page: pageNumber,
       x: x,
       y: y,
+      // Shift captured with the reference's font size; the note is typically
+      // typeset smaller, so recomputing it later would understate the offset.
+      lineShift: destLineShift(api),
       label: label || noteId // Use label for back-link text, fallback to noteId
     });
+  }
+
+  /**
+   * (Re-)register the back-link destination ("noteref-<id>") for a recorded
+   * reference, optionally overriding its position.
+   *
+   * @param {jsPDF} api
+   * @param {Object} ref - entry from pdfuaFootnotes.pendingReferences
+   * @param {number} [x] - X override (user units), e.g. addFootnote's xRef
+   * @param {number} [y] - baseline Y override (user units), e.g. yRef
+   */
+  function registerNoteRefDestination(api, ref, x, y) {
+    if (!api.addNamedDestination) {
+      return;
+    }
+    var refX = toCoordinate(x);
+    var refY = toCoordinate(y);
+    if (refX === undefined) {
+      refX = ref.x;
+    }
+    if (refY === undefined) {
+      refY = ref.y;
+    }
+    var shift =
+      ref.lineShift !== undefined ? ref.lineShift : destLineShift(api);
+    var top = refY - shift;
+    var left = refX - shift;
+
+    api.addNamedDestination("noteref-" + ref.noteId, {
+      pageNumber: ref.page,
+      top: top > 0 ? top : 0,
+      left: left > 0 ? left : 0
+    });
+  }
+
+  /**
+   * Find the recorded reference that points at a given note.
+   *
+   * @param {jsPDF} api
+   * @param {string} noteId
+   * @returns {Object|null} the pendingReferences entry, or null
+   */
+  function findFootnoteReference(api, noteId) {
+    var footnotes = api.internal.pdfuaFootnotes;
+    if (!footnotes || !footnotes.pendingReferences) {
+      return null;
+    }
+    for (var i = 0; i < footnotes.pendingReferences.length; i++) {
+      if (footnotes.pendingReferences[i].noteId === noteId) {
+        return footnotes.pendingReferences[i];
+      }
+    }
+    return null;
   }
 
   /**
@@ -2255,7 +2488,11 @@ import { jsPDF } from "../jspdf.js";
    * @param {string} [options.placement] - 'Block' for block-level notes (footnotes/endnotes).
    *        Note is inline by default. Use 'Block' for footnotes at page bottom.
    *        Required by PAC for correct presentation in alternate formats.
-   * @param {number} [options.y] - Y position of the note (for link destination)
+   * @param {number} [options.y] - Y position of the note (for link destination).
+   *        Omit to derive it from the first content drawn inside the Note.
+   * @param {number} [options.x] - X position of the note (for link destination),
+   *        so the jump lands next to the note instead of at the left page edge.
+   *        Omit to derive it from the first content drawn inside the Note.
    * @param {boolean} [options.noBackLink] - Set to true to disable automatic back-link
    * @param {string|null|false} [options.announceText] - Custom announcement text for screen readers.
    *        Defaults to "Fußnote: " (German) or "Footnote: " (other languages).
@@ -2297,16 +2534,30 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
-    var hasExplicitY = options.y !== undefined && options.y !== null;
-    var noteTop = hasExplicitY ? options.y : 0;
+    var noteX = toCoordinate(options.x);
+    var noteY = toCoordinate(options.y);
+
+    // A landing position seeded by addFootnoteRef({ xNote, yNote }) wins over
+    // the note's own layout values, so the eager registration below does not
+    // undo it.
+    var seededEntry = (this.internal.structureDestinations || {})[noteId];
+    if (seededEntry && seededEntry.seeded) {
+      if (seededEntry.explicitX) {
+        noteX = seededEntry.x;
+      }
+      if (seededEntry.explicitY) {
+        noteY = seededEntry.baselineY;
+      }
+    }
 
     // Eagerly register the named destination so the link target name always
-    // exists. When no explicit y is given the real position is captured from
-    // the note's first content and this entry is refined at output time.
+    // exists. Whichever axis has no explicit value is captured from the note's
+    // first content and this entry is refined at output time.
     if (this.addNamedDestination) {
       this.addNamedDestination("note-" + noteId, {
         pageNumber: pageNumber,
-        top: footnoteDestTop(this, noteTop)
+        top: footnoteDestTop(this, noteY !== undefined ? noteY : 0),
+        left: footnoteDestLeft(this, noteX !== undefined ? noteX : 0)
       });
     }
 
@@ -2324,13 +2575,13 @@ import { jsPDF } from "../jspdf.js";
     var noteElem = this.internal.structureTree.currentParent;
     this.internal.pdfuaFootnotes.noteElements[noteId] = noteElem;
 
-    // Arm position capture for this note. options.y (the draw position) acts
-    // as an explicit override; without it the destination is auto-derived
-    // from the first content drawn inside the Note.
+    // Arm position capture for this note. options.x/options.y (the draw
+    // position) act as explicit overrides per axis; without them the
+    // destination is auto-derived from the first content drawn inside the Note.
     armDestinationCapture(this, noteElem, noteId, {
       destName: "note-" + noteId,
       x: options.x,
-      y: hasExplicitY ? options.y : undefined
+      y: options.y
     });
 
     // Screen reader announcement is disabled by default because:
@@ -2413,6 +2664,11 @@ import { jsPDF } from "../jspdf.js";
    * @param {number} [options.labelFontSize] - Font size for label (default: 80% of current)
    * @param {string} [options.placement] - 'Block' (default) or 'Inline'. Footnotes are block-level by default.
    * @param {boolean} [options.link=true] - Whether to auto-create a clickable link to the reference
+   * @param {number} [options.xRef] - X position the back-link jumps to (user
+   *        units). Pins the horizontal landing position of the back jump
+   *        instead of using the recorded reference position. Providing xRef or
+   *        yRef also creates the back-link for a reference on the same page.
+   * @param {number} [options.yRef] - Y baseline the back-link jumps to (user units)
    * @param {string|null|false} [options.announceText] - Custom SR announcement (default: auto)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    *
@@ -2435,6 +2691,17 @@ import { jsPDF } from "../jspdf.js";
    *   y: 275,
    *   lineHeight: 10
    * });
+   *
+   * // Footnote whose label links back to the exact reference position
+   * doc.addFootnote({
+   *   id: 'fn3',
+   *   label: '³',
+   *   text: 'Back-linked footnote.',
+   *   x: 25,
+   *   y: 280,
+   *   xRef: 120,
+   *   yRef: 50
+   * });
    */
   jsPDFAPI.addFootnote = function(options) {
     options = options || {};
@@ -2447,10 +2714,36 @@ import { jsPDF } from "../jspdf.js";
 
     this.beginNote({
       id: options.id,
+      // Landing position of the forward jump: the label is the leftmost part of
+      // the note, so the jump reveals the whole footnote. An xNote/yNote seeded
+      // by addFootnoteRef takes precedence over these.
+      x: labelX,
       y: options.y,
       placement: options.placement !== undefined ? options.placement : "Block", // Footnotes are block-level by default
       announceText: options.announceText
     });
+
+    var noteId = this.internal.pdfuaFootnotes.currentNoteId;
+
+    // Decide up front whether the label doubles as the back-link, so it is
+    // drawn exactly once (Note > Lbl > Link > text) instead of being
+    // overprinted by a second, separately tagged copy.
+    var hasRefOverride =
+      toCoordinate(options.xRef) !== undefined ||
+      toCoordinate(options.yRef) !== undefined;
+    var backRef =
+      autoLink && !this.internal.pdfuaFootnotes.currentNoteNoBackLink
+        ? findFootnoteReference(this, noteId)
+        : null;
+    // A same-page back-link is only created on request (via xRef/yRef): without
+    // magnification it has no visible effect, with magnification it does.
+    if (
+      backRef &&
+      backRef.page === this.internal.getCurrentPageInfo().pageNumber &&
+      !hasRefOverride
+    ) {
+      backRef = null;
+    }
 
     // Lbl element
     var originalFontSize = this.getFontSize();
@@ -2458,7 +2751,17 @@ import { jsPDF } from "../jspdf.js";
 
     this.beginStructureElement("Lbl");
     this.setFontSize(labelFontSize);
-    this.text(options.label, labelX, options.y);
+    if (backRef) {
+      registerNoteRefDestination(this, backRef, options.xRef, options.yRef);
+      this.beginLink({
+        destinationName: "noteref-" + backRef.noteId,
+        linkText: getFootnoteText(this, "back")
+      });
+      this.text(options.label, labelX, options.y);
+      this.endLink(); // emits the back-link annotation + OBJR
+    } else {
+      this.text(options.label, labelX, options.y);
+    }
     this.setFontSize(originalFontSize);
     this.endStructureElement(); // /Lbl
 
@@ -2471,10 +2774,6 @@ import { jsPDF } from "../jspdf.js";
     }
     this.endStructureElement(); // /P
 
-    if (autoLink) {
-      this.addNoteBackLink(labelX, options.y);
-    }
-
     this.endNote();
 
     return this;
@@ -2486,9 +2785,16 @@ import { jsPDF } from "../jspdf.js";
    *
    * @param {number} x - X coordinate for back-link
    * @param {number} y - Y coordinate for back-link
+   * @param {Object} [options] - Optional settings
+   * @param {number} [options.xRef] - X position the back-link jumps to (user
+   *        units); defaults to the recorded reference X. Providing xRef or yRef
+   *        also creates the back-link for a reference on the same page.
+   * @param {number} [options.yRef] - Y baseline the back-link jumps to (user units)
    * @returns {jsPDF} - Returns jsPDF instance for method chaining
    */
-  jsPDFAPI.addNoteBackLink = function(x, y) {
+  jsPDFAPI.addNoteBackLink = function(x, y, options) {
+    options = options || {};
+
     if (
       !this.internal.pdfuaFootnotes ||
       !this.internal.pdfuaFootnotes.currentNoteId
@@ -2497,32 +2803,28 @@ import { jsPDF } from "../jspdf.js";
     }
 
     var noteId = this.internal.pdfuaFootnotes.currentNoteId;
-
-    // Find the reference that points to this note
-    var ref = null;
-    for (
-      var i = 0;
-      i < this.internal.pdfuaFootnotes.pendingReferences.length;
-      i++
-    ) {
-      if (this.internal.pdfuaFootnotes.pendingReferences[i].noteId === noteId) {
-        ref = this.internal.pdfuaFootnotes.pendingReferences[i];
-        break;
-      }
-    }
+    var ref = findFootnoteReference(this, noteId);
 
     if (!ref) {
       return this; // No reference found for this note
     }
 
     var pageNumber = this.internal.getCurrentPageInfo().pageNumber;
+    var hasRefOverride =
+      toCoordinate(options.xRef) !== undefined ||
+      toCoordinate(options.yRef) !== undefined;
 
-    // Only create back-links for cross-page references (same page has no effect)
-    if (pageNumber === ref.page) {
+    // Same-page back-links are only created on request (via xRef/yRef): they
+    // are pointless at full page view but do help under magnification.
+    if (pageNumber === ref.page && !hasRefOverride) {
       return this; // Skip same-page back-links entirely (no text, no link)
     }
 
     var label = ref.label;
+
+    // Pin/refresh the jump target so the reader lands at the reference's X and
+    // Y instead of the left page edge.
+    registerNoteRefDestination(this, ref, options.xRef, options.yRef);
 
     // Render the back-link label (small, superscript-like) on the unified link
     // path: Link > Text with the annotation + OBJR emitted by endLink. The

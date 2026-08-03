@@ -543,6 +543,9 @@ import { jsPDF } from "../jspdf.js";
 
       var getVerticalCoordinateString = this.internal
         .getVerticalCoordinateString;
+      // options.left is given in user units, just like options.top, so it has
+      // to be scaled to PDF points as well.
+      var getHorizontalCoordinateString = this.internal.getCoordinateString;
 
       // Write destination objects
       var destObjIds = {};
@@ -562,13 +565,13 @@ import { jsPDF } from "../jspdf.js";
             destArray += " /FitH " + getVerticalCoordinateString(dest.top);
             break;
           case "FitV":
-            destArray += " /FitV " + dest.left;
+            destArray += " /FitV " + getHorizontalCoordinateString(dest.left);
             break;
           case "XYZ":
           default:
             destArray +=
               " /XYZ " +
-              dest.left +
+              getHorizontalCoordinateString(dest.left) +
               " " +
               getVerticalCoordinateString(dest.top) +
               " " +
